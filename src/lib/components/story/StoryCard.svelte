@@ -91,48 +91,36 @@ function handleReadClick(e: Event) {
 
 
 
-// Scroll to story when expanded
+// Scroll to story when expanded - Fixed to prevent scrolling to wrong article
 $effect(() => {
 	if (isExpanded && browser && storyElement) {
 		// Small delay to ensure the content is rendered
 		setTimeout(() => {
-			// Calculate dynamic header height and offsets
-			const headerEl = document.querySelector('header') || document.querySelector('nav');
-			const headerHeight = headerEl ? headerEl.offsetHeight : 60;
+			// Get the story element's position
+			const rect = storyElement.getBoundingClientRect();
+			const currentScrollY = window.pageYOffset;
 			
-			// Mobile vs desktop offsets - smaller offset for more precise positioning
-			const isMobile = window.innerWidth <= 768;
-			const extraOffset = isMobile ? 8 : 12;
+			// Only scroll if the story is not already in view
+			const viewportHeight = window.innerHeight;
+			const storyTop = rect.top;
 			
-			// Find the category element within this story for precise positioning
-			const categoryElement = storyElement.querySelector('.category-label');
+			// Check if story is already properly visible (not cut off)
+			const isVisible = storyTop >= 0 && storyTop < viewportHeight * 0.3;
 			
-			let rect;
-			let elementTop;
-			
-			if (categoryElement) {
-				// Use the category element directly for most precise positioning
-				rect = categoryElement.getBoundingClientRect();
-				elementTop = window.pageYOffset + rect.top - 28;
-			} else throw new Error('Category element not found');
-			
-			// Calculate the ideal scroll position to show the category nicely below the header
-			const idealScrollPosition = elementTop - headerHeight - extraOffset;
-			
-			// Check if the category is properly positioned below the header
-			const requiredMargin = headerHeight + extraOffset;
-			const isProperlyVisible = rect.top >= requiredMargin && rect.top <= requiredMargin + 20;
-			
-			// Only scroll if not properly positioned
-			if (!isProperlyVisible) {
-				const finalScrollPosition = Math.max(0, idealScrollPosition);
+			if (!isVisible) {
+				// Calculate header height
+				const headerEl = document.querySelector('header') || document.querySelector('nav');
+				const headerHeight = headerEl ? headerEl.offsetHeight : 60;
+				
+				// Scroll to show the story title with some padding
+				const targetY = currentScrollY + storyTop - headerHeight - 20;
 				
 				window.scrollTo({
-					top: finalScrollPosition,
+					top: Math.max(0, targetY),
 					behavior: 'smooth'
 				});
 			}
-		}, 150);
+		}, 100);
 	}
 });
 </script>

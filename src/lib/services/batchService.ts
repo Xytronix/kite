@@ -47,10 +47,10 @@ class BatchService {
 			let batchId: string;
 			let batchCreatedAt: string;
 			let totalReadCount: number = 0;
-			
+
 			// Step 1: Get the batch (either time travel or latest)
 			const currentBatchId = this.getCurrentBatchId();
-			
+
 			// If we already have batch info provided, use it to avoid duplicate API call
 			if (providedBatchInfo && providedBatchInfo.id === currentBatchId) {
 				console.log('🚀 Using provided batch info, skipping API call');
@@ -82,7 +82,7 @@ class BatchService {
 				batchCreatedAt = batch.createdAt;
 				totalReadCount = batch.totalReadCount || 0;
 			}
-			
+
 			// Step 2: Get categories for that batch with language parameter
 			const response = await fetch(
 				`${this.baseUrl}/batches/${batchId}/categories?lang=${language}`,
@@ -91,10 +91,10 @@ class BatchService {
 				throw new Error(`Failed to load categories: ${response.statusText}`);
 			}
 			const data = await response.json();
-			
+
 			// Create a mapping of categoryId to UUID
 			const categoryMap: Record<string, string> = {};
-			
+
 			// Transform the response to match the expected Category interface
 			const categories: Category[] = data.categories.map((cat: any) => {
 				categoryMap[cat.categoryId] = cat.id; // Store the UUID mapping
@@ -103,7 +103,7 @@ class BatchService {
 					name: cat.categoryName,
 				};
 			});
-			
+
 			// Add OnThisDay as a special category if available
 			if (data.hasOnThisDay) {
 				categories.push({
@@ -112,7 +112,7 @@ class BatchService {
 				});
 				// Note: OnThisDay doesn't need a UUID mapping as it uses a different endpoint
 			}
-			
+
 			// Step 3: Load chaos index for this batch
 			let chaosData = null;
 			try {
@@ -126,10 +126,10 @@ class BatchService {
 				console.warn('Failed to load chaos index:', error);
 				// Continue without chaos index
 			}
-			
-			return { 
+
+			return {
 				batchId,
-				categories, 
+				categories,
 				categoryMap,
 				timestamp: new Date(batchCreatedAt).getTime() / 1000,
 				hasOnThisDay: data.hasOnThisDay || false,

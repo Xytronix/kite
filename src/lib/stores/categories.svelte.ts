@@ -257,11 +257,11 @@ export const categories = {
         ...categoriesState.disabled,
         ...newDisabledCategories,
       ];
-      
+
       // Enable OnThisDay if it's new and available
-      if (allCategoryIds.includes('onthisday') && 
-          !categoriesState.enabled.includes('onthisday') && 
-          !categoriesState.disabled.includes('onthisday')) {
+      if (allCategoryIds.includes('onthisday') &&
+        !categoriesState.enabled.includes('onthisday') &&
+        !categoriesState.disabled.includes('onthisday')) {
         categoriesState.enabled.push('onthisday');
       }
     }
@@ -279,13 +279,13 @@ export const categories = {
   addTemporary(categoryId: string) {
     const normalizedId = normalizeToId(categoryId);
     if (!isValidCategory(normalizedId)) return;
-    
+
     // Don't add if already enabled
     if (categoriesState.enabled.includes(normalizedId)) return;
-    
+
     console.log('Adding temporary category:', normalizedId);
     categoriesState.temporaryCategory = normalizedId;
-    
+
     // Add to enabled temporarily (don't save to storage)
     const orderIndex = categoriesState.order.indexOf(normalizedId);
     const insertIndex = categoriesState.enabled.findIndex(
@@ -305,14 +305,14 @@ export const categories = {
 
   removeTemporary() {
     if (!categoriesState.temporaryCategory) return;
-    
+
     console.log('Removing temporary category:', categoriesState.temporaryCategory);
-    
+
     // Remove from enabled
     categoriesState.enabled = categoriesState.enabled.filter(
       (cat) => cat !== categoriesState.temporaryCategory,
     );
-    
+
     categoriesState.temporaryCategory = null;
     // Don't save to storage - just restoring to saved state
   },
