@@ -1035,6 +1035,10 @@
         "text": "Content Filter",
         "translationContext": "Title for the content filter settings tab"
     },
+    "settings.tabs.smartFilter": {
+        "text": "Smart Filter",
+        "translationContext": "Title for the smart filter settings tab"
+    },
     "settings.tabs.experimental": {
         "text": "Experimental",
         "translationContext": "Title for the experimental settings tab"
@@ -1362,5 +1366,233 @@
     "worldTension.whatIsThis": {
         "text": "What is this?",
         "translationContext": "Button text to show explanation of world tension"
+    },
+    "smartFilter.adjustFilters": {
+        "text": "Adjust filters",
+        "translationContext": "Button text to go to smart filter settings"
+    },
+    "smartFilter.allStoriesFiltered": {
+        "text": "All stories in this category were filtered",
+        "translationContext": "Message when all stories in a category are filtered by smart filters"
+    },
+    "smartFilter.allStoriesFilteredDescription": {
+        "text": "Your smart filters have hidden all stories in this category for today.",
+        "translationContext": "Description when all stories are filtered"
+    },
+    "smartFilter.disableFiltering": {
+        "text": "Disable smart filtering",
+        "translationContext": "Button text to disable smart filtering"
+    },
+    "smartFilter.storyFiltered": {
+        "text": "{{count}} story filtered by smart filters",
+        "translationContext": "Message for single story filtered count"
+    },
+    "smartFilter.storiesFiltered": {
+        "text": "{{count}} stories filtered by smart filters",
+        "translationContext": "Message for multiple stories filtered count"
+    },
+    "settings.smartFilter.title": {
+        "text": "Smart Content Filter",
+        "translationContext": "Title for smart filter settings section"
+    },
+    "settings.smartFilter.description": {
+        "text": "AI-powered content filtering using algorithms to analyze relevance, quality, and sentiment instead of simple keyword matching.",
+        "translationContext": "Description of smart filter functionality"
+    },
+    "settings.smartFilter.enableTitle": {
+        "text": "Enable Smart Filtering",
+        "translationContext": "Title for smart filter enable toggle"
+    },
+    "settings.smartFilter.enableDescription": {
+        "text": "Automatically filter low-quality, irrelevant, or unwanted content using AI analysis",
+        "translationContext": "Description for smart filter enable toggle"
+    },
+    "settings.smartFilter.contentTypes": {
+        "text": "Content Type Filters",
+        "translationContext": "Section title for content type filter preferences"
+    },
+    "settings.smartFilter.contentTypesDescription": {
+        "text": "Choose which types of content to filter out automatically",
+        "translationContext": "Description for content type filters section"
+    },
+    "settings.smartFilter.filterPolitics": {
+        "text": "Political Content",
+        "translationContext": "Label for politics filter option"
+    },
+    "settings.smartFilter.filterPoliticsDesc": {
+        "text": "Filter political news and partisan content",
+        "translationContext": "Description for politics filter"
+    },
+    "settings.smartFilter.filterNegative": {
+        "text": "Negative News",
+        "translationContext": "Label for negative news filter option"
+    },
+    "settings.smartFilter.filterNegativeDesc": {
+        "text": "Filter depressing or distressing content",
+        "translationContext": "Description for negative news filter"
+    },
+    "settings.smartFilter.filterLowQuality": {
+        "text": "Low Quality Content",
+        "translationContext": "Label for low quality filter option"
+    },
+    "settings.smartFilter.filterLowQualityDesc": {
+        "text": "Filter clickbait, spam, and poor journalism",
+        "translationContext": "Description for low quality filter"
+    },
+    "settings.smartFilter.filterViolence": {
+        "text": "Violent Content",
+        "translationContext": "Label for violence filter option"
+    },
+    "settings.smartFilter.filterViolenceDesc": {
+        "text": "Filter violence, crime, and disturbing content",
+        "translationContext": "Description for violence filter"
+    },
+    "settings.smartFilter.filterCelebrity": {
+        "text": "Celebrity News",
+        "translationContext": "Label for celebrity filter option"
+    },
+    "settings.smartFilter.filterCelebrityDesc": {
+        "text": "Filter celebrity gossip and entertainment news",
+        "translationContext": "Description for celebrity filter"
+    },
+    "settings.smartFilter.advanced": {
+        "text": "Advanced Settings",
+        "translationContext": "Title for advanced smart filter settings"
+    },
+    "settings.smartFilter.advancedDescription": {
+        "text": "Fine-tune the algorithmic scoring thresholds. Higher values = stricter filtering.",
+        "translationContext": "Description for advanced settings section"
+    },
+    "settings.smartFilter.minimumRelevance": {
+        "text": "Minimum Relevance",
+        "translationContext": "Label for relevance threshold slider"
+    },
+    "settings.smartFilter.relevanceTooltip": {
+        "text": "How relevant the content must be to your interests",
+        "translationContext": "Tooltip for relevance setting"
+    },
+    "settings.smartFilter.minimumQuality": {
+        "text": "Minimum Quality",
+        "translationContext": "Label for quality threshold slider"
+    },
+    "settings.smartFilter.qualityTooltip": {
+        "text": "How high-quality the journalism and writing must be",
+        "translationContext": "Tooltip for quality setting"
+    },
+    "settings.smartFilter.minimumSentiment": {
+        "text": "Minimum Sentiment",
+        "translationContext": "Label for sentiment threshold slider"
+    },
+    "settings.smartFilter.sentimentTooltip": {
+        "text": "How positive or neutral the content sentiment must be",
+        "translationContext": "Tooltip for sentiment setting"
+    },
+    "settings.smartFilter.statistics": {
+        "text": "Filter Statistics",
+        "translationContext": "Title for filter statistics section"
+    },
+    "settings.smartFilter.totalProcessed": {
+        "text": "Stories Processed",
+        "translationContext": "Label for total stories processed stat"
+    },
+    "settings.smartFilter.filtered": {
+        "text": "Stories Filtered",
+        "translationContext": "Label for stories filtered stat"
+    },
+    "settings.smartFilter.filterRate": {
+        "text": "Filter Rate",
+        "translationContext": "Label for filter rate percentage stat"
+    },
+    "settings.smartFilter.reset": {
+        "text": "Reset Settings",
+        "translationContext": "Title for reset settings section"
+    },
+    "settings.smartFilter.resetDescription": {
+        "text": "Reset all smart filter settings to their default values.",
+        "translationContext": "Description for reset functionality"
+    },
+    "settings.smartFilter.resetConfirm": {
+        "text": "Are you sure you want to reset all smart filter settings to defaults?",
+        "translationContext": "Confirmation message for resetting settings"
+    },
+    "settings.smartFilter.confirmReset": {
+        "text": "Yes, Reset",
+        "translationContext": "Confirm button for reset action"
+    },
+    "settings.smartFilter.resetButton": {
+        "text": "Reset to Defaults",
+        "translationContext": "Button text to initiate reset"
+    },
+    "settings.smartFilter.filterSports": {
+        "text": "Sports Coverage",
+        "translationContext": "Label for sports filter option"
+    },
+    "settings.smartFilter.filterSportsDesc": {
+        "text": "Filter all sports news, scores, and coverage",
+        "translationContext": "Description for sports filter"
+    },
+    "settings.smartFilter.filterFinancial": {
+        "text": "Financial News",
+        "translationContext": "Label for financial news filter option"
+    },
+    "settings.smartFilter.filterFinancialDesc": {
+        "text": "Filter stock market, earnings, and corporate financial news",
+        "translationContext": "Description for financial news filter"
+    },
+    "settings.smartFilter.filterEntertainment": {
+        "text": "Entertainment Industry",
+        "translationContext": "Label for entertainment industry filter option"
+    },
+    "settings.smartFilter.filterEntertainmentDesc": {
+        "text": "Filter movie, TV, and music industry news",
+        "translationContext": "Description for entertainment industry filter"
+    },
+    "settings.smartFilter.filterTechnology": {
+        "text": "Technology News",
+        "translationContext": "Label for technology news filter option"
+    },
+    "settings.smartFilter.filterTechnologyDesc": {
+        "text": "Filter tech company news and product launches",
+        "translationContext": "Description for technology news filter"
+    },
+    "settings.smartFilter.filterOpinions": {
+        "text": "Opinion Pieces",
+        "translationContext": "Label for opinion pieces filter option"
+    },
+    "settings.smartFilter.filterOpinionsDesc": {
+        "text": "Filter editorials and commentary, keep factual reporting",
+        "translationContext": "Description for opinion pieces filter"
+    },
+    "settings.smartFilter.filterAnxietyInducing": {
+        "text": "Anxiety-Inducing Content",
+        "translationContext": "Label for anxiety-inducing content filter option"
+    },
+    "settings.smartFilter.filterAnxietyInducingDesc": {
+        "text": "Filter disaster coverage and doomsday scenarios",
+        "translationContext": "Description for anxiety-inducing content filter"
+    },
+    "settings.smartFilter.filterSocialMediaDrama": {
+        "text": "Social Media Drama",
+        "translationContext": "Label for social media drama filter option"
+    },
+    "settings.smartFilter.filterSocialMediaDramaDesc": {
+        "text": "Filter Twitter feuds and online controversies",
+        "translationContext": "Description for social media drama filter"
+    },
+    "settings.smartFilter.filterPromotional": {
+        "text": "Promotional Content",
+        "translationContext": "Label for promotional content filter option"
+    },
+    "settings.smartFilter.filterPromotionalDesc": {
+        "text": "Filter press releases and marketing disguised as news",
+        "translationContext": "Description for promotional content filter"
+    },
+    "smartFilter.filteredBecause": {
+        "text": "Hidden due to filter:",
+        "translationContext": "Label shown when story is filtered by smart filters"
+    },
+    "smartFilter.clickToReveal": {
+        "text": "Click to show",
+        "translationContext": "Instruction text for revealing filtered story"
     }
 }

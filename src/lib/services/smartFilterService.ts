@@ -6,6 +6,14 @@ export interface FilterPreferences {
     filterLowQuality: boolean;
     filterViolence: boolean;
     filterCelebrity: boolean;
+    filterSports: boolean;
+    filterFinancial: boolean;
+    filterEntertainment: boolean;
+    filterTechnology: boolean;
+    filterOpinions: boolean;
+    filterAnxietyInducing: boolean;
+    filterSocialMediaDrama: boolean;
+    filterPromotional: boolean;
     minimumRelevance: number;
     minimumQuality: number;
     minimumSentiment: number;
@@ -19,6 +27,14 @@ export class SmartFilterService {
         filterLowQuality: true,
         filterViolence: true,
         filterCelebrity: false,
+        filterSports: false,
+        filterFinancial: false,
+        filterEntertainment: false,
+        filterTechnology: false,
+        filterOpinions: false,
+        filterAnxietyInducing: false,
+        filterSocialMediaDrama: true,
+        filterPromotional: true,
         minimumRelevance: 0.3,
         minimumQuality: 0.2,
         minimumSentiment: 0.2

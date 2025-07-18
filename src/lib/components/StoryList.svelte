@@ -3,8 +3,8 @@ import { s } from '$lib/client/localization.svelte';
 import StoryCard from './story/StoryCard.svelte';
 import type { Story } from '$lib/types';
 import { storyCount } from '$lib/stores/storyCount.svelte.js';
-import { contentFilter } from '$lib/stores/contentFilter.svelte.js';
-import { filterStories, type FilteredStory } from '$lib/utils/contentFilter';
+import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
+import type { FilteredStory } from '$lib/utils/contentFilter';
 
 // Props
 interface Props {
@@ -60,19 +60,14 @@ const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
 	// First apply story count limit
 	const limitedStories = stories.slice(0, storyCount.current);
 	
-	// Then apply content filtering if active (has keywords)
-	if (contentFilter.isActive) {
-		const result = filterStories(
-			limitedStories,
-			contentFilter.keywords,
-			contentFilter.filterScope,
-			contentFilter.filterMode
-		);
+	// Then apply smart content filtering if enabled
+	if (smartContentFilter.isEnabled) {
+		const result = smartContentFilter.filterStories(limitedStories);
 		
 		return {
 			displayedStories: result.filtered as FilteredStory[],
-			filteredCount: result.filteredCount,
-			hiddenStories: result.hidden
+			filteredCount: result.removed.length,
+			hiddenStories: result.removed.map(r => r.story)
 		};
 	}
 	
@@ -92,28 +87,28 @@ const allStoriesRead = $derived(
 <div class="story-list">
 	{#if displayedStories.length === 0}
 		<div class="py-8 text-center text-gray-500 dark:text-gray-400">
-			{#if contentFilter.isActive && filteredCount > 0 && contentFilter.filterMode === 'hide'}
-				<!-- All stories filtered message -->
-				<p class="text-base font-medium mb-2">
-					{s('contentFilter.allStoriesFiltered') || 'All stories in this category were filtered'}
-				</p>
-				<p class="text-sm mb-4">
-					{s('contentFilter.allStoriesFilteredDescription') || 'Your content filters have hidden all stories in this category for today.'}
-				</p>
-				<div class="flex flex-col sm:flex-row gap-2 justify-center">
-					<button
-						onclick={() => window.location.href = '#settings/contentFilter'}
-						class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-					>
-						{s('contentFilter.adjustFilters') || 'Adjust filters'}
-					</button>
-					<button
-						onclick={() => window.location.href = '#settings/categories'}
-						class="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-					>
-						{s('contentFilter.disableCategory') || 'Disable category'}
-					</button>
-				</div>
+					{#if smartContentFilter.isEnabled && filteredCount > 0}
+			<!-- All stories filtered message -->
+			<p class="text-base font-medium mb-2">
+				{s('smartFilter.allStoriesFiltered') || 'All stories in this category were filtered'}
+			</p>
+			<p class="text-sm mb-4">
+				{s('smartFilter.allStoriesFilteredDescription') || 'Your smart filters have hidden all stories in this category for today.'}
+			</p>
+			<div class="flex flex-col sm:flex-row gap-2 justify-center">
+				<button
+					onclick={() => window.location.href = '#settings/smartFilter'}
+					class="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+				>
+					{s('smartFilter.adjustFilters') || 'Adjust filters'}
+				</button>
+				<button
+					onclick={() => smartContentFilter.toggleEnabled()}
+					class="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				>
+					{s('smartFilter.disableFiltering') || 'Disable smart filtering'}
+				</button>
+			</div>
 			{:else}
 				<p>{s('stories.noStories') || 'No stories available for this category.'}</p>
 				<!-- Migration Notice (temporary) -->
@@ -127,7 +122,7 @@ const allStoriesRead = $derived(
 		</div>
 	{:else}
 		{#each displayedStories as story, index (story.cluster_number || story.title)}
-			{@const isFiltered = contentFilter.filterMode === 'blur' && story._filtered}
+			{@const isFiltered = false}
 			<StoryCard 
 				{story}
 				storyIndex={index}
@@ -149,18 +144,12 @@ const allStoriesRead = $derived(
 		{/each}
 		
 		<!-- Filtered stories notification -->
-		{#if contentFilter.isActive && filteredCount > 0 && contentFilter.showFilteredCount}
+		{#if smartContentFilter.isEnabled && filteredCount > 0}
 			<div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
 				<p>
-					{#if contentFilter.filterMode === 'hide'}
-						{filteredCount === 1 
-							? s('contentFilter.storyHidden', { count: filteredCount.toString() })
-							: s('contentFilter.storiesHidden', { count: filteredCount.toString() })}
-					{:else}
-						{filteredCount === 1 
-							? s('contentFilter.storyFiltered', { count: filteredCount.toString() })
-							: s('contentFilter.storiesFiltered', { count: filteredCount.toString() })}
-					{/if}
+					{filteredCount === 1 
+						? s('smartFilter.storyFiltered', { count: filteredCount.toString() }) || `${filteredCount} story filtered by smart filters`
+						: s('smartFilter.storiesFiltered', { count: filteredCount.toString() }) || `${filteredCount} stories filtered by smart filters`}
 				</p>
 			</div>
 		{/if}

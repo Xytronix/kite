@@ -7,7 +7,7 @@ import SettingsCategories from './settings/SettingsCategories.svelte';
 import SettingsSections from './settings/SettingsSections.svelte';
 import SettingsExperimental from './settings/SettingsExperimental.svelte';
 import SettingsImagePreloading from './settings/SettingsImagePreloading.svelte';
-import SettingsContentFilter from './settings/SettingsContentFilter.svelte';
+import SettingsSmartFilter from './settings/SettingsSmartFilter.svelte';
 import type { Category } from '$lib/types';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
@@ -218,7 +218,7 @@ const tabs = $derived([
 	{ id: 'general', labelKey: 'settings.tabs.general', fallback: 'General' },
 	{ id: 'categories', labelKey: 'settings.tabs.categories', fallback: 'Categories' },
 	{ id: 'sections', labelKey: 'settings.tabs.sections', fallback: 'Sections' },
-	{ id: 'contentFilter', labelKey: 'settings.tabs.contentFilter', fallback: 'Content Filter' },
+			{ id: 'smartFilter', labelKey: 'settings.tabs.smartFilter', fallback: 'Smart Filter' },
 	{ id: 'experimental', labelKey: 'settings.tabs.experimental', fallback: 'Experimental' },
 	...(showPreloadingTab ? [{ id: 'preloading', labelKey: '', fallback: 'Preloading (Debug)' }] : [])
 ]);
@@ -309,8 +309,8 @@ const tabs = $derived([
 					<SettingsCategories {categories} />
 				{:else if activeTab === 'sections'}
 					<SettingsSections />
-				{:else if activeTab === 'contentFilter'}
-					<SettingsContentFilter />
+						{:else if activeTab === 'smartFilter'}
+			<SettingsSmartFilter />
 				{:else if activeTab === 'experimental'}
 					<SettingsExperimental />
 				{:else if activeTab === 'preloading'}

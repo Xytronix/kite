@@ -184,7 +184,7 @@ $effect(() => {
 	{#if isBlurred && filterKeywords && filterKeywords.length > 0}
 		<div class="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex items-center gap-3 px-4">
 			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('contentFilter.filteredBecause') || 'Hidden due to filter:'}
+				{s('smartFilter.filteredBecause') || 'Hidden due to filter:'}
 			</span>
 			<div class="flex items-center gap-2">
 				{#each filterKeywords.slice(0, 3) as keyword}
@@ -199,7 +199,7 @@ $effect(() => {
 				{/if}
 			</div>
 			<span class="text-xs text-gray-600 dark:text-gray-400 italic">
-				{s('contentFilter.clickToReveal') || 'Click to show'}
+				{s('smartFilter.clickToReveal') || 'Click to show'}
 			</span>
 		</div>
 	{/if}
