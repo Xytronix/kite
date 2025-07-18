@@ -3865,5 +3865,53 @@
     "description": "Swiss German- and French-language online newspaper published by CH Media that targets mobile users",
     "owner": "CH Regionalmedien AG",
     "typology": "Private Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "Yleisradio (YLE)",
+    "domains": ["yle.fi"],
+    "description": "Yleisradio Oy (YLE) is Finland's national public broadcasting company, providing television, radio, and digital content services. It is Finland's largest media company and is funded primarily through a broadcasting tax (YLE tax). YLE operates several television and radio channels in Finnish, Swedish, and Sami languages, serving Finland's multilingual population.",
+    "owner": "Finnish Government",
+    "typology": "State Funded Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "Helsingin Sanomat",
+    "domains": ["hs.fi"],
+    "description": "Helsingin Sanomat is Finland's largest subscription newspaper and the Nordic countries' largest daily newspaper. Founded in 1889, it is based in Helsinki and covers national and international news, politics, business, culture, and sports. The newspaper maintains Finland's highest circulation and is considered the country's newspaper of record.",
+    "owner": "Sanoma Corporation",
+    "typology": "Private Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "Ilta-Sanomat",
+    "domains": ["is.fi"],
+    "description": "Ilta-Sanomat is Finland's largest tabloid newspaper, published by Sanoma. Founded in 1932, it is an afternoon and evening paper that covers general news, entertainment, sports, and celebrity content. Despite its tabloid format, it also provides substantial coverage of domestic and international news.",
+    "owner": "Sanoma Corporation",
+    "typology": "Private Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "Suomen Kuvalehti",
+    "domains": ["suomenkuvalehti.fi"],
+    "description": "Suomen Kuvalehti is Finland's leading weekly news magazine, established in 1916. It provides in-depth analysis and coverage of politics, society, culture, and current affairs. The magazine is known for its investigative journalism and comprehensive feature articles about Finnish and international events.",
+    "owner": "Otavamedia",
+    "typology": "Private Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "MTV Uutiset",
+    "domains": ["mtvuutiset.fi"],
+    "description": "MTV Uutiset is the news division of MTV (Mainos-TV), Finland's first commercial television channel. It provides 24-hour news coverage through its website and television broadcasts, covering domestic and international news, sports, weather, and current affairs. MTV Uutiset is one of Finland's major commercial news providers.",
+    "owner": "MTV Oy (Telia Company)",
+    "typology": "Private Media"
+  },
+  {
+    "country": "Finland",
+    "organization": "Kauppalehti",
+    "domains": ["kauppalehti.fi"],
+    "description": "Kauppalehti is Finland's leading business and financial newspaper, established in 1898. It provides comprehensive coverage of business news, financial markets, economics, and corporate developments in Finland and internationally. The publication serves as the primary source of business news for Finnish professionals and investors.",
+    "owner": "Alma Media Corporation",
+    "typology": "Private Media"
   }
 ]

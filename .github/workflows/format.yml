@@ -15,11 +15,11 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install prettier and plugins
-        run: bun add -g prettier prettier-plugin-tailwindcss @trivago/prettier-plugin-sort-imports
+      - name: Install dependencies
+        run: bun install
 
       - name: Check formatting
-        run: prettier --check './src/**/*.{html,js,ts,svelte,css}'
+        run: bunx prettier --check './src/**/*.{html,js,ts,svelte,css}'
 
       - name: Comment on PR if formatting issues found
         if: failure()
