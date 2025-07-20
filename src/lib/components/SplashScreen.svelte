@@ -7,21 +7,27 @@ import { onMount } from 'svelte';
 interface Props {
 	showProgress?: boolean;
 	progress?: number;
+	countdownPercentage?: number;
 	stage?: string;
 	hasError?: boolean;
 	errorMessage?: string;
+	timestampMessage?: { text: string; boldPart: string } | null;
 	forceBounce?: boolean;
 	keepColor?: boolean;
+	isMaintenance?: boolean;
 }
 
 const { 
 	showProgress = false, 
 	progress = 0, 
+	countdownPercentage = 0,
 	stage = '', 
 	hasError = false, 
 	errorMessage = '',
+	timestampMessage = null,
 	forceBounce = false,
-	keepColor = false
+	keepColor = false,
+	isMaintenance = false
 }: Props = $props();
 
 // Smooth animated progress counter
@@ -130,18 +136,29 @@ onMount(() => {
 		
 		{#if hasError}
 			<div class="mt-4 text-center">
-				<p class="text-red-500 dark:text-red-400 font-medium">
+				<p class="{isMaintenance ? 'font-medium' : 'text-red-500 dark:text-red-400 font-medium'}" style="{isMaintenance ? 'color: #FFB102;' : ''}">
 					{errorMessage || 'An error occurred'}
 				</p>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					{s('loading.errorFallback') || 'Continuing with limited functionality...'}
-				</p>
+				{#if timestampMessage}
+					<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+						We will be back 
+						{#if timestampMessage.boldPart}
+							{@html timestampMessage.text.replace(timestampMessage.boldPart, `<strong>${timestampMessage.boldPart}</strong>`)}
+						{:else}
+							{timestampMessage.text}
+						{/if}. Thanks for your patience!
+					</p>
+				{:else if !isMaintenance}
+					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+						{s('loading.errorFallback') || 'Continuing with limited functionality...'}
+					</p>
+				{/if}
 			</div>
 		{:else if showProgress}
 			<div class="mt-4 text-center">
-				<!-- Smooth percentage counter -->
+				<!-- Countdown percentage counter -->
 				<p class="text-xl text-gray-600 dark:text-gray-400">
-					{Math.round(displayProgress)}%
+					{Math.round(countdownPercentage || displayProgress)}%
 				</p>
 				
 				<!-- Loading stage -->
