@@ -1,4 +1,6 @@
 // Advanced topic extraction using TF-IDF and other algorithms
+import { getStopWords } from './stopWords';
+
 export interface TopicCandidate {
 	term: string;
 	score: number;
@@ -8,12 +10,18 @@ export interface TopicCandidate {
 }
 
 export class TopicExtractor {
-	private stopWords = new Set([
-		// Minimal essential stop words only
-		'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-		'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'will', 'would', 'could',
-		'this', 'that', 'these', 'those', 'said', 'says', 'new', 'news', 'report', 'today'
-	]);
+	private stopWords: Set<string>;
+
+	constructor(private lang: string = 'en') {
+		// Initialize stop-word set with language-specific core list plus domain additions
+		this.stopWords = new Set<string>([
+			...getStopWords(lang),
+			'said', 'says', 'new', 'news', 'report', 'reports', 'reported', 'update',
+			'video', 'photo', 'image',
+			'from', 'after', 'before', 'another',
+			'spring', 'summer', 'autumn', 'fall', 'winter',
+		]);
+	}
 
 	/**
 	 * Extract topics using TF-IDF algorithm
@@ -177,7 +185,12 @@ export class TopicExtractor {
 		});
 
 		return Array.from(allTopics.values())
-			.filter(topic => topic.confidence > 0.3) // Filter low-confidence topics
+			// Remove low-confidence, stop-word or very short entries
+			.filter(topic =>
+				topic.confidence > 0.3 &&
+				topic.term.length > 3 &&
+				!this.stopWords.has(topic.term.toLowerCase())
+			)
 			.sort((a, b) => b.score - a.score)
 			.slice(0, 20);
 	}
@@ -186,11 +199,14 @@ export class TopicExtractor {
 		return text.toLowerCase()
 			.replace(/[^\w\s]/g, ' ')
 			.split(/\s+/)
-			.filter(word => 
-				word.length > 2 && 
-				!this.stopWords.has(word) &&
-				!/^\d+$/.test(word)
-			);
+			.filter(word => {
+				if (!word) return false;
+				// Exclude if purely numeric
+				if (/^\d+$/.test(word)) return false;
+				// Exclude stop-words and very short generic tokens (<=3 chars)
+				if (word.length <= 3) return false;
+				return !this.stopWords.has(word);
+			});
 	}
 
 	private classifyTerm(term: string): TopicCandidate['type'] {

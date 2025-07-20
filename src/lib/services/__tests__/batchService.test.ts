@@ -79,6 +79,7 @@ describe('BatchService', () => {
         },
         timestamp: new Date('2024-01-01T12:00:00Z').getTime() / 1000,
         hasOnThisDay: true,
+        totalReadCount: 0,
         chaosIndex: 42,
         chaosDescription: 'Moderate turbulence',
         chaosLastUpdated: '2024-01-01T12:00:00Z'
@@ -118,6 +119,7 @@ describe('BatchService', () => {
 
       expect(fetch).toHaveBeenNthCalledWith(1, '/api/batches/historical-batch');
       expect(result.batchId).toBe('historical-batch');
+      expect(result.totalReadCount).toBe(0);
       expect(result.hasOnThisDay).toBe(false);
       expect(result.chaosIndex).toBeUndefined();
     });
@@ -159,6 +161,7 @@ describe('BatchService', () => {
 
       expect(result.chaosIndex).toBeUndefined();
       expect(result.chaosDescription).toBeUndefined();
+      expect(result.totalReadCount).toBe(0);
       // Should still return other data successfully
       expect(result.batchId).toBe('batch-1');
     });

@@ -34,7 +34,7 @@ const defaultConfig: PreloadConfig = {
   storyPreloadDelay: 0,
   viewportMargin: '100px',
   logLevel: 'info',
-  preloadTimeout: 2000 // 2 seconds timeout for desktop
+  preloadTimeout: 8000 // 8 seconds timeout for desktop - more generous for initial load
 };
 
 /**
@@ -215,11 +215,11 @@ class ImagePreloadingService {
       (entries) => {
         if (!this.canPreload()) return;
         
-        entries.forEach(entry => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             onIntersect(entry);
           }
-        });
+        }
       },
       {
         rootMargin: this.config.viewportMargin,

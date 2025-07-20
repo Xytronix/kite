@@ -10,14 +10,18 @@ interface Props {
 	stage?: string;
 	hasError?: boolean;
 	errorMessage?: string;
+	forceBounce?: boolean;
+	keepColor?: boolean;
 }
 
-let { 
+const { 
 	showProgress = false, 
 	progress = 0, 
 	stage = '', 
 	hasError = false, 
-	errorMessage = '' 
+	errorMessage = '',
+	forceBounce = false,
+	keepColor = false
 }: Props = $props();
 
 // Smooth animated progress counter
@@ -59,7 +63,7 @@ onMount(() => {
 		<div class="mx-auto mb-4 h-24 w-24">
 			{#if theme.current === 'dark'}
 				<!-- Dark theme logo -->
-				<svg width="100%" height="100%" viewBox="0 0 146 162" class="h-full w-full" class:animate-bounce={!hasError} class:brightness-75={hasError} class:sepia={hasError} class:hue-rotate-[320deg]={hasError} class:saturate-150={hasError}>
+				<svg width="100%" height="100%" viewBox="0 0 146 162" class="h-full w-full" class:animate-bounce={!hasError || forceBounce} class:brightness-75={hasError && !keepColor} class:sepia={hasError && !keepColor} class:hue-rotate-[320deg]={hasError && !keepColor} class:saturate-150={hasError}>
 					<defs>
 						<path d="M23.6629882,24.5265449 L71.9882372,1.42194023 C73.4470783,0.724459141 75.1967713,1.28315718 75.9814359,2.69701668 L101.193219,48.1252385 C101.858794,49.3245155 101.644511,50.8202438 100.668992,51.7844114 L43.7053012,108.085261 C42.5040105,109.272574 40.5676654,109.261242 39.3803532,108.059951 C38.9677863,107.642527 38.6840435,107.115206 38.5629899,106.540923 L21.9896485,27.9164559 C21.698611,26.5357645 22.3899712,25.1351823 23.6629882,24.5265449 Z" id="path-1"></path>
 					</defs>
@@ -90,7 +94,7 @@ onMount(() => {
 				</svg>
 			{:else}
 				<!-- Light theme logo -->
-				<svg width="100%" height="100%" viewBox="0 0 146 162" class="h-full w-full" class:animate-bounce={!hasError} class:brightness-75={hasError} class:sepia={hasError} class:hue-rotate-[320deg]={hasError} class:saturate-150={hasError}>
+				<svg width="100%" height="100%" viewBox="0 0 146 162" class="h-full w-full" class:animate-bounce={!hasError || forceBounce} class:brightness-75={hasError && !keepColor} class:sepia={hasError && !keepColor} class:hue-rotate-[320deg]={hasError && !keepColor} class:saturate-150={hasError}>
 					<g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
 						<g transform="translate(-22, -16)" fill-rule="nonzero">
 							<g transform="translate(22.8438, 20.5045)">

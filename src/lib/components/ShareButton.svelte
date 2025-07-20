@@ -2,7 +2,7 @@
   import { browser } from '$app/environment';
   import { page } from '$app/state';
   import { generateShareUrl } from '$lib/utils/urlShortener';
-  import { IconShare, IconCheck, IconLoader2 } from '@tabler/icons-svelte';
+  import Icon from '@iconify/svelte';
   import { s } from '$lib/client/localization.svelte';
   import { useFloating, offset, flip, shift } from '@skeletonlabs/floating-ui-svelte';
   import Portal from 'svelte-portal';
@@ -15,22 +15,24 @@
     categoryId?: string | null;
     storyIndex?: number | null;
     dataLang?: string | null;
+    topicId?: string | null;
     class?: string;
   }
   
-  let { 
+  const { 
     title = s('article.shareDefaultTitle') || 'Check out this story',
     description = '',
     batchId,
     categoryId, 
     storyIndex,
     dataLang,
+    topicId,
     class: className = ''
   }: Props = $props();
   
   let showCopiedFeedback = $state(false);
   let isLoading = $state(false);
-  let feedbackTimer: NodeJS.Timeout | undefined;
+  let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
   
   // Floating UI setup for the "Copied!" tooltip
   const floating = useFloating({
@@ -84,7 +86,7 @@
       const baseUrl = window.location.origin;
       const fullUrl = generateShareUrl(
         baseUrl,
-        { batchId, categoryId, storyIndex, dataLang }
+        { batchId, categoryId, storyIndex, dataLang, topicId }
       );
       
       let shareUrl = fullUrl;
@@ -193,17 +195,13 @@
 >
   {#if isLoading}
     <!-- Loading spinner -->
-    <IconLoader2 
-      size={20} 
-      stroke={2}
-      class="animate-spin text-gray-500 dark:text-gray-400"
+    <Icon icon="tabler:loader-2" 
+      class="animate-spin text-gray-500 dark:text-gray-400 w-5 h-5"
     />
   {:else}
     <!-- Share icon -->
-    <IconShare 
-      size={20} 
-      stroke={2}
-      class="transition-colors text-gray-600 group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200"
+    <Icon icon="tabler:share" 
+      class="transition-colors text-gray-600 group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200 w-5 h-5"
     />
   {/if}
 </button>
@@ -216,10 +214,8 @@
       class="absolute top-0 left-0 z-[2000] flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-200 dark:bg-green-700 {floating.isPositioned ? 'opacity-100' : 'opacity-0 invisible'}"
       style={floating.floatingStyles}
     >
-      <IconCheck 
-        size={16} 
-        stroke={2.5} 
-        class="text-white"
+      <Icon icon="tabler:check" 
+        class="text-white w-4 h-4"
       />
       <span>{s('article.shareCopied') || 'Copied!'}</span>
     </div>

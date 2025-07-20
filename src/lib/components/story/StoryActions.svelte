@@ -2,6 +2,9 @@
 import { s } from '$lib/client/localization.svelte';
 import { page } from '$app/state';
 import ShareButton from '../ShareButton.svelte';
+import ReportButton from '../ReportButton.svelte';
+import { generateShareUrl } from '$lib/utils/urlShortener';
+import { browser } from '$app/environment';
 import { UrlNavigationService } from '$lib/services/urlNavigationService';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte';
 
@@ -31,11 +34,32 @@ const navigationParams = $derived.by(() => {
 		dataLang: params.dataLang || dataLanguage.current
 	};
 });
+
+// Extract topicId from the query string when viewing topic feeds
+const topicId = $derived.by(() => {
+    if (navigationParams.categoryId === 'topics') {
+        return page.url.searchParams.get('topic');
+    }
+    return null;
+});
+
+// Build canonical link for reporting
+const reportUrl = $derived.by(() => {
+    if (!browser) return '';
+    const base = window.location.origin;
+    return generateShareUrl(base, {
+        batchId: navigationParams.batchId,
+        categoryId: navigationParams.categoryId,
+        storyIndex: navigationParams.storyIndex,
+        dataLang: navigationParams.dataLang,
+        topicId
+    });
+});
 </script>
 
 <div class="order-last mt-6 flex w-full items-center justify-center md:px-0">
 	<!-- Left side: Share Button -->
-	<div class="flex-1 flex justify-start">
+	<div class="flex-1 flex justify-start gap-2">
 		<ShareButton
 			title={story.title}
 			description={story.short_summary}
@@ -43,6 +67,12 @@ const navigationParams = $derived.by(() => {
 			categoryId={navigationParams.categoryId}
 			storyIndex={navigationParams.storyIndex}
 			dataLang={navigationParams.dataLang}
+			topicId={topicId}
+			class="text-gray-600 transition-all duration-200 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
+		/>
+		<ReportButton
+			{story}
+			url={reportUrl}
 			class="text-gray-600 transition-all duration-200 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
 		/>
 	</div>

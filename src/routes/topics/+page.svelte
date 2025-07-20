@@ -4,16 +4,16 @@
 	import TopicTrends from '$lib/components/TopicTrends.svelte';
 	import SmartFilterPanel from '$lib/components/SmartFilterPanel.svelte';
 	import FilterComparison from '$lib/components/FilterComparison.svelte';
-	import FilterMigrationPanel from '$lib/components/FilterMigrationPanel.svelte';
-	import type { Topic } from '$lib/types';
+
+	import type { Topic, Story } from '$lib/types';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	let selectedTopic: Topic | null = null;
 	let currentView: 'trends' | 'search' | 'smart-filter' = 'trends';
-	let language = 'en'; // Could be derived from user settings
-	let sampleStories: any[] = [];
+	const language = 'en'; // Could be derived from user settings
+	const sampleStories: Story[] = [];
 
 	onMount(() => {
 		// Check if there's a topic in the URL after component mounts
@@ -165,8 +165,7 @@
 						</div>
 					</div>
 
-					<!-- Migration Panel -->
-					<FilterMigrationPanel />
+
 
 					<!-- Smart Filter Panel Demo -->
 					<SmartFilterPanel stories={sampleStories} />

@@ -1,0 +1,124 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.json'
+      - 'src/**/*.{html,js,ts,svelte,css}'
+  pull_request:
+    paths:
+      - '**/*.json'
+      - 'src/**/*.{html,js,ts,svelte,css}'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Restore Bun cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      ########################################################################
+      # Prettier formatting check
+      ########################################################################
+      - name: Run Prettier (write mode)
+        id: prettier
+        shell: bash
+        run: |
+          set -e
+          bunx prettier --write './src/**/*.{html,js,ts,svelte,css}'
+
+      - name: Suggest Prettier fixes
+        if: github.event_name == 'pull_request'
+        uses: reviewdog/action-suggester@v1
+        with:
+          tool_name: prettier
+          level: info
+
+      ########################################################################
+      # JSON validation
+      ########################################################################
+      - name: Validate JSON files
+        id: jsonval
+        shell: bash
+        run: |
+          set +e
+          echo "🔎 Validating JSON files..."
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            base="$GITHUB_BASE_REF"
+            head="$GITHUB_SHA"
+            json_files=$(git diff --name-only "$base" "$head" -- '*.json')
+          else
+            json_files=$(git diff --name-only HEAD~1 HEAD -- '*.json')
+          fi
+
+          if [ -z "$json_files" ]; then
+            echo "No JSON files changed" > /tmp/json_diag.log
+            exit 0
+          fi
+
+          diag=""
+          for file in $json_files; do
+            jq empty "$file" 2>/dev/null
+            if [ $? -ne 0 ]; then
+              diag+="$file:1: Invalid JSON\n"
+            fi
+          done
+          echo -e "$diag" | tee /tmp/json_diag.log
+
+      - name: Annotate JSON validation
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          reviewdog -efm="%f:%l:%m" -name="json-validator" -reporter=${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }} -fail-on-error=false < /tmp/json_diag.log 
+
+      ########################################################################
+      # Biome Lint (advisory)
+      ########################################################################
+      - name: Run Biome lint
+        shell: bash
+        run: |
+          set +e
+          bunx biome lint . --formatter compact > /tmp/biome.log || true
+
+      - name: Annotate Biome results
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          reviewdog -efm="%f:%l:%c %m" -name="biome-lint" -reporter=${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }} -fail-on-error=false < /tmp/biome.log
+
+      ########################################################################
+      # media_data.json validation via reviewdog (advisory)
+      ########################################################################
+      - name: Validate media_data.json
+        run: |
+          bun ts-node scripts/validate-media.ts 2> /tmp/media_diag.log || true
+
+      - name: Annotate media-data issues
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          reviewdog -efm="%f:%l:%m" -name="media-validator" -reporter=${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }} -fail-on-error=false < /tmp/media_diag.log

@@ -67,7 +67,10 @@ const viewportPreloader = useViewportPreloading(
 const hoverPreloader = useHoverPreloading(story, { priority });
 
 // Track if images are preloaded
-const imagesPreloaded = $derived(viewportPreloader.isPreloaded || hoverPreloader.isPreloaded);
+let imagesPreloaded = $derived(viewportPreloader.isPreloaded || hoverPreloader.isPreloaded);
+
+// Keep reference to any pending scroll timeout so we can cancel it
+let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Handle story click
 function handleStoryClick() {
@@ -91,37 +94,53 @@ function handleReadClick(e: Event) {
 
 
 
-// Scroll to story when expanded - Fixed to prevent scrolling to wrong article
+// Scroll to story when expanded, and cancel pending scroll when collapsed
 $effect(() => {
-	if (isExpanded && browser && storyElement) {
-		// Small delay to ensure the content is rendered
-		setTimeout(() => {
-			// Get the story element's position
-			const rect = storyElement.getBoundingClientRect();
-			const currentScrollY = window.pageYOffset;
-			
-			// Only scroll if the story is not already in view
-			const viewportHeight = window.innerHeight;
-			const storyTop = rect.top;
-			
-			// Check if story is already properly visible (not cut off)
-			const isVisible = storyTop >= 0 && storyTop < viewportHeight * 0.3;
-			
-			if (!isVisible) {
-				// Calculate header height
-				const headerEl = document.querySelector('header') || document.querySelector('nav');
-				const headerHeight = headerEl ? headerEl.offsetHeight : 60;
-				
-				// Scroll to show the story title with some padding
-				const targetY = currentScrollY + storyTop - headerHeight - 20;
-				
-				window.scrollTo({
-					top: Math.max(0, targetY),
-					behavior: 'smooth'
-				});
-			}
-		}, 100);
-	}
+    // Clean up any previous timeout whenever the dependency array changes
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+    }
+
+    if (isExpanded && browser && storyElement) {
+        // Small delay to ensure the content is rendered
+        scrollTimeout = setTimeout(() => {
+            // Get the story element's position
+            const rect = storyElement.getBoundingClientRect();
+            const currentScrollY = window.pageYOffset;
+
+            // Only scroll if the story is not already in view
+            const viewportHeight = window.innerHeight;
+            const storyTop = rect.top;
+
+            // Check if story is already properly visible (not cut off)
+            const isVisible = storyTop >= 0 && storyTop < viewportHeight * 0.3;
+
+            if (!isVisible) {
+                // Calculate header height (fallback to 60px if not found)
+                const headerEl = document.querySelector('header') || document.querySelector('nav');
+                const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
+
+                // Scroll to show the story title with some padding
+                const targetY = currentScrollY + storyTop - headerHeight - 20;
+
+                window.scrollTo({
+                    top: Math.max(0, targetY),
+                    behavior: 'smooth'
+                });
+            }
+
+            scrollTimeout = null; // clear ref after execution
+        }, 100);
+    }
+
+    // Cleanup when component is destroyed
+    return () => {
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = null;
+        }
+    };
 });
 </script>
 
@@ -130,16 +149,15 @@ $effect(() => {
 	bind:this={storyElement}
 	id="story-{story.cluster_number}"
 	aria-label="News story: {story.title}"
-	class="relative py-2 transition-all duration-300"
+	class="relative py-2 transition-all duration-300 cursor-pointer"
 	class:border-b={!isExpanded}
 	class:border-gray-200={!isExpanded}
 	class:dark:border-gray-700={!isExpanded}
-	class:cursor-pointer={isBlurred}
 	onmouseenter={hoverPreloader.handleMouseEnter}
 	onmouseleave={hoverPreloader.handleMouseLeave}
 	onfocus={hoverPreloader.handleMouseEnter}
-	onclick={isBlurred ? handleStoryClick : undefined}
-	onkeydown={isBlurred ? (e) => e.key === 'Enter' && handleStoryClick() : undefined}
+	onclick={handleStoryClick}
+	onkeydown={(e) => e.key === 'Enter' && handleStoryClick()}
 	role={isBlurred ? "button" : null}
 	tabindex={isBlurred ? 0 : -1}
 >
@@ -201,6 +219,12 @@ $effect(() => {
 			<span class="text-xs text-gray-600 dark:text-gray-400 italic">
 				{s('smartFilter.clickToReveal') || 'Click to show'}
 			</span>
+			<button
+				class="ml-3 px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 focus-visible-ring"
+				onclick={(e) => { e.stopPropagation(); handleStoryClick(); }}
+			>
+				{s('smartFilter.showButton') || 'Show'}
+			</button>
 		</div>
 	{/if}
 </article> 

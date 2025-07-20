@@ -10,7 +10,7 @@ import { SUPPORTED_LANGUAGES } from '$lib/constants/languages.js';
 import { dataReloadService } from '$lib/services/dataService.js';
 import Select from '$lib/components/Select.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
-import { IconInfoCircle } from '@tabler/icons-svelte';
+import Icon from '@iconify/svelte';
 
 // Props
 interface Props {
@@ -157,7 +157,7 @@ function showAbout() {
 			</label>
 			<Tooltip text={s('settings.uiLanguage.tooltip') || 'Controls the language of buttons, menus, and interface text. \'Default\' uses your browser\'s language.'} position="bottom">
 				<button type="button" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-					<IconInfoCircle size={14} stroke={1.5} />
+					<Icon icon="tabler:info-circle" width="14" height="14" />
 				</button>
 			</Tooltip>
 		</div>
@@ -186,7 +186,7 @@ function showAbout() {
 			</label>
 			<Tooltip text={s('settings.dataLanguage.tooltip') || 'News stories are generated in their original source language, then translated. \'Default\' shows stories in their original languages without translation.'} position="bottom">
 				<button type="button" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-					<IconInfoCircle size={14} stroke={1.5} />
+					<Icon icon="tabler:info-circle" width="14" height="14" />
 				</button>
 			</Tooltip>
 		</div>

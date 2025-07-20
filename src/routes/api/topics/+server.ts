@@ -6,7 +6,7 @@ import { TopicExtractor } from '$lib/algorithms/topicExtraction';
 // Extract trending topics using advanced algorithms
 async function extractTrendingTopics(language: string, baseUrl: string): Promise<Topic[]> {
 	try {
-		const extractor = new TopicExtractor();
+		const extractor = new TopicExtractor(language);
 		
 		// Get the latest batch data
 		const batchResponse = await fetch(`${baseUrl}/api/batches?lang=${language}`);

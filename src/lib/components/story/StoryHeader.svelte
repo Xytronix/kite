@@ -2,6 +2,7 @@
 import { s } from '$lib/client/localization.svelte';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import CitationText from './CitationText.svelte';
+import IconDisplay from '$lib/components/IconDisplay.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 
 // Props
@@ -59,7 +60,7 @@ const displayTitle = $derived.by(() => {
 <header class="mb-1 flex items-center justify-between">
 	<span class="category-label inline-flex items-center rounded py-1 text-sm text-gray-700 dark:text-gray-300">
 		{#if categoryEmoji}
-			<span class="mr-1">{categoryEmoji}</span>
+			<IconDisplay emoji={categoryEmoji} className="mr-1 w-5 h-5" />
 		{/if}
 		<span class={getTopicColorClass(story.category)}>
 			{story.category}
@@ -73,12 +74,12 @@ const displayTitle = $derived.by(() => {
 		<button
 			class="dark:text-dark-text mb-2 flex cursor-pointer items-center text-xl text-gray-800 text-left w-full bg-transparent border-none p-0 focus-visible-ring rounded"
 			class:font-semibold={!isRead}
-			onclick={onTitleClick}
+			onclick={(e) => { e.stopPropagation(); onTitleClick?.(); }}
 			id="story-title-{story.cluster_number}"
 			aria-label="Expand story: {story.title}"
 		>
 			{#if articleEmoji}
-				<span class="mr-2">{articleEmoji}</span>
+				<IconDisplay emoji={articleEmoji} className="mr-2 w-5 h-5" />
 			{/if}
 			<span><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
 		</button>

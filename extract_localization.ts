@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Read the kite_feeds.json file
 const kiteFeeds = JSON.parse(fs.readFileSync('kite_feeds.json', 'utf8'));

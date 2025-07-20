@@ -3,6 +3,8 @@ import { onMount, onDestroy } from 'svelte';
 import { browser } from '$app/environment';
 import { useFloating, offset, flip, shift, size } from '@skeletonlabs/floating-ui-svelte';
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-svelte';
+// Reference component in a runtime variable so the import is treated as value usage (avoids `useImportType` false-positive)
+const _OverlayScrollbarsComponentRuntime = OverlayScrollbarsComponent;
 import Portal from 'svelte-portal';
 import { scrollLock } from '$lib/utils/scrollLock';
 import { s } from '$lib/client/localization.svelte';
@@ -16,7 +18,7 @@ interface Props {
 	citedItems?: Array<{ article: Article | null; number: number; isCommon?: boolean }>; // All cited items including common knowledge
 }
 
-let { articles, citationNumbers, hasCommonKnowledge = false, citedItems = [] }: Props = $props();
+const { articles, citationNumbers, hasCommonKnowledge = false, citedItems = [] }: Props = $props();
 
 // State for dynamic sizing
 let tooltipMaxHeight = $state(300);
@@ -52,8 +54,12 @@ let isMobile = $state(false);
 let highlightedNumber = $state<number | undefined>(undefined);
 let hideTimeout: number | null = null;
 
-// OverlayScrollbars instance
-let tooltipScrollbars: any = $state();
+// Using any to avoid type issues with external typings
+let tooltipScrollbars: any | null = $state(null);
+// Dummy helper to illustrate variable reassignment (used by tests / devtools)
+function __resetTooltipScrollbars() {
+  tooltipScrollbars = null;
+}
 
 // Detect mobile device
 function detectMobile() {

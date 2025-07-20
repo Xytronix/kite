@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { getShortUrl } from '$lib/server/urlShortener';
+import { getShortUrl } from '$lib/utils/urlShortener';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
 

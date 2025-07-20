@@ -38,15 +38,14 @@ class BatchService {
 		categoryMap: Record<string, string>;
 		timestamp: number;
 		hasOnThisDay: boolean;
+		totalReadCount: number;
 		chaosIndex?: number;
 		chaosDescription?: string;
 		chaosLastUpdated?: string;
-		totalReadCount: number;
 	}> {
 		try {
 			let batchId: string;
 			let batchCreatedAt: string;
-			let totalReadCount: number = 0;
 
 			// Step 1: Get the batch (either time travel or latest)
 			const currentBatchId = this.getCurrentBatchId();
@@ -56,7 +55,6 @@ class BatchService {
 				console.log('🚀 Using provided batch info, skipping API call');
 				batchId = providedBatchInfo.id;
 				batchCreatedAt = providedBatchInfo.createdAt;
-				totalReadCount = providedBatchInfo.totalReadCount || 0;
 			} else if (currentBatchId) {
 				// Time travel mode - use specific batch
 				const batchResponse = await fetch(
@@ -68,7 +66,6 @@ class BatchService {
 				const batch = await batchResponse.json();
 				batchId = batch.id;
 				batchCreatedAt = batch.createdAt;
-				totalReadCount = batch.totalReadCount || 0;
 			} else {
 				// Live mode - get latest batch
 				const batchResponse = await fetch(
@@ -80,7 +77,6 @@ class BatchService {
 				const batch = await batchResponse.json();
 				batchId = batch.id;
 				batchCreatedAt = batch.createdAt;
-				totalReadCount = batch.totalReadCount || 0;
 			}
 
 			// Step 2: Get categories for that batch with language parameter
@@ -127,17 +123,19 @@ class BatchService {
 				// Continue without chaos index
 			}
 
-			return {
+			const result =  {
 				batchId,
 				categories,
 				categoryMap,
 				timestamp: new Date(batchCreatedAt).getTime() / 1000,
 				hasOnThisDay: data.hasOnThisDay || false,
+				totalReadCount: providedBatchInfo?.totalReadCount ?? 0,
 				chaosIndex: chaosData?.chaosIndex,
 				chaosDescription: chaosData?.chaosDescription,
 				chaosLastUpdated: chaosData?.chaosLastUpdated,
-				totalReadCount,
 			};
+
+			return result;
 		} catch (error) {
 			console.error("Error loading initial data:", error);
 			throw error;

@@ -39,7 +39,7 @@ class DataService {
 		return batchService.isTimeTravelMode();
 	}
 
-	async loadInitialData(language: string = "en", providedBatchInfo?: { id: string; createdAt: string }) {
+	async loadInitialData(language: string = "en", providedBatchInfo?: { id: string; createdAt: string; totalReadCount?: number }) {
 		return batchService.loadInitialData(language, providedBatchInfo);
 	}
 

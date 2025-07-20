@@ -1,12 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import {
-		IconCheck,
-		IconChevronDown,
-		IconChevronUp,
-		IconSearch,
-		IconX
-	} from '@tabler/icons-svelte';
+	import Icon from '@iconify/svelte';
 	import { s } from '$lib/client/localization.svelte';
 	import { browser } from '$app/environment';
 	import { OverlayScrollbarsComponent } from 'overlayscrollbars-svelte';
@@ -17,7 +11,7 @@
 		value: string;
 		label: string;
 		gender?: 'M' | 'F' | 'N'; // Optional gender field
-		icon?: any; // Optional Tabler icon component
+		icon?: any | string; // Optional icon component or iconify string
 	};
 
 	let {
@@ -41,7 +35,7 @@
 	let isOpen = $state(false);
 	let filter = $state('');
 	let uniqueId = $state('');
-	let overlayScrollbars: OverlayScrollbarsComponent | null = $state(null);
+	let overlayScrollbars: any | null = $state(null);
 	let closeTimeout: number | null = $state(null);
 
 	// Generate unique ID for aria attributes
@@ -442,8 +436,12 @@
 				: 'text-gray-500 dark:text-gray-400'}"
 		>
 			{#if selectedOption?.icon}
-				{@const IconComponent = selectedOption.icon}
-				<IconComponent class="size-4 flex-shrink-0" />
+				{#if typeof selectedOption.icon === 'string'}
+					<Icon icon={selectedOption.icon} class="size-4 flex-shrink-0" />
+				{:else}
+					{@const IconComponent = selectedOption.icon}
+					<IconComponent class="size-4 flex-shrink-0" />
+				{/if}
 			{/if}
 			{displayValue}
 			{#if displayGender}
@@ -453,8 +451,8 @@
 			{/if}
 		</span>
 		<div class="relative h-4 w-4 flex-shrink-0">
-			<IconChevronUp class="text-primary-700 absolute top-[-2px] size-3" />
-			<IconChevronDown class="text-primary-700 absolute bottom-[-2px] size-3" />
+			<Icon icon="tabler:chevron-up" class="text-primary-700 absolute top-[-2px] size-3" />
+			<Icon icon="tabler:chevron-down" class="text-primary-700 absolute bottom-[-2px] size-3" />
 		</div>
 	</button>
 
@@ -481,7 +479,7 @@
 								aria-label={s('common.search') || 'Search'}
 							/>
 							<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-								<IconSearch class="icon-color-muted size-4" />
+								<Icon icon="tabler:search" class="icon-color-muted size-4" />
 							</div>
 							{#if filter}
 								<button
@@ -494,7 +492,7 @@
 									}}
 									aria-label="Clear search"
 								>
-									<IconX class="size-4" />
+									<Icon icon="tabler:x" class="size-4" />
 								</button>
 							{/if}
 						</div>
@@ -594,13 +592,17 @@
 									>
 										{#if value === option.value}
 											<span class="absolute left-2 font-normal text-gray-900 dark:text-gray-200">
-												<IconCheck class="size-5 stroke-[2.5]" />
+												<Icon icon="tabler:check" class="size-5 stroke-[2.5]" />
 											</span>
 										{/if}
 										<span class="flex items-center gap-2 {value === option.value ? 'font-bold' : ''}">
 											{#if option.icon}
-												{@const IconComponent = option.icon}
-												<IconComponent class="size-4" />
+												{#if typeof option.icon === 'string'}
+													<Icon icon={option.icon} class="size-4" />
+												{:else}
+													{@const IconComponent = option.icon}
+													<IconComponent class="size-4" />
+												{/if}
 											{/if}
 											{option.label}
 											{#if option.gender}

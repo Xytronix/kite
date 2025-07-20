@@ -2,6 +2,7 @@
 import { onMount } from 'svelte';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
+import { replaceState } from '$app/navigation';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
 import { categories as categoriesStore } from '$lib/stores/categories.svelte.js';
@@ -33,15 +34,16 @@ import { s } from '$lib/client/localization.svelte';
 
 // App state
 let dataLoaded = $state(false);
-let offlineMode = $state(false);
+const offlineMode = $state(false);
 let lastLoadedCategory = $state(''); // Track last loaded category to prevent duplicates
 let temporaryCategory = $state<string | null>(null);
 let showTemporaryCategoryTooltip = $state(false);
 let temporaryCategoryElement = $state<HTMLElement | null>(null);
-let desktopCategoryNavigation = $state<CategoryNavigation>();
+let desktopCategoryNavigation = $state<any>();
 
-// Reactive category header position
-const categoryHeaderPosition = $derived(settings.categoryHeaderPosition);
+// Derive the header position reactively from the settings store. Using `.by` ensures we
+// properly subscribe to the underlying state instead of capturing a static value.
+const categoryHeaderPosition = $derived.by(() => settings.categoryHeaderPosition);
 
 
 // Data state
@@ -51,11 +53,35 @@ let stories = $state<Story[]>([]);
 let onThisDayEvents = $state<OnThisDayEvent[]>([]);
 let readStories = $state<Record<string, boolean>>({});
 let totalReadCount = $state(0);
-let totalStoriesRead = $state(0);
+// totalStoriesRead is now a derived value based on readStories
 let lastUpdated = $state('');
 let allCategoryStories = $state<Record<string, Story[]>>({});
 let categoryMap = $state<Record<string, string>>({});  // Map category ID to UUID
 let currentBatchId = $state<string>('');
+let categoryHasMore = $state<Record<string, boolean>>({});
+let categoryLimits = $state<Record<string, number>>({});
+let catBatches = $state<Record<string, string[]>>({});
+let catBatchesIndex = $state<Record<string, number>>({});
+// List of batch IDs (newest first) for cross-day fetching
+let batchList = $state<string[]>([]);
+let batchesLoaded = $state(false);
+
+// Flag to show loading indicator when switching categories or fetching more
+let storiesLoading = $state<boolean>(false);
+
+async function fetchBatchList() {
+    if (batchesLoaded) return;
+    try {
+        const resp = await fetch(`/api/batches?lang=${dataLanguage.current}`);
+        if (resp.ok) {
+            const data = await resp.json();
+            batchList = data.batches.map((b: any) => b.id);
+            batchesLoaded = true;
+        }
+    } catch (err) {
+        console.error('Failed to fetch batch list', err);
+    }
+}
 
 // State for source overlay
 let showSourceOverlay = $state(false);
@@ -113,8 +139,8 @@ const orderedCategories = $derived.by(() => {
 		(temporaryCategory && cat.id === temporaryCategory) // Include temporary category
 	);
 
-	// Sort by store order
-	return enabledCategories.sort((a, b) => {
+	// Sort by store order - use toSorted() to avoid mutations
+	return [...enabledCategories].sort((a, b) => {
 		// Temporary category should appear where it would naturally fit
 		if (a.id === temporaryCategory) return -1;
 		if (b.id === temporaryCategory) return 1;
@@ -190,12 +216,23 @@ function handleDataLoaded(data: {
 	if (browser) {
 		const urlParams = parseInitialUrl();
 		if (urlParams.storyIndex !== undefined && urlParams.storyIndex !== null && stories[urlParams.storyIndex]) {
-			// Expand the story from URL
+			// Expand the story from URL - create new object to avoid mutation
 			const story = stories[urlParams.storyIndex];
 			const storyId = story.cluster_number?.toString() || story.title;
-			expandedStories[storyId] = true;
+			expandedStories = { ...expandedStories, [storyId]: true };
 		}
 	}
+
+    // Initialize limits and hasMore map for categories
+    categoryLimits = {};
+    categoryHasMore = {};
+    for (const catId of data.categories.map(c=>c.id)) {
+        categoryLimits[catId] = settings.storyCount;
+        categoryHasMore[catId] = true; // assume more until proven otherwise
+    }
+
+    // Fetch list of batches for cross-day load
+    fetchBatchList();
 }
 
 function handleDataError(error: string) {
@@ -204,51 +241,109 @@ function handleDataError(error: string) {
 	dataLoaded = true; // Still show the app with fallback data
 }
 
-async function loadStoriesForCategory(categoryId: string) {
+// Triggered by StoryList load more
+function handleLoadMore() {
+    loadStoriesForCategory(currentCategory, true);
+}
+
+async function loadStoriesForCategory(categoryId: string, increment: boolean = false) {
+    storiesLoading = true;
 	// Handle OnThisDay separately
 	if (categoryId === 'onthisday') {
 		await loadOnThisDayEvents();
+		storiesLoading = false;
 		return;
 	}
 	
-	// Check if we already have preloaded stories for this category
-	if (allCategoryStories[categoryId]) {
-		console.log(`⚡ Using preloaded stories for category: ${categoryId}`);
-		stories = allCategoryStories[categoryId];
-		lastLoadedCategory = categoryId;
-		// Images should already be preloaded from DataLoader
-		return;
-	}
-	
-	// Fallback: Load from API if not preloaded (shouldn't happen for enabled categories)
-	if (lastLoadedCategory === categoryId) {
-		return;
-	}
-	
-	// Check if we have a UUID mapping for this category
-	const categoryUuid = categoryMap[categoryId];
-	if (!categoryUuid) {
-		console.warn(`Category UUID not found for ${categoryId}, cannot load stories`);
-		stories = [];
-		return;
-	}
-	
-	try {
-		console.log(`📡 Loading stories from API for category: ${categoryId} (not preloaded)`);
-		lastLoadedCategory = categoryId;
-		const result = await dataService.loadStories(currentBatchId, categoryUuid, 12, dataLanguage.current);
-		stories = result.stories;
-		totalReadCount = result.readCount;
-		lastUpdated = formatTimeAgo(result.timestamp, s);
-		
-		// Cache the loaded stories for this category
-		allCategoryStories[categoryId] = stories;
-		console.log(`💾 Cached stories for category: ${categoryId}`);
-	} catch (error) {
-		console.error('Error loading stories for category:', categoryId, error);
-		// DON'T reset the guard - give up and stop retrying
-		// Keep existing stories on error
-	}
+	// Compute requested limit
+	if (!categoryLimits[categoryId]) {
+        categoryLimits[categoryId] = settings.storyCount;
+    }
+    if (increment) {
+        categoryLimits[categoryId] += settings.storyCount;
+    }
+
+    let requestedLimit = categoryLimits[categoryId];
+
+    // If we already have enough, just slice
+    if (allCategoryStories[categoryId] && allCategoryStories[categoryId].length >= requestedLimit) {
+        stories = allCategoryStories[categoryId];
+        lastLoadedCategory = categoryId;
+        storiesLoading = false;
+        return;
+    }
+
+    // Ensure batch list ready
+    await fetchBatchList();
+
+    // Track batches consumed for this category
+    if (!catBatches[categoryId]) catBatches[categoryId] = [currentBatchId];
+    if (!catBatchesIndex[categoryId]) catBatchesIndex[categoryId] = 0;
+
+    try {
+        lastLoadedCategory = categoryId;
+
+        // Continue fetching from batches until we reach requestedLimit or no more batches
+        let currentIndex = 0;
+        if (catBatchesIndex[categoryId] === undefined) catBatchesIndex[categoryId] = 0;
+
+        while (allCategoryStories[categoryId]?.length < requestedLimit && catBatchesIndex[categoryId] < batchList.length) {
+            const batchId = batchList[catBatchesIndex[categoryId]];
+
+            // Obtain category uuid for this batch
+            let catUuid: string | null = null;
+            if (batchId === currentBatchId) {
+                catUuid = categoryMap[categoryId];
+            } else {
+                try {
+                    const resp = await fetch(`/api/batches/${batchId}/categories?lang=${dataLanguage.current}`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const catObj = (data.categories || data).find((c: any)=> c.id === categoryId || c.categoryId === categoryId);
+                        catUuid = catObj?.id || catObj?.uuid;
+                    }
+                } catch(err) { console.warn('Failed to fetch categories for batch', batchId, err); }
+            }
+
+            if (!catUuid) {
+                // Fallback: try using the category slug directly
+                catUuid = categoryId;
+            }
+
+            const remainingNeeded = requestedLimit - (allCategoryStories[categoryId]?.length || 0);
+            const fetchAmount = Math.min(settings.storyCount, remainingNeeded);
+
+            const result = await dataService.loadStories(batchId, catUuid, fetchAmount, dataLanguage.current);
+            if (!allCategoryStories[categoryId]) allCategoryStories[categoryId] = [];
+
+            if (result.stories.length > 0) {
+                // Insert date divider when starting new batch (if not latest)
+                if (batchId !== currentBatchId && !catBatches[categoryId]?.includes(batchId)) {
+                    allCategoryStories[categoryId].push({ __dateDivider: true, date: batchId } as any);
+                    catBatches[categoryId].push(batchId);
+                }
+                allCategoryStories[categoryId].push(...result.stories);
+            }
+
+            catBatchesIndex[categoryId]++;
+
+            if (result.stories.length < fetchAmount) {
+                // No more stories in this batch, will move to next on next loop
+                continue;
+            }
+        }
+
+        // Update hasMore flag
+        // Allow further loading as long as there are still batches left to inspect
+        categoryHasMore[categoryId] = catBatchesIndex[categoryId] < batchList.length;
+
+        stories = allCategoryStories[categoryId];
+        storiesLoading = false;
+
+    } catch (error) {
+        console.error('Error loading cross-day stories:', error);
+        storiesLoading = false;
+    }
 }
 
 async function loadOnThisDayEvents() {
@@ -282,7 +377,7 @@ onMount(() => {
 		if (saved) {
 			const savedReadStories = JSON.parse(saved);
 			readStories = savedReadStories;
-			totalStoriesRead = Object.values(savedReadStories).filter(Boolean).length;
+			// totalStoriesRead is now derived from readStories automatically
 		}
 	} catch (error) {
 		console.error('Error loading saved stories:', error);
@@ -296,8 +391,8 @@ onMount(() => {
 			const parts = hash.split('/');
 			const tab = parts[1] || undefined;
 			settings.open(tab);
-			// Clear the hash to avoid issues with back button
-			window.history.replaceState(null, '', window.location.pathname + window.location.search);
+			// Clear the hash without disrupting SvelteKit's router
+			replaceState(window.location.pathname + window.location.search, {});
 		}
 	}
 
@@ -314,38 +409,41 @@ onMount(() => {
 });
 
 // Helper functions
-const getLastUpdated = (): string => lastUpdated || s('loading.default') || 'Loading...';
+const getLastUpdated = $derived(lastUpdated || s('loading.default') || 'Loading...');
 const parseInitialUrl = (): NavigationParams => browser ? UrlNavigationService.parseUrl(page.url) : {};
 const handleIntroClose = () => settings.setShowIntro(false);
 
 // Handle category change
 function handleCategoryChange(category: string, updateUrl: boolean = true) {
-	currentCategory = category;
-	
-	// Reset view mode when changing categories (when map view is implemented)
-	// if (category.toLowerCase() !== 'world') {
-	// 	viewMode = 'list';
-	// }
+	// Defer state mutations to avoid issues when called from effects or async contexts
+	setTimeout(() => {
+		currentCategory = category;
+		
+		// Reset view mode when changing categories (when map view is implemented)
+		// if (category.toLowerCase() !== 'world') {
+		// 	viewMode = 'list';
+		// }
 
-	// Clear expanded stories when switching categories
-	expandedStories = {};
-	
-	// Clear temporary category if user manually navigates
-	if (updateUrl && temporaryCategory) {
-		categoriesStore.removeTemporary();
-		temporaryCategory = null;
-		showTemporaryCategoryTooltip = false;
-	}
+		// Clear expanded stories when switching categories
+		expandedStories = {};
+		
+		// Clear temporary category if user manually navigates
+		if (updateUrl && temporaryCategory) {
+			categoriesStore.removeTemporary();
+			temporaryCategory = null;
+			showTemporaryCategoryTooltip = false;
+		}
 
-	// Load stories for the new category (will be instant for preloaded categories)
-	loadStoriesForCategory(category);
-	
-	// Update URL to reflect new category (unless we're handling a URL change)
-	if (historyManager && updateUrl && !navigationHandlerService.isNavigating()) {
-		historyManager.updateUrl({ categoryId: category, storyIndex: null });
-	}
-	
-	// Chaos index is already loaded with the batch data
+		// Load stories for the new category (will be instant for preloaded categories)
+		loadStoriesForCategory(category);
+		
+		// Update URL to reflect new category (unless we're handling a URL change)
+		if (historyManager && updateUrl && !navigationHandlerService.isNavigating()) {
+			historyManager.updateUrl({ categoryId: category, storyIndex: null });
+		}
+		
+		// Chaos index is already loaded with the batch data
+	}, 0);
 }
 
 // Wikipedia popup handlers
@@ -358,54 +456,50 @@ const closeWikipediaPopup = () => {
 };
 
 function handleStoryToggle(storyId: string, updateUrl: boolean = true) {
-	// Check current state
-	const currentlyExpanded = expandedStories[storyId];
-	
-	// Create a new object with existing expanded stories to ensure reactivity
-	const newExpandedStories: Record<string, boolean> = { ...expandedStories };
-	
-	// Toggle the clicked story
-	if (!currentlyExpanded) {
-		newExpandedStories[storyId] = true;
-		
-		// Find the story and mark it as read
-		const story = stories.find(s => 
-			(s.cluster_number?.toString() === storyId) || 
-			(s.title === storyId)
-		);
-		
-		if (story) {
-			// Mark as read - also create new object for reactivity
-			readStories = { ...readStories, [story.title]: true };
-			
-			// Update URL with story index
-			if (updateUrl && historyManager) {
-				const storyIndex = stories.indexOf(story);
-				if (storyIndex >= 0) {
-					historyManager.updateUrl({ storyIndex });
-				}
-			}
-		}
-	} else {
-		// Story is being collapsed
-		delete newExpandedStories[storyId];
-		
-		// Remove from URL if this was the last expanded story
-		if (updateUrl && historyManager && Object.keys(newExpandedStories).length === 0) {
-			historyManager.updateUrl({ storyIndex: null });
-		}
-	}
-	
-	// Assign the new object to trigger reactivity
-	expandedStories = newExpandedStories;
+    // Determine if clicked story is already expanded
+    const currentlyExpanded = expandedStories[storyId];
+
+    // Always start with a fresh object – this guarantees stale stories collapse
+    let newExpandedStories: Record<string, boolean> = {};
+
+    if (!currentlyExpanded) {
+        // Expand the newly-clicked story and collapse all others
+        newExpandedStories[storyId] = true;
+
+        // Mark story as read & update URL
+        const story = stories.find(
+            (s) => s.cluster_number?.toString() === storyId || s.title === storyId,
+        );
+
+        if (story) {
+            // Ensure reactivity when updating read status
+            readStories = { ...readStories, [story.title]: true };
+
+            if (updateUrl && historyManager) {
+                const storyIndex = stories.indexOf(story);
+                if (storyIndex >= 0) {
+                    historyManager.updateUrl({ storyIndex });
+                }
+            }
+        }
+    } else {
+        // Collapse the currently-expanded story (no others should be open)
+        newExpandedStories = {};
+
+        if (updateUrl && historyManager) {
+            historyManager.updateUrl({ storyIndex: null });
+        }
+    }
+
+    // Trigger reactivity
+    expandedStories = newExpandedStories;
 }
 
-// Reactive effect to save read stories and update count
+// Derived value for total stories read count
+const totalStoriesRead = $derived(Object.values(readStories).filter(Boolean).length);
+
+// Effect for saving to localStorage (side effects only, no state mutation)
 $effect(() => {
-	// Update total stories read count
-	const readCount = Object.values(readStories).filter(Boolean).length;
-	totalStoriesRead = readCount;
-	
 	// Save to localStorage
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem('readStories', JSON.stringify(readStories));
@@ -445,8 +539,8 @@ const handleUrlNavigation = async (params: NavigationParams) => {
 	}
 };
 
-// Single consolidated effect for category/language management
-$effect(() => {
+// Effect for state updates (category initialization) - runs before DOM updates
+$effect.pre(() => {
 	if (!dataLoaded) return;
 	
 	// Initialize category if needed
@@ -455,8 +549,12 @@ $effect(() => {
 	    !orderedCategories.find(cat => cat.id === currentCategory) &&
 	    !(temporaryCategory && currentCategory === temporaryCategory)) {
 		currentCategory = orderedCategories[0].id;
-		return; // Exit early, let the next effect run handle loading
 	}
+});
+
+// Effect for side effects (swipe handler and loading stories)
+$effect(() => {
+	if (!dataLoaded) return;
 	
 	// Update swipe handler
 	if (orderedCategories.length > 0) {
@@ -474,7 +572,7 @@ $effect(() => {
 // Chaos index will be reloaded with all other data when language changes
 
 // Update temporary category element reference when needed
-$effect(() => {
+$effect.pre(() => {
 	if (temporaryCategory && desktopCategoryNavigation && showTemporaryCategoryTooltip) {
 		temporaryCategoryElement = desktopCategoryNavigation.getCategoryElement(temporaryCategory);
 	} else {
@@ -538,12 +636,12 @@ if (browser && typeof window !== 'undefined') {
 </svelte:head>
 
 {#if !dataLoaded}
-	{@const urlParams = parseInitialUrl()}
+	{@const initialUrlParams = parseInitialUrl()}
 	<DataLoader 
 		onDataLoaded={handleDataLoaded}
 		onError={handleDataError}
-		initialBatchId={urlParams.batchId}
-		initialCategoryId={urlParams.categoryId}
+		initialBatchId={initialUrlParams.batchId}
+		initialCategoryId={initialUrlParams.categoryId}
 	/>
 {:else if settings.showIntro}
 	<IntroScreen visible={settings.showIntro} onClose={handleIntroClose} />
@@ -616,6 +714,9 @@ if (browser && typeof window !== 'undefined') {
 						bind:sourceArticles
 						bind:currentMediaInfo
 						bind:isLoadingMediaInfo
+						onLoadMore={handleLoadMore}
+						canLoadMore={categoryHasMore[currentCategory]}
+						isLoading={storiesLoading}
 					/>
 				{/if}
 			</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { s } from '$lib/client/localization.svelte';
 	import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
-	import { IconInfoCircle } from '@tabler/icons-svelte';
+	import Icon from '@iconify/svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 
 	let showAdvanced = $state(false);
@@ -334,7 +334,7 @@
 									{s('settings.smartFilter.minimumRelevance') || 'Minimum Relevance'}: {smartContentFilter.preferences.minimumRelevance.toFixed(1)}
 								</label>
 								<Tooltip text={s('settings.smartFilter.relevanceTooltip') || 'How relevant the content must be to your interests'}>
-									<IconInfoCircle class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+									<Icon icon="tabler:info-circle" class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
 								</Tooltip>
 							</div>
 							<input
@@ -355,7 +355,7 @@
 									{s('settings.smartFilter.minimumQuality') || 'Minimum Quality'}: {smartContentFilter.preferences.minimumQuality.toFixed(1)}
 								</label>
 								<Tooltip text={s('settings.smartFilter.qualityTooltip') || 'How high-quality the journalism and writing must be'}>
-									<IconInfoCircle class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+									<Icon icon="tabler:info-circle" class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
 								</Tooltip>
 							</div>
 							<input
@@ -376,7 +376,7 @@
 									{s('settings.smartFilter.minimumSentiment') || 'Minimum Sentiment'}: {smartContentFilter.preferences.minimumSentiment.toFixed(1)}
 								</label>
 								<Tooltip text={s('settings.smartFilter.sentimentTooltip') || 'How positive or neutral the content sentiment must be'}>
-									<IconInfoCircle class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+									<Icon icon="tabler:info-circle" class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
 								</Tooltip>
 							</div>
 							<input

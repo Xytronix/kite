@@ -12,7 +12,7 @@ interface Props {
 	onNavigate?: (params: NavigationParams) => void;
 }
 
-let { 
+const { 
 	batchId = $bindable(),
 	categoryId = $bindable(),
 	storyIndex = $bindable(null),
@@ -43,6 +43,7 @@ export function updateUrl(params?: Partial<NavigationParams>) {
 	// Only update if URL actually changed
 	if (newUrl !== previousUrl) {
 		previousUrl = newUrl;
+		// Use SvelteKit's replaceState helper to avoid router conflicts
 		replaceState(newUrl, {});
 	}
 }
@@ -56,7 +57,15 @@ export function navigateTo(params: Partial<NavigationParams>) {
 	// Only navigate if URL actually changed
 	if (newUrl !== previousUrl) {
 		previousUrl = newUrl;
-		goto(newUrl);
+		// Use SvelteKit's goto with sensible defaults so navigation feels seamless
+		//  • keepfocus: prevent focus loss during internal navigation
+		//  • noscroll: retain the current scroll position unless the route explicitly handles it
+		//  • state: mirror the url parameters so we can read them in popstate events if needed later
+		goto(newUrl, {
+			keepfocus: true,
+			noscroll: true,
+			state: { restored: false }
+		});
 	}
 }
 
@@ -64,19 +73,19 @@ export function navigateTo(params: Partial<NavigationParams>) {
 let initialLoadProcessed = $state(false);
 
 // Handle initial page load and browser navigation
-$effect(() => {
+$effect.pre(() => {
 	if (!browser) return;
 	
 	// Parse current URL
 	const params = UrlNavigationService.parseUrl(page.url);
 	const urlString = UrlNavigationService.getFullUrl(page.url);
 	
-	// Handle initial page load
-	if (!initialLoadProcessed && onNavigate) {
+	// Handle initial page load state updates
+	if (!initialLoadProcessed) {
 		initialLoadProcessed = true;
 		previousUrl = urlString;
 		
-		// Only navigate if we have actual URL parameters to process
+		// Only set navigation flag if we have actual URL parameters to process
 		const hasParams = params.batchId !== undefined || 
 		                 params.categoryId !== undefined || 
 		                 params.storyIndex !== undefined ||
@@ -84,12 +93,6 @@ $effect(() => {
 		                 
 		if (hasParams) {
 			isRestoringFromHistory = true;
-			onNavigate(params);
-			
-			// Reset flag after a short delay
-			setTimeout(() => {
-				isRestoringFromHistory = false;
-			}, 100);
 		}
 		return;
 	}
@@ -98,16 +101,32 @@ $effect(() => {
 	if (UrlNavigationService.areUrlsDifferent(urlString, previousUrl) && !isRestoringFromHistory) {
 		isRestoringFromHistory = true;
 		previousUrl = urlString;
+	}
+});
+
+// Handle navigation side effects
+$effect(() => {
+	if (!browser || !onNavigate) return;
+	
+	// Parse current URL for navigation
+	const params = UrlNavigationService.parseUrl(page.url);
+	const urlString = UrlNavigationService.getFullUrl(page.url);
+	
+	// Handle initial navigation
+	if (initialLoadProcessed && isRestoringFromHistory && UrlNavigationService.areUrlsDifferent(urlString, '')) {
+		const hasParams = params.batchId !== undefined || 
+		                 params.categoryId !== undefined || 
+		                 params.storyIndex !== undefined ||
+		                 params.dataLang !== undefined;
 		
-		// Notify parent component about navigation
-		if (onNavigate) {
+		if (hasParams) {
 			onNavigate(params);
+			
+			// Reset flag after navigation
+			setTimeout(() => {
+				isRestoringFromHistory = false;
+			}, 100);
 		}
-		
-		// Reset flag after a short delay
-		setTimeout(() => {
-			isRestoringFromHistory = false;
-		}, 100);
 	}
 });
 

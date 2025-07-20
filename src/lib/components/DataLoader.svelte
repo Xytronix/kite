@@ -34,14 +34,17 @@
 		initialCategoryId?: string | null;
 	}
 
-	let { onDataLoaded, onError, initialBatchId, initialCategoryId }: Props = $props();
+	const { onDataLoaded, onError, initialBatchId, initialCategoryId }: Props = $props();
 
 	// Loading state
 	let initialLoading = $state(true);
 	let loadingProgress = $state(0);
-	let loadingStage = $state('');
 	let hasError = $state(false);
 	let errorMessage = $state('');
+
+	// Set an initial loading stage right away. This avoids mutating state from inside a $effect,
+	// which is disallowed in Svelte 5.
+	let loadingStage = $state(s('loading.initializing') || 'Initializing...');
 
 	// Data state
 	let categories = $state<Category[]>([]);
@@ -52,16 +55,26 @@
 	let allCategoryStories = $state<Record<string, Story[]>>({});
 	let isLatestBatch = $state(true);
 
-	// Initialize loading stage
-	$effect(() => {
-		if (initialLoading && !loadingStage) {
-			loadingStage = s('loading.initializing') || 'Initializing...';
-		}
-	});
-
-	// Function to preload all images for stories
+	// Function to preload all images for stories with timeout handling
 	async function preloadCategoryImages(stories: Story[]) {
-		await imagePreloadingService.preloadCategory(stories);
+		// Set a fallback timeout that's shorter than the service timeout
+		const fallbackTimeout = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				console.log('⏱️ Fallback timeout reached, continuing with loading...');
+				// Bump progress so the splash doesn’t stall mid-way
+				loadingProgress = Math.max(loadingProgress, 85);
+				resolve();
+			}, 3000); // 3-second fallback – keep UX snappy
+		});
+		
+		try {
+			await Promise.race([
+				imagePreloadingService.preloadCategory(stories),
+				fallbackTimeout
+			]);
+		} catch (error) {
+			console.warn('Image preloading failed, continuing without cache:', error);
+		}
 	}
 
 	// Main data loading function
@@ -151,7 +164,7 @@
 			);
 			
 			// If we have a category from URL that's not enabled, we need to include it
-			let categoriesToLoad = [...enabledCategories];
+			const categoriesToLoad = [...enabledCategories];
 			let temporaryCategoryId: string | null = null;
 			
 			if (initialCategoryId && !enabledCategories.includes(initialCategoryId)) {
@@ -192,11 +205,11 @@
 			let maxTimestamp = 0;
 			let totalReadCountSum = 0;
 			
-			categoryResults.forEach(result => {
+			for (const result of categoryResults) {
 				allCategoryStories[result.categoryId] = result.stories;
 				maxTimestamp = Math.max(maxTimestamp, result.timestamp);
 				totalReadCountSum += result.readCount;
-			});
+			}
 
 			// Set initial display to target category (from URL or first enabled)
 			stories = allCategoryStories[targetCategory] || [];
@@ -208,7 +221,28 @@
 
 			// Image preloading is now handled by the service which checks time travel mode internally
 			loadingStage = s('loading.images') || 'Preloading first category images...';
-			loadingProgress = 50;
+			loadingProgress = 65; // start image phase above 50% so bar continues moving
+			
+			// Animate progress from 65 → 85 % while images preload
+			const startAnimatingProgress = () => {
+				const start = performance.now();
+				const duration = 2000; // 2 s perceived loading
+
+				const step = () => {
+					const elapsed = performance.now() - start;
+					const t = Math.min(1, elapsed / duration);
+					// ease-out curve (sqrt)
+					const eased = Math.sqrt(t);
+					loadingProgress = 65 + eased * (85 - 65);
+					if (t < 1) {
+						progressAnimId = requestAnimationFrame(step);
+					}
+				};
+				progressAnimId = requestAnimationFrame(step);
+			};
+
+			let progressAnimId: number | null = null;
+			startAnimatingProgress();
 
 			// Only preload images for the first category to keep initial load fast
 			const firstCategoryStories = allCategoryStories[targetCategory] || [];
@@ -216,22 +250,32 @@
 			console.log(`📚 Total categories preloaded: ${enabledCategories.length} (${Object.values(allCategoryStories).flat().length} total stories)`);
 			
 			if (firstCategoryStories.length > 0) {
-				await preloadCategoryImages(firstCategoryStories);
+				try {
+					await preloadCategoryImages(firstCategoryStories);
+					console.log('✅ Image preloading completed successfully');
+				} catch (error) {
+					console.warn('⚠️ Image preloading failed or timed out, continuing with loading:', error);
+					// Continue loading even if image preloading fails/times out
+				}
 			}
+
+			// Ensure progress animation stops and set progress to 85 after image step
+			if (progressAnimId !== null) {
+				cancelAnimationFrame(progressAnimId);
+				progressAnimId = null;
+			}
+			loadingProgress = Math.max(loadingProgress, 85);
 
 			loadingStage = s('loading.finishing') || 'Finishing up...';
 			loadingProgress = 90;
-
-			await new Promise(resolve => setTimeout(resolve, 100));
 			
 			loadingProgress = 100;
 			loadingStage = s('loading.ready') || 'Ready!';
 
-			// Shorter wait before hiding splash screen
+			initialLoading = false;
+
+			// Slight delay before invoking callback to ensure UI is ready
 			setTimeout(() => {
-				initialLoading = false;
-				
-				// Call the callback with loaded data
 				if (onDataLoaded) {
 					onDataLoaded({
 						categories,
@@ -249,7 +293,7 @@
 						temporaryCategory: temporaryCategoryId
 					});
 				}
-			}, 150);
+			}, 100);
 
 		} catch (error) {
 			console.error('Error loading initial data:', error);
@@ -300,7 +344,7 @@
 			);
 			
 			// If we have a category from URL that's not enabled, we need to include it
-			let categoriesToLoad = [...enabledCategories];
+			const categoriesToLoad = [...enabledCategories];
 			let temporaryCategoryId: string | null = null;
 			
 			if (initialCategoryId && !enabledCategories.includes(initialCategoryId)) {
@@ -340,11 +384,11 @@
 			let maxTimestamp = 0;
 			let totalReadCountSum = 0;
 			
-			categoryResults.forEach(result => {
+			for (const result of categoryResults) {
 				allCategoryStories[result.categoryId] = result.stories;
 				maxTimestamp = Math.max(maxTimestamp, result.timestamp);
 				totalReadCountSum += result.readCount;
-			});
+			}
 
 			// Set initial display to current category (from URL or first enabled)
 			stories = allCategoryStories[currentCategory] || [];
@@ -392,7 +436,7 @@
 
 	// Load data when component mounts
 	onMount(() => {
-		console.log(`🚀 DataLoader mounted - loading initial data`);
+		console.log('🚀 DataLoader mounted - loading initial data');
 		loadInitialData();
 		
 		// Register reload callback
@@ -400,36 +444,43 @@
 	});
 	
 	// Watch for batch changes (time travel mode toggle)
-	let previousBatchId: string | null = null;
-	$effect(() => {
+	let lastProcessedBatchId: string | null = null;
+	let needsReload = $state(false);
+	
+	// Track when batch changes and trigger reload
+	$effect.pre(() => {
 		const currentBatchId = timeTravelBatch.batchId;
 		
-		// If batch changed and we're not in initial loading
-		if (currentBatchId !== previousBatchId && !initialLoading && previousBatchId !== null) {
-			console.log(`🔄 Batch changed from ${previousBatchId} to ${currentBatchId}, reloading data...`);
-			previousBatchId = currentBatchId;
+		// Check if we need to reload
+		if (currentBatchId !== lastProcessedBatchId && !initialLoading && lastProcessedBatchId !== null) {
+			console.log(`🔄 Batch changed from ${lastProcessedBatchId} to ${currentBatchId}, triggering reload...`);
 			
-			// Update isLatestBatch based on whether we're clearing time travel mode
+			// Update state
+			lastProcessedBatchId = currentBatchId;
 			isLatestBatch = currentBatchId === null;
-			
-			// Show loading screen briefly
 			initialLoading = true;
 			loadingProgress = 0;
 			loadingStage = s('loading.loadingData') || 'Loading news data...';
-			
-			// Load new data
+			needsReload = true;
+		} else {
+			lastProcessedBatchId = currentBatchId;
+		}
+	});
+	
+	// Handle reload trigger
+	$effect(() => {
+		if (needsReload) {
+			needsReload = false;
 			setTimeout(() => {
 				loadInitialData();
 			}, 100);
-		} else {
-			previousBatchId = currentBatchId;
 		}
 	});
 </script>
 
 {#if initialLoading}
 	<SplashScreen 
-		showProgress={loadingProgress > 5} 
+		showProgress={true}
 		progress={loadingProgress}
 		stage={loadingStage}
 		hasError={hasError}

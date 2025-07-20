@@ -1,41 +1,68 @@
 <script lang="ts">
 	import type { TopicFeed } from '$lib/types';
+	import type { Story } from '$lib/types';
 	import { onMount } from 'svelte';
 	import { topicService } from '$lib/services/topicService';
 	import StoryCard from './story/StoryCard.svelte';
 	import SmartFilterPanel from './SmartFilterPanel.svelte';
 	import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
+	import { SmartFilterService } from '$lib/services/smartFilterService';
+	import { settings } from '$lib/stores/settings.svelte.js';
 	import { s } from '$lib/client/localization.svelte';
 
-	export let topicId: string;
-	export let language: string = 'en';
+	interface Props {
+	    topicId: string;
+	    language?: string;
+	}
 
-	let topicFeed: TopicFeed | null = null;
-	let loading = true;
-	let loadingMore = false;
-	let error: string | null = null;
-	let expandedStories: Record<string, boolean> = {};
-	let readStories: Record<string, boolean> = {};
-	let displayedStories: any[] = [];
-	let filteredStories: any[] = [];
-	let currentPage = 0;
-	let hasMoreStories = true;
-	const STORIES_PER_PAGE = 12;
-	let showSmartFilter = false;
+	const {
+	    topicId = $bindable(),
+	    language = $bindable('en')
+	}: Props = $props();
+
+	let topicFeed = $state<TopicFeed | null>(null);
+	let loading = $state(true);
+	let loadingMore = $state(false);
+	let error = $state<string | null>(null);
+	let expandedStories = $state<Record<string, boolean>>({});
+	let readStories = $state<Record<string, boolean>>({});
+	let displayedStories = $state<Story[]>([]);
+	let filteredStories = $state<Story[]>([]);
+	// Use a local filter service to avoid side effects (stats updates) that could trigger circular reactivity
+	const _localFilterService = new SmartFilterService();
+	let currentPage = $state(0);
+	let hasMoreStories = $state(true);
+	// Stories per pagination chunk controlled by user settings
+	let STORIES_PER_PAGE = settings.storyCount || 12;
+	let fetchLimit = settings.storyCount || 12;
+
+	// Reactively update when settings change
+	$effect(() => {
+	    STORIES_PER_PAGE = settings.storyCount || 12;
+	    fetchLimit = settings.storyCount || 12;
+	});
+	// biome-ignore lint/style/useConst: This variable is reassigned in click handlers
+	let showSmartFilter = $state(false);
 
 	// Source overlay state (required by StoryCard)
-	let showSourceOverlay = false;
-	let currentSource: any = null;
-	let sourceArticles: any[] = [];
-	let currentMediaInfo: any = null;
-	let isLoadingMediaInfo = false;
+	// biome-ignore lint/style/useConst: These variables are used in bind: directives
+	let showSourceOverlay = $state(false);
+	// biome-ignore lint/style/useConst: These variables are used in bind: directives
+	let currentSource = $state<unknown>(null);
+	// biome-ignore lint/style/useConst: These variables are used in bind: directives
+	let sourceArticles = $state<unknown[]>([]);
+	// biome-ignore lint/style/useConst: These variables are used in bind: directives
+	let currentMediaInfo = $state<unknown>(null);
+	// biome-ignore lint/style/useConst: These variables are used in bind: directives
+	let isLoadingMediaInfo = $state(false);
 
 	// Intersection observer for infinite scroll
-	let loadMoreTrigger: HTMLElement;
+	let loadMoreTrigger = $state<HTMLElement | null>(null);
 
 	onMount(async () => {
 		try {
-			topicFeed = await topicService.getTopicFeed(topicId, 200, language); // Load more stories initially
+			// Fetch up to the configured maximum number of stories
+			topicFeed = await topicService.getTopicFeed(topicId, fetchLimit, language);
 			if (topicFeed) {
 				applySmartFiltering();
 				loadInitialStories();
@@ -53,7 +80,11 @@
 		if (!topicFeed) return;
 		
 		if (smartContentFilter.isEnabled) {
-			const filterResult = smartContentFilter.filterStories(topicFeed.stories);
+			// Perform filtering locally to avoid updating global stats and causing reactive loops
+			const filterResult = _localFilterService.filterStories(
+				topicFeed.stories,
+				smartContentFilter.preferences
+			);
 			filteredStories = filterResult.filtered;
 		} else {
 			filteredStories = topicFeed.stories;
@@ -61,13 +92,15 @@
 	}
 
 	// Reactive filtering when smart filter settings change
-	$: if (topicFeed && smartContentFilter.isEnabled !== undefined) {
-		applySmartFiltering();
-		// Reset pagination when filtering changes
-		currentPage = 0;
-		displayedStories = [];
-		loadInitialStories();
-	}
+	$effect(() => {
+		if (topicFeed && smartContentFilter.isEnabled !== undefined) {
+			applySmartFiltering();
+			// Reset pagination when filtering changes
+			currentPage = 0;
+			displayedStories = [];
+			loadInitialStories();
+		}
+	});
 
 	function loadInitialStories() {
 		if (filteredStories.length > 0) {
@@ -77,27 +110,44 @@
 		}
 	}
 
-	function loadMoreStories() {
+	async function fetchMoreFromServer() {
+		try {
+			fetchLimit += STORIES_PER_PAGE;
+			const moreFeed = await topicService.getTopicFeed(topicId, fetchLimit, language);
+			if (moreFeed) {
+				topicFeed = moreFeed;
+				applySmartFiltering();
+			}
+		} catch (err) {
+			console.error('Failed to fetch additional stories:', err);
+		}
+	}
+
+	async function loadMoreStories() {
 		if (!filteredStories || loadingMore || !hasMoreStories) return;
 		
 		loadingMore = true;
-		
-		// Simulate loading delay for better UX
-		setTimeout(() => {
-			const startIndex = currentPage * STORIES_PER_PAGE;
-			const endIndex = startIndex + STORIES_PER_PAGE;
-			const newStories = filteredStories.slice(startIndex, endIndex);
-			
-			if (newStories.length > 0) {
-				displayedStories = [...displayedStories, ...newStories];
-				currentPage++;
-				hasMoreStories = endIndex < filteredStories.length;
-			} else {
-				hasMoreStories = false;
-			}
-			
-			loadingMore = false;
-		}, 300);
+
+		const startIndex = currentPage * STORIES_PER_PAGE;
+		const endIndex = startIndex + STORIES_PER_PAGE;
+
+		// If we don't have enough preloaded stories, fetch more from server first
+		if (endIndex > filteredStories.length) {
+			await fetchMoreFromServer();
+		}
+
+		// After ensuring we have enough stories, slice and display
+		const newStories = filteredStories.slice(startIndex, endIndex);
+
+		if (newStories.length > 0) {
+			displayedStories = [...displayedStories, ...newStories];
+			currentPage++;
+			hasMoreStories = endIndex < filteredStories.length;
+		} else {
+			hasMoreStories = false;
+		}
+
+		loadingMore = false;
 	}
 
 	function setupInfiniteScroll() {
@@ -119,9 +169,11 @@
 	}
 
 	// Set up intersection observer when the trigger element is available
-	$: if (loadMoreTrigger && hasMoreStories) {
-		setupInfiniteScroll();
-	}
+	$effect(() => {
+		if (loadMoreTrigger && hasMoreStories) {
+			setupInfiniteScroll();
+		}
+	});
 
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString('en-US', {
@@ -144,20 +196,24 @@
 		return `${Math.floor(diffDays / 365)} years ago`;
 	}
 
-	function handleStoryToggle(story: any) {
+	function handleStoryToggle(story: Story) {
 		const storyId = story.cluster_number?.toString() || story.title;
-		expandedStories[storyId] = !expandedStories[storyId];
-		expandedStories = { ...expandedStories }; // Trigger reactivity
+		const newExpandedStories = { ...expandedStories };
+		newExpandedStories[storyId] = !newExpandedStories[storyId];
+		expandedStories = newExpandedStories; // Trigger reactivity
 	}
 
-	function handleReadToggle(story: any) {
-		readStories[story.title] = !readStories[story.title];
-		readStories = { ...readStories }; // Trigger reactivity
+	function handleReadToggle(story: Story) {
+		const newReadStories = { ...readStories };
+		newReadStories[story.title] = !newReadStories[story.title];
+		readStories = newReadStories; // Trigger reactivity
 	}
 
 	// Calculate max count for frequency chart
-	$: maxCount = topicFeed?.mention_frequency?.daily ? 
-		Math.max(...topicFeed.mention_frequency.daily.map(d => d.count)) : 0;
+	const maxCount = $derived.by(() => {
+		return topicFeed?.mention_frequency?.daily ? 
+			Math.max(...topicFeed.mention_frequency.daily.map(d => d.count)) : 0;
+	});
 
 	// Get dynamic color based on mention intensity
 	function getIntensityColor(count: number, maxCount: number): string {

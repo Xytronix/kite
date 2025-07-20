@@ -1,4 +1,10 @@
 import { SmartContentFilter, type ContentScore } from '$lib/algorithms/contentFilter';
+import type { Story } from '$lib/types';
+
+// Type for stories that have been through the filter
+export type FilteredStory = Story & {
+    _filterScore?: ContentScore;
+};
 
 export interface FilterPreferences {
     filterPolitics: boolean;
@@ -21,7 +27,8 @@ export interface FilterPreferences {
 
 export class SmartFilterService {
     private filter = new SmartContentFilter();
-    private defaultPreferences: FilterPreferences = {
+
+    private readonly defaultPreferences: FilterPreferences = {
         filterPolitics: false,
         filterNegativeNews: false,
         filterLowQuality: true,
@@ -35,7 +42,7 @@ export class SmartFilterService {
         filterAnxietyInducing: false,
         filterSocialMediaDrama: true,
         filterPromotional: true,
-        minimumRelevance: 0.3,
+        minimumRelevance: 0,
         minimumQuality: 0.2,
         minimumSentiment: 0.2
     };
@@ -43,9 +50,9 @@ export class SmartFilterService {
     /**
      * Filter stories using algorithmic approach instead of keyword lists
      */
-    filterStories(stories: any[], preferences: Partial<FilterPreferences> = {}): {
-        filtered: any[];
-        removed: Array<{ story: any, reasons: string[] }>;
+    filterStories(stories: Story[], preferences: Partial<FilterPreferences> = {}): {
+        filtered: FilteredStory[];
+        removed: Array<{ story: Story, reasons: string[] }>;
         stats: {
             total: number;
             kept: number;
@@ -54,15 +61,17 @@ export class SmartFilterService {
         };
     } {
         const finalPreferences = { ...this.defaultPreferences, ...preferences };
-        const filtered: any[] = [];
-        const removed: Array<{ story: any, reasons: string[] }> = [];
+        const filtered: FilteredStory[] = [];
+        const removed: Array<{ story: Story, reasons: string[] }> = [];
         const categoryStats: Record<string, number> = {};
 
         for (const story of stories) {
+            // Use the correct Story properties
+            const sourceUrl = story.articles?.[0]?.link || '';
             const score = this.filter.scoreContent(
                 story.title || '',
-                story.short_summary || story.description || '',
-                story.source_url || ''
+                story.short_summary || '',
+                sourceUrl
             );
 
             // Apply user preferences
@@ -105,24 +114,20 @@ export class SmartFilterService {
     /**
      * Get content quality insights
      */
-    analyzeContent(stories: any[]): {
+    analyzeContent(stories: Story[]): {
         averageQuality: number;
         averageRelevance: number;
         averageSentiment: number;
+        totalStories: number;
         categoryDistribution: Record<string, number>;
-        qualityDistribution: {
-            high: number;
-            medium: number;
-            low: number;
-        };
     } {
         if (stories.length === 0) {
             return {
                 averageQuality: 0,
                 averageRelevance: 0,
                 averageSentiment: 0,
-                categoryDistribution: {},
-                qualityDistribution: { high: 0, medium: 0, low: 0 }
+                totalStories: 0,
+                categoryDistribution: {}
             };
         }
 
@@ -130,13 +135,13 @@ export class SmartFilterService {
         let totalRelevance = 0;
         let totalSentiment = 0;
         const categoryDistribution: Record<string, number> = {};
-        const qualityDistribution = { high: 0, medium: 0, low: 0 };
 
         for (const story of stories) {
+            const sourceUrl = story.articles?.[0]?.link || '';
             const score = this.filter.scoreContent(
                 story.title || '',
-                story.short_summary || story.description || '',
-                story.source_url || ''
+                story.short_summary || '',
+                sourceUrl
             );
 
             totalQuality += score.quality;
@@ -144,29 +149,25 @@ export class SmartFilterService {
             totalSentiment += score.sentiment;
 
             categoryDistribution[score.category] = (categoryDistribution[score.category] || 0) + 1;
-
-            if (score.quality >= 0.7) qualityDistribution.high++;
-            else if (score.quality >= 0.4) qualityDistribution.medium++;
-            else qualityDistribution.low++;
         }
 
         return {
             averageQuality: totalQuality / stories.length,
             averageRelevance: totalRelevance / stories.length,
             averageSentiment: totalSentiment / stories.length,
-            categoryDistribution,
-            qualityDistribution
+            totalStories: stories.length,
+            categoryDistribution
         };
     }
 
     /**
      * Generate filter recommendations based on content analysis
      */
-    generateFilterRecommendations(stories: any[]): {
+    generateFilterRecommendations(stories: Story[]): {
         recommendations: Array<{
             setting: keyof FilterPreferences;
-            currentValue: any;
-            recommendedValue: any;
+            currentValue: boolean | number;
+            recommendedValue: boolean | number;
             reason: string;
         }>;
         insights: string[];
@@ -174,21 +175,20 @@ export class SmartFilterService {
         const analysis = this.analyzeContent(stories);
         const recommendations: Array<{
             setting: keyof FilterPreferences;
-            currentValue: any;
-            recommendedValue: any;
+            currentValue: boolean | number;
+            recommendedValue: boolean | number;
             reason: string;
         }> = [];
         const insights: string[] = [];
 
-        // Analyze quality distribution
-        if (analysis.qualityDistribution.low > analysis.qualityDistribution.high) {
+        // Analyze quality distribution - use averageQuality instead
+        if (analysis.averageQuality < 0.5) {
             recommendations.push({
                 setting: 'minimumQuality',
                 currentValue: this.defaultPreferences.minimumQuality,
                 recommendedValue: 0.4,
-                reason: 'High amount of low-quality content detected'
+                reason: 'Low average quality content detected'
             });
-            insights.push('Consider raising quality standards to filter out low-quality content');
         }
 
         // Analyze sentiment
@@ -225,10 +225,12 @@ export class SmartFilterService {
         if (preferences.filterViolence && score.sentiment < 0.2) return true;
         if (preferences.filterCelebrity && score.category === 'celebrity') return true;
 
-        // Check minimum thresholds
-        if (score.quality < preferences.minimumQuality) return true;
-        if (score.relevance < preferences.minimumRelevance) return true;
-        if (score.sentiment < preferences.minimumSentiment) return true;
+        // Threshold checks are only active when the related preference is enabled
+        if (preferences.filterLowQuality && score.quality < preferences.minimumQuality) return true;
+        if (preferences.filterNegativeNews && score.sentiment < preferences.minimumSentiment) return true;
+
+        // Relevance filtering is considered an advanced threshold – it only runs if the user explicitly sets it above 0.
+        if (preferences.minimumRelevance > 0 && score.relevance < preferences.minimumRelevance) return true;
 
         return false;
     }
@@ -236,7 +238,7 @@ export class SmartFilterService {
     /**
      * Get filter statistics for analytics
      */
-    getFilterStats(stories: any[], preferences: Partial<FilterPreferences> = {}): {
+    getFilterStats(stories: Story[], preferences: Partial<FilterPreferences> = {}): {
         totalProcessed: number;
         filtered: number;
         filterRate: number;
@@ -248,36 +250,38 @@ export class SmartFilterService {
         const categoryBreakdown: Record<string, { total: number, filtered: number }> = {};
 
         // Count filter reasons
-        result.removed.forEach(item => {
-            item.reasons.forEach(reason => {
+        for (const item of result.removed) {
+            for (const reason of item.reasons) {
                 reasonCounts.set(reason, (reasonCounts.get(reason) || 0) + 1);
-            });
-        });
+            }
+        }
 
         // Category breakdown
-        stories.forEach(story => {
+        for (const story of stories) {
+            const sourceUrl = story.articles?.[0]?.link || '';
             const score = this.filter.scoreContent(
                 story.title || '',
                 story.short_summary || '',
-                story.source_url || ''
+                sourceUrl
             );
 
             if (!categoryBreakdown[score.category]) {
                 categoryBreakdown[score.category] = { total: 0, filtered: 0 };
             }
             categoryBreakdown[score.category].total++;
-        });
+        }
 
-        result.removed.forEach(item => {
+        for (const item of result.removed) {
+            const sourceUrl = item.story.articles?.[0]?.link || '';
             const score = this.filter.scoreContent(
                 item.story.title || '',
                 item.story.short_summary || '',
-                item.story.source_url || ''
+                sourceUrl
             );
             if (categoryBreakdown[score.category]) {
                 categoryBreakdown[score.category].filtered++;
             }
-        });
+        }
 
         const topFilterReasons = Array.from(reasonCounts.entries())
             .map(([reason, count]) => ({ reason, count }))

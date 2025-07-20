@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { scrollLock } from '$lib/utils/scrollLock.js';
-import { IconMapPin, IconUser, IconBuilding, IconTag } from '@tabler/icons-svelte';
+import Icon from '@iconify/svelte';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
@@ -289,7 +289,7 @@ function handleBackdropClick(event: MouseEvent) {
 									<!-- Country -->
 									<div class="flex items-start gap-3">
 										<div class="flex-shrink-0 mt-0.5">
-											<IconMapPin class="h-5 w-5 text-gray-500" />
+											<Icon icon="tabler:map-pin" class="h-5 w-5 text-gray-500" />
 										</div>
 										<div class="min-w-0 flex-1">
 											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
@@ -304,7 +304,7 @@ function handleBackdropClick(event: MouseEvent) {
 									<!-- Owner -->
 									<div class="flex items-start gap-3">
 										<div class="flex-shrink-0 mt-0.5">
-											<IconUser class="h-5 w-5 text-gray-500" />
+											<Icon icon="tabler:user" class="h-5 w-5 text-gray-500" />
 										</div>
 										<div class="min-w-0 flex-1">
 											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
@@ -319,7 +319,7 @@ function handleBackdropClick(event: MouseEvent) {
 									<!-- Organization -->
 									<div class="flex items-start gap-3">
 										<div class="flex-shrink-0 mt-0.5">
-											<IconBuilding class="h-5 w-5 text-gray-500" />
+											<Icon icon="tabler:building" class="h-5 w-5 text-gray-500" />
 										</div>
 										<div class="min-w-0 flex-1">
 											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
@@ -334,7 +334,7 @@ function handleBackdropClick(event: MouseEvent) {
 									<!-- Media Classification -->
 									<div class="flex items-start gap-3">
 										<div class="flex-shrink-0 mt-0.5">
-											<IconTag class="h-5 w-5 text-gray-500" />
+											<Icon icon="tabler:tag" class="h-5 w-5 text-gray-500" />
 										</div>
 										<div class="min-w-0 flex-1">
 											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">

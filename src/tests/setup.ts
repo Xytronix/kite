@@ -1,5 +1,8 @@
 // Test setup for unit tests
 import { vi } from 'vitest';
+import { expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+expect.extend(matchers);
 
 // Mock browser environment
 Object.defineProperty(window, 'matchMedia', {

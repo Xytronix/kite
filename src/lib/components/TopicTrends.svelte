@@ -16,7 +16,7 @@
 	let lastUpdated: Date | null = null;
 
 	// Auto-refresh every 5 minutes for dynamic data
-	let refreshInterval: NodeJS.Timeout;
+	let refreshInterval: ReturnType<typeof setInterval>;
 
 	async function loadTopics() {
 		try {
@@ -32,14 +32,16 @@
 		}
 	}
 
-	onMount(async () => {
-		await loadTopics();
-		
+	onMount(() => {
+		// Kick off the initial load but don't make onMount itself async
+		void loadTopics();
+
 		// Set up auto-refresh for dynamic updates
 		refreshInterval = setInterval(loadTopics, 5 * 60 * 1000); // 5 minutes
-		
+
+		// Cleanup when the component is destroyed
 		return () => {
-			if (refreshInterval) clearInterval(refreshInterval);
+			clearInterval(refreshInterval);
 		};
 	});
 

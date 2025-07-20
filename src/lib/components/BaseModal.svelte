@@ -130,7 +130,8 @@ $effect(() => {
 			
 			// Restore focus
 			if (previousActiveElement && previousActiveElement instanceof HTMLElement) {
-				previousActiveElement.focus();
+				// Restore focus but prevent browser from scrolling to the element, avoiding scroll jumps
+				(previousActiveElement as HTMLElement).focus({ preventScroll: true } as FocusOptions);
 			}
 		}
 	}

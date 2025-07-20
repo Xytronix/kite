@@ -5,16 +5,18 @@ import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
 import { dataService, dataReloadService } from '$lib/services/dataService';
 import { s } from '$lib/client/localization.svelte';
 import { language } from '$lib/stores/language.svelte.js';
-import { IconClock } from '@tabler/icons-svelte';
+import Icon from '@iconify/svelte';
 import ChaosIndex from './ChaosIndex.svelte';
 import { experimental } from '$lib/stores/experimental.svelte.js';
+import { feedDate } from '$lib/stores/feedDate.svelte';
+import { get } from 'svelte/store';
 
 // Props
 interface Props {
 	totalReadCount?: number;
 	totalStoriesRead?: number;
 	offlineMode?: boolean;
-	getLastUpdated?: () => string;
+	getLastUpdated?: string;
 	chaosIndex?: {
 		score: number;
 		summary: string;
@@ -22,11 +24,11 @@ interface Props {
 	};
 }
 
-let {
+const {
 	totalReadCount = 0,
 	totalStoriesRead = 0,
 	offlineMode = false,
-	getLastUpdated = () => 'Never',
+	getLastUpdated = 'Never',
 	chaosIndex
 }: Props = $props();
 
@@ -34,6 +36,7 @@ let {
 let dateClickCount = $state(0);
 
 // Loading state for exiting time travel
+// biome-ignore lint/style/useConst: This $state variable is reassigned in the onclick handler
 let isExitingTimeTravel = $state(false);
 
 // Theme-aware logo source
@@ -81,7 +84,20 @@ const dateDisplay = $derived.by(() => {
 	}
 	
 	if (dateClickCount === 0) {
-		// Default date format
+        const feedDateValue = get(feedDate);
+		// If user scrolled to an older feed date, show that instead of today
+		if (feedDateValue) {
+			const parsed = new Date(feedDateValue + 'T00:00:00Z');
+			const dateStr = new Intl.DateTimeFormat(language.current, {
+				weekday: 'long',
+				month: 'long',
+				day: 'numeric',
+				year: 'numeric'
+			}).format(parsed);
+			return capitalizeFirst(dateStr);
+		}
+
+		// Default date format (today)
 		const now = new Date();
 		const dateStr = new Intl.DateTimeFormat(language.current, {
 			weekday: 'long',
@@ -89,19 +105,30 @@ const dateDisplay = $derived.by(() => {
 			day: 'numeric'
 		}).format(now);
 		return capitalizeFirst(dateStr);
-	} else if (dateClickCount === 1) {
-		return getLastUpdated();
-	} else if (dateClickCount === 2) {
+	} if (dateClickCount === 1) {
+		return getLastUpdated;
+	} if (dateClickCount === 2) {
 		return s('stats.newsToday', { count: totalReadCount.toString() }) || `News today: ${totalReadCount}`;
-	} else if (dateClickCount === 3) {
+	} if (dateClickCount === 3) {
 		return s('stats.storiesRead', { count: totalStoriesRead.toString() }) || `Stories read: ${totalStoriesRead}`;
-	} else {
-		const now = new Date();
-		const start = new Date(now.getFullYear(), 0, 1);
-		const week = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
-		const day = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-		return s('stats.weekDay', { week: week.toString(), day: day.toString() }) || `Week ${week}, Day ${day}`;
-	}
+	} 
+	const now = new Date();
+	const start = new Date(now.getFullYear(), 0, 1);
+	const week = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7));
+	const day = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+	return s('stats.weekDay', { week: week.toString(), day: day.toString() }) || `Week ${week}, Day ${day}`;
+});
+
+// Update document title when feedDate changes (outside of time travel)
+$effect(() => {
+    const feedDateValue = get(feedDate);
+    if (!timeTravel.selectedDate) {
+        if (feedDateValue) {
+            document.title = `${s('app.title') || 'Kite'} - ${feedDateValue}`;
+        } else {
+            document.title = `${s('app.title') || 'Kite'} - ${s('app.motto') || 'News. Elevated.'}`;
+        }
+    }
 });
 </script>
 
@@ -220,10 +247,7 @@ const dateDisplay = $derived.by(() => {
 				class="ml-2"
 				type="button"
 			>
-				<IconClock 
-					size={24}
-					class="text-gray-600 dark:text-gray-400"
-				/>
+				<Icon icon="tabler:clock" class="text-gray-600 dark:text-gray-400 w-6 h-6" />
 			</button>
 			
 			<button

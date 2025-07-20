@@ -5,17 +5,23 @@
 	import { s } from '$lib/client/localization.svelte';
 	import { categories } from '$lib/stores/categories.svelte.js';
 	import type { Category } from '$lib/types';
+
+	// Local type for items used in drag-and-drop lists
+	type CategoryItem = {
+		id: string;
+		name: string;
+	};
 	import { getCategoryDisplayName } from '$lib/utils/category';
 	import { categoryMetadataService, type CategoryMetadata } from '$lib/services/categoryMetadataService';
 	import Select from '$lib/components/Select.svelte';
-	import { IconNews, IconWorld, IconMapPin, IconBuilding, IconBulb, IconDots } from '@tabler/icons-svelte';
+	import Icon from '@iconify/svelte';
 	
 	// Props
 	interface Props {
 		categories?: Category[];
 	}
 
-	let { categories: allCategories = [] }: Props = $props();
+	const { categories: allCategories = [] }: Props = $props();
 
 	const flipDurationMs = 200;
 	
@@ -28,17 +34,18 @@
 	
 	// Category metadata and filtering
 	let categoryMetadata = $state<CategoryMetadata[]>([]);
+	// biome-ignore lint/style/useConst -- categoryFilter is updated via UI events later in the component
 	let categoryFilter = $state('all');
 	
 	// Filter options for the Select component
 	const filterOptions = $derived([
 		{ value: 'all', label: s('settings.categories.types.all') || 'All types' },
-		{ value: 'core', label: s('settings.categories.types.core') || 'Core', icon: IconNews },
-		{ value: 'country', label: s('settings.categories.types.country') || 'Countries', icon: IconWorld },
-		{ value: 'region', label: s('settings.categories.types.region') || 'Regions', icon: IconMapPin },
-		{ value: 'city', label: s('settings.categories.types.city') || 'Cities', icon: IconBuilding },
-		{ value: 'topic', label: s('settings.categories.types.topic') || 'Topics', icon: IconBulb },
-		{ value: 'other', label: s('settings.categories.types.other') || 'Other', icon: IconDots }
+		{ value: 'core', label: s('settings.categories.types.core') || 'Core', icon: 'tabler:news' },
+		{ value: 'country', label: s('settings.categories.types.country') || 'Countries', icon: 'tabler:world' },
+		{ value: 'region', label: s('settings.categories.types.region') || 'Regions', icon: 'tabler:map-pin' },
+		{ value: 'city', label: s('settings.categories.types.city') || 'Cities', icon: 'tabler:building' },
+		{ value: 'topic', label: s('settings.categories.types.topic') || 'Topics', icon: 'tabler:bulb' },
+		{ value: 'other', label: s('settings.categories.types.other') || 'Other', icon: 'tabler:dots' }
 	]);
 
 	// Initialize categories when they change
@@ -115,7 +122,7 @@
 
 	// Count categories by type for filter labels
 	function getCategoryCounts() {
-		const counts = {
+		const counts: Record<string, number> = {
 			all: disabledItems.length,
 			core: 0,
 			country: 0,
@@ -125,12 +132,12 @@
 			other: 0
 		};
 
-		disabledItems.forEach(item => {
+		for (const item of disabledItems) {
 			const type = getCategoryType(item.id);
 			if (type in counts) {
-				(counts as any)[type]++;
+				counts[type]++;
 			}
-		});
+		}
 
 		return counts;
 	}
@@ -140,9 +147,9 @@
 		const counts = getCategoryCounts();
 		return filterOptions.map(option => ({
 			...option,
-			label: option.value === 'all' 
+			label: option.value === 'all'
 				? `All Categories (${counts.all})`
-				: `${option.label} (${(counts as any)[option.value] || 0})`
+				: `${option.label} (${counts[option.value] || 0})`
 		}));
 	});
 
@@ -158,7 +165,6 @@
 		
 		// Extract the new enabled categories in their drag order
 		const newEnabled = newItems.map((item: any) => item.id);
-		
 		// Update enabled/disabled states
 		categories.setEnabled(newEnabled);
 		
@@ -182,10 +188,10 @@
 
 	function handleDisabledFinalize(e: CustomEvent) {
 		isDragging = false;
-		const newItems = e.detail.items;
+		const newItems = e.detail.items as CategoryItem[];
 		
 		// Extract the new disabled categories in their drag order
-		const newDisabled = newItems.map((item: any) => item.id);
+		const newDisabled = newItems.map(item => item.id);
 		
 		// When working with filtered items, we need to preserve the order of categories
 		// that aren't currently visible in the filter

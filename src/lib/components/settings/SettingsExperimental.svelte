@@ -52,7 +52,7 @@ function toggleChaosIndex() {
 			</button>
 		</div>
 		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.articleIcons.description') || 'Display emoji icons next to article titles to provide visual context.'}
+			{s('settings.experimental.articleIcons.description') || 'Display icons next to article titles to provide visual context.'}
 		</p>
 	</div>
 

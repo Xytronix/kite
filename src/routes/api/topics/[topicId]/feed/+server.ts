@@ -72,8 +72,9 @@ export const GET: RequestHandler = async ({ params, url, fetch }) => {
 		let earliestDate = new Date().toISOString();
 		let latestDate = new Date(0).toISOString();
 
-		// Scan through recent batches (limit to last 10 for performance)
-		const recentBatches = batchesData.batches.slice(0, 10);
+		// Scan through batches from newest to oldest until we gather enough matches for the requested limit.
+		// Removing the previous hard cap of 10 enables multi-date infinite scrolling on the frontend.
+		const recentBatches = batchesData.batches;
 		
 		for (const batch of recentBatches) {
 			try {

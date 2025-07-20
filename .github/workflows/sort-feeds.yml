@@ -1,15 +1,21 @@
-name: Sort and Deduplicate Feeds
+name: Auto-sort data files
 
 on:
   push:
     paths:
       - 'kite_feeds.json'
+      - 'media_data.json'
     branches:
       - main
       - 'feature/**'
   pull_request:
     paths:
       - 'kite_feeds.json'
+      - 'media_data.json'
+
+concurrency:
+  group: sort-feeds-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sort-feeds:
@@ -25,8 +31,22 @@ jobs:
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
 
-    - name: Sort and deduplicate feeds
-      run: bun scripts/sort-feeds.js
+    - name: Restore Bun cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
+
+    - name: Install dependencies (prod only)
+      run: bun install --production --frozen-lockfile
+
+    - name: Sort feeds, media and locales
+      run: |
+        bun ts-node scripts/sort-feeds.ts
+        bun scripts/sort-media.ts
+        bun ts-node scripts/sort-locales.ts
 
     - name: Check for changes
       id: verify-changed-files
@@ -42,7 +62,7 @@ jobs:
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add kite_feeds.json
+        git add kite_feeds.json media_data.json src/lib/locales/*.json
         git commit -m "$(cat <<'EOF'
         chore: auto-sort and deduplicate feeds
 
@@ -67,7 +87,7 @@ jobs:
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add kite_feeds.json
+        git add kite_feeds.json media_data.json src/lib/locales/*.json
         git commit -m "$(cat <<'EOF'
         chore: auto-sort and deduplicate feeds
 

@@ -1,3 +1,5 @@
+import { ENGLISH_STOP_WORDS } from './stopWords';
+
 export interface ContentScore {
 	relevance: number;
 	quality: number;
@@ -57,9 +59,15 @@ export class SmartContentFilter {
 		let score = 0.5; // Base score
 		
 		// Information density (unique words vs total words)
-		const words = text.split(/\s+/);
+		const words = text
+			.split(/\s+/)
+			.map(w => w.toLowerCase())
+			.filter(w => w && !ENGLISH_STOP_WORDS.has(w));
+
 		const uniqueWords = new Set(words);
-		const densityRatio = uniqueWords.size / words.length;
+
+		// Avoid division by zero when text contains only stop words
+		const densityRatio = words.length > 0 ? uniqueWords.size / words.length : 0;
 		score += densityRatio * 0.3;
 		
 		// Presence of specific information (numbers, dates, names)
