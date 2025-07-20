@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 import { theme } from '$lib/stores/theme.svelte.js';
 import { PUBLIC_MAINTENANCE_MODE, PUBLIC_MAINTENANCE_START, PUBLIC_MAINTENANCE_END, PUBLIC_MAINTENANCE_AUTO, PUBLIC_MAINTENANCE_MESSAGE } from '$env/static/public';
 import SplashScreen from '$lib/components/SplashScreen.svelte';
+import MaintenanceScreen from '$lib/components/MaintenanceScreen.svelte';
 import { page } from '$app/stores';
 import { language } from '$lib/stores/language.svelte.js';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
@@ -228,18 +229,7 @@ onMount(async () => {
 </script>
 
 {#if maintenanceActive}
-    <SplashScreen 
-        showProgress={true} 
-        progress={maintenanceProgress} 
-        countdownPercentage={countdownPercentage}
-        stage="Upgrading your experience..." 
-        hasError={true} 
-        errorMessage={maintenanceMessage}
-        timestampMessage={maintenanceTimestamp}
-        forceBounce={true} 
-        keepColor={true} 
-        isMaintenance={true} 
-    />
+    <MaintenanceScreen />
 {:else}
     {@render children()}
 {/if}

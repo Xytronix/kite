@@ -15,6 +15,7 @@ interface Props {
 	forceBounce?: boolean;
 	keepColor?: boolean;
 	isMaintenance?: boolean;
+	postMaintenance?: boolean;
 }
 
 const { 
@@ -27,7 +28,8 @@ const {
 	timestampMessage = null,
 	forceBounce = false,
 	keepColor = false,
-	isMaintenance = false
+	isMaintenance = false,
+	postMaintenance = false
 }: Props = $props();
 
 // Smooth animated progress counter

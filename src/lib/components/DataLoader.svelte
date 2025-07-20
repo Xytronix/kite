@@ -36,8 +36,30 @@
 
 	const { onDataLoaded, onError, initialBatchId, initialCategoryId }: Props = $props();
 
-	// Loading state
-	let initialLoading = $state(true);
+	// Check for post-maintenance flag immediately to avoid flash
+	// Only consider it valid if it's recent (within 30 seconds)
+	const checkPostMaintenance = () => {
+		if (typeof localStorage === 'undefined') return false;
+		const flag = localStorage.getItem('kite-post-maintenance');
+		if (!flag) return false;
+		
+		const timestamp = parseInt(flag);
+		const now = Date.now();
+		const isRecent = (now - timestamp) < 30000; // 30 seconds
+		
+		if (!isRecent) {
+			// Clean up old flag
+			localStorage.removeItem('kite-post-maintenance');
+			return false;
+		}
+		
+		return true;
+	};
+	
+	const isPostMaintenance = checkPostMaintenance();
+	
+	// Loading state - skip initial loading if coming from maintenance
+	let initialLoading = $state(!isPostMaintenance);
 	let loadingProgress = $state(0);
 	let hasError = $state(false);
 	let errorMessage = $state('');
@@ -224,9 +246,10 @@
 			loadingProgress = 65; // start image phase above 50% so bar continues moving
 			
 			// Animate progress from 65 → 85 % while images preload
+			// Use faster animation for post-maintenance loads
 			const startAnimatingProgress = () => {
 				const start = performance.now();
-				const duration = 2000; // 2 s perceived loading
+				const duration = isPostMaintenance ? 200 : 2000; // Much faster for post-maintenance
 
 				const step = () => {
 					const elapsed = performance.now() - start;
@@ -242,21 +265,31 @@
 			};
 
 			let progressAnimId: number | null = null;
-			startAnimatingProgress();
+			if (!isPostMaintenance) {
+				startAnimatingProgress();
+			} else {
+				// Skip animation for post-maintenance, jump directly to 85%
+				loadingProgress = 85;
+			}
 
 			// Only preload images for the first category to keep initial load fast
-			const firstCategoryStories = allCategoryStories[targetCategory] || [];
-			console.log(`📦 Preloading images for first category: ${targetCategory} (${firstCategoryStories.length} stories)`);
-			console.log(`📚 Total categories preloaded: ${enabledCategories.length} (${Object.values(allCategoryStories).flat().length} total stories)`);
-			
-			if (firstCategoryStories.length > 0) {
-				try {
-					await preloadCategoryImages(firstCategoryStories);
-					console.log('✅ Image preloading completed successfully');
-				} catch (error) {
-					console.warn('⚠️ Image preloading failed or timed out, continuing with loading:', error);
-					// Continue loading even if image preloading fails/times out
+			// Skip image preloading for post-maintenance loads since images should be cached
+			if (!isPostMaintenance) {
+				const firstCategoryStories = allCategoryStories[targetCategory] || [];
+				console.log(`📦 Preloading images for first category: ${targetCategory} (${firstCategoryStories.length} stories)`);
+				console.log(`📚 Total categories preloaded: ${enabledCategories.length} (${Object.values(allCategoryStories).flat().length} total stories)`);
+				
+				if (firstCategoryStories.length > 0) {
+					try {
+						await preloadCategoryImages(firstCategoryStories);
+						console.log('✅ Image preloading completed successfully');
+					} catch (error) {
+						console.warn('⚠️ Image preloading failed or timed out, continuing with loading:', error);
+						// Continue loading even if image preloading fails/times out
+					}
 				}
+			} else {
+				console.log('🔄 Post-maintenance load - skipping image preloading (using cache)');
 			}
 
 			// Ensure progress animation stops and set progress to 85 after image step
@@ -274,8 +307,8 @@
 
 			initialLoading = false;
 
-			// Slight delay before invoking callback to ensure UI is ready
-			setTimeout(() => {
+			// Skip delay for post-maintenance loads for faster transition
+			const finishLoading = () => {
 				if (onDataLoaded) {
 					onDataLoaded({
 						categories,
@@ -293,7 +326,14 @@
 						temporaryCategory: temporaryCategoryId
 					});
 				}
-			}, 100);
+			};
+
+			// Skip delay for post-maintenance loads for faster transition
+			if (isPostMaintenance) {
+				finishLoading();
+			} else {
+				setTimeout(finishLoading, 100);
+			}
 
 		} catch (error) {
 			console.error('Error loading initial data:', error);
@@ -436,7 +476,14 @@
 
 	// Load data when component mounts
 	onMount(() => {
-		console.log('🚀 DataLoader mounted - loading initial data');
+		if (isPostMaintenance) {
+			// Clear the flag now that we've used it
+			localStorage.removeItem('kite-post-maintenance');
+			console.log('🔄 Post-maintenance reload - skipping splash screen');
+		} else {
+			console.log('🚀 DataLoader mounted - loading initial data');
+		}
+		
 		loadInitialData();
 		
 		// Register reload callback

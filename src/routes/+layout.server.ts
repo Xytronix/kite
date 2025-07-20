@@ -39,21 +39,6 @@ export const load: LayoutServerLoad = async ({ url }) => {
   }
   // If no dates configured, use manual MAINTENANCE_MODE setting
   
-  console.log('Server-side environment check:', {
-    PUBLIC_MAINTENANCE_MODE,
-    PUBLIC_MAINTENANCE_START,
-    PUBLIC_MAINTENANCE_END,
-    PUBLIC_MAINTENANCE_AUTO,
-    PUBLIC_MAINTENANCE_MESSAGE,
-    maintenanceMode,
-    maintenanceStart,
-    maintenanceEnd,
-    maintenanceAuto,
-    maintenanceMessage,
-    finalMaintenanceMode,
-    currentTime: new Date().toISOString()
-  });
-  
   // Load default English locale
   return {
     locale: "en",
