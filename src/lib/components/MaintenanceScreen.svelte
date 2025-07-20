@@ -1,4 +1,20 @@
 <script lang="ts">
+/**
+ * MaintenanceScreen Component
+ * 
+ * Time Manipulation Prevention Strategies:
+ * 1. Server-side validation: Always validate maintenance status on the server
+ * 2. Use server time: Fetch current time from server API endpoint
+ * 3. Time offset calculation: Calculate offset between server and client time
+ * 4. Periodic sync: Re-sync with server time every few minutes
+ * 5. Hash-based validation: Use cryptographic proof of time from server
+ * 
+ * Example implementation:
+ * - Create an API endpoint that returns: { currentTime, maintenanceActive, timeRemaining }
+ * - Calculate offset: serverTimeOffset = serverTime - clientTime
+ * - Apply offset to all time calculations
+ * - Show warning if offset is suspiciously large (>1 hour)
+ */
 import { s } from '$lib/client/localization.svelte';
 import { onMount } from 'svelte';
 import { PUBLIC_MAINTENANCE_START, PUBLIC_MAINTENANCE_END, PUBLIC_MAINTENANCE_AUTO } from '$env/static/public';
@@ -13,6 +29,8 @@ let showLoadingSequence = $state(false);
 let loadingProgress = $state(0);
 let loadingStage = $state('');
 let countdownDisplay = $state({ hours: 0, minutes: 0, seconds: 0 });
+let serverTimeOffset = $state(0);
+let timeWarning = $state('');
 
 // Loading stages for post-maintenance sequence
 const loadingStages = [
@@ -23,10 +41,24 @@ const loadingStages = [
     'Almost ready...'
 ];
 
-function updateProgress() {
+// Get adjusted time with server offset
+function getAdjustedTime() {
     const now = new Date();
+    return new Date(now.getTime() + serverTimeOffset);
+}
+
+function updateProgress() {
+    const now = getAdjustedTime();
     const startTime = new Date(PUBLIC_MAINTENANCE_START || '2025-07-20T00:00:00Z');
     const endTime = new Date(PUBLIC_MAINTENANCE_END || '2025-07-20T14:00:00Z');
+    
+    // Check if time seems suspicious (e.g., more than 1 hour off from expected)
+    const browserTime = new Date();
+    const expectedNow = new Date('2025-07-20T09:30:00Z'); // This would come from server
+    const timeDiff = Math.abs(browserTime.getTime() - expectedNow.getTime());
+    if (timeDiff > 3600000 && serverTimeOffset === 0) { // More than 1 hour difference
+        timeWarning = 'Note: Your device time may be incorrect.';
+    }
     
     if (now < startTime) {
         progressPercentage = 0;
@@ -52,15 +84,22 @@ function updateProgress() {
         const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
         
-        // Update countdown display
-        countdownDisplay = { hours, minutes, seconds };
+        // Update countdown display (without seconds for cleaner UI)
+        countdownDisplay = { hours, minutes, seconds: 0 };
         
         if (hours > 0) {
-            timeRemaining = `${hours}h ${minutes}m remaining`;
-        } else if (minutes > 0) {
-            timeRemaining = `${minutes}m ${seconds}s remaining`;
+            // Friendly language for hours
+            if (hours === 1) {
+                timeRemaining = minutes > 0 ? `1 hour and ${minutes} minute${minutes === 1 ? '' : 's'} remaining` : '1 hour remaining';
+            } else {
+                timeRemaining = minutes > 0 ? `${hours} hours and ${minutes} minute${minutes === 1 ? '' : 's'} remaining` : `${hours} hours remaining`;
+            }
+        } else if (minutes > 1) {
+            timeRemaining = `${minutes} minutes remaining`;
+        } else if (minutes === 1) {
+            timeRemaining = '1 minute remaining';
         } else if (seconds > 0) {
-            timeRemaining = `${seconds}s remaining`;
+            timeRemaining = 'Less than a minute remaining';
         } else {
             timeRemaining = 'Completing...';
         }
@@ -155,31 +194,36 @@ onMount(() => {
             }
         </p>
         
+        <!-- Time warning if clock seems off -->
+        {#if timeWarning}
+            <div class="mb-4 px-4 py-2 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm max-w-md mx-auto">
+                {timeWarning}
+            </div>
+        {/if}
+        
         <!-- Countdown Display -->
         <div class="mt-6 text-center">
-            {#if !isMaintenanceComplete && (countdownDisplay.hours > 0 || countdownDisplay.minutes > 0 || countdownDisplay.seconds > 0)}
+            {#if !isMaintenanceComplete && timeRemaining !== 'Starting soon...' && timeRemaining !== 'Completed' && timeRemaining !== 'Completing...'}
+                <!-- Friendly time remaining message -->
+                <p class="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
+                    {timeRemaining}
+                </p>
+                
                 <!-- Large countdown timer -->
                 <div class="mb-4">
                     <div class="flex items-center justify-center space-x-4 text-4xl font-mono font-bold text-gray-800 dark:text-gray-100">
                         <div class="text-center">
-                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3 min-w-[80px]">
                                 {String(countdownDisplay.hours).padStart(2, '0')}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hours</div>
                         </div>
                         <div class="text-gray-400">:</div>
                         <div class="text-center">
-                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
+                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3 min-w-[80px]">
                                 {String(countdownDisplay.minutes).padStart(2, '0')}
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Minutes</div>
-                        </div>
-                        <div class="text-gray-400">:</div>
-                        <div class="text-center">
-                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 min-w-[60px]">
-                                {String(countdownDisplay.seconds).padStart(2, '0')}
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Seconds</div>
                         </div>
                     </div>
                 </div>
@@ -187,16 +231,15 @@ onMount(() => {
             
             <!-- Progress percentage counter -->
             <p class="text-xl text-gray-600 dark:text-gray-400">
-                {Math.round(displayProgress)}%
+                {Math.round(displayProgress)}% complete
             </p>
             
-            <!-- Time remaining or completion status -->
-            <p class="min-h-[1.5rem] text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {isMaintenanceComplete ? 
-                    (PUBLIC_MAINTENANCE_AUTO === 'true' ? 'Preparing to reload...' : 'You may refresh the page') :
-                    timeRemaining
-                }
-            </p>
+            <!-- Completion status for when maintenance is done -->
+            {#if isMaintenanceComplete}
+                <p class="min-h-[1.5rem] text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {PUBLIC_MAINTENANCE_AUTO === 'true' ? 'Preparing to reload...' : 'You may refresh the page'}
+                </p>
+            {/if}
         </div>
         
         <!-- Progress Bar -->
