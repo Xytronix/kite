@@ -3,10 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit()],
-  resolve: process.env.VITEST
-    ? {
-        conditions: ["browser"],
-      }
-    : undefined,
+  plugins: [sveltekit(), tailwindcss()],
+  ...(process.env.VITEST && {
+    resolve: {
+      conditions: ["browser"],
+    },
+  }),
 });

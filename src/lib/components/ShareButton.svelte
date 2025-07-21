@@ -223,7 +223,7 @@
   </Portal>
 {/if}
 
-<style lang="postcss">
+<style>
   button {
     -webkit-tap-highlight-color: transparent;
   }
