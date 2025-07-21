@@ -1,8 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { browser } from '$app/environment';
-import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
-import 'overlayscrollbars/overlayscrollbars.css';
+import { scrollLock } from '$lib/utils/scrollLock.js';
 
 // Props
 interface Props {
@@ -12,17 +11,11 @@ interface Props {
 
 let { visible = false, onClose }: Props = $props();
 
-// OverlayScrollbars setup
+// Scrollable element reference
 let scrollableElement: HTMLElement | undefined = $state(undefined);
-let [initialize, instance] = useOverlayScrollbars({
-	defer: true
-});
 
 function handleClose() {
-	// Scroll to top of the page
-	if (browser) {
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
+	// Close the intro screen without altering the document scroll position
 	if (onClose) onClose();
 }
 
@@ -32,34 +25,32 @@ function handleKeydown(e: KeyboardEvent) {
 	}
 }
 
-// Close on escape key
+// Close on escape key and toggle body scroll lock
 $effect(() => {
-	if (browser) {
-		if (visible) {
-			document.addEventListener('keydown', handleKeydown);
-		} else {
-			document.removeEventListener('keydown', handleKeydown);
-		}
-		
-		// Cleanup
-		return () => {
-			document.removeEventListener('keydown', handleKeydown);
-		};
+	if (!browser) return;
+
+	if (visible) {
+		document.addEventListener('keydown', handleKeydown);
+		// Lock background scroll using the shared utility (works with OverlayScrollbars)
+		scrollLock.lock();
+	} else {
+		document.removeEventListener('keydown', handleKeydown);
+		scrollLock.unlock();
 	}
+
+	return () => {
+		document.removeEventListener('keydown', handleKeydown);
+		scrollLock.unlock();
+	};
 });
 
-// Initialize OverlayScrollbars
-$effect(() => {
-	if (scrollableElement) {
-		initialize(scrollableElement);
-	}
-});
+// No third-party scrollbar; native scrolling is fine for this modal
 </script>
 
 {#if visible}
 	<div 
 		bind:this={scrollableElement}
-		class="fixed inset-0 z-50 overflow-y-auto bg-white dark:bg-gray-900" 
+		class="fixed inset-0 z-[3000] overflow-y-auto" 
 		data-overlayscrollbars-initialize
 	>
 		<div class="flex min-h-full items-center justify-center p-4 sm:p-8">

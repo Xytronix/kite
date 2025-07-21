@@ -93,9 +93,9 @@ async function handleSourceClick(domain: any) {
 	<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
 		{#each domains as domain, index}
 			{#if index < visibleSources || showAllSources}
-				<button
+				<button type="button"
 					class="flex w-full flex-col items-start space-y-1 rounded-lg py-2 pl-2 text-left transition-colors hover:bg-gray-100 focus-visible-ring dark:hover:bg-gray-700"
-					onclick={() => handleSourceClick(domain)}
+					onclick={(e) => { e.stopPropagation(); handleSourceClick(domain);} }
 					aria-label={`Show articles from ${domain?.name || 'Unknown'}`}
 					title={`Show articles from ${domain?.name || 'Unknown'}`}
 				>

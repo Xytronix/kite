@@ -68,6 +68,7 @@ const modalTransition = position === 'bottom'
 
 // Handle backdrop click
 function handleBackdropClick(e: MouseEvent) {
+    e.stopPropagation();
 	if (closeOnBackdrop && e.target === e.currentTarget) {
 		onClose();
 	}

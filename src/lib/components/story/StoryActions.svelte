@@ -3,7 +3,7 @@ import { s } from '$lib/client/localization.svelte';
 import { page } from '$app/state';
 import ShareButton from '../ShareButton.svelte';
 import ReportButton from '../ReportButton.svelte';
-import { generateShareUrl } from '$lib/utils/urlShortener';
+import { generateShareUrl, slugify } from '$lib/utils/urlShortener';
 import { browser } from '$app/environment';
 import { UrlNavigationService } from '$lib/services/urlNavigationService';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte';
@@ -47,12 +47,14 @@ const topicId = $derived.by(() => {
 const reportUrl = $derived.by(() => {
     if (!browser) return '';
     const base = window.location.origin;
+    const slug = story?.title ? slugify(story.title) : undefined;
     return generateShareUrl(base, {
         batchId: navigationParams.batchId,
         categoryId: navigationParams.categoryId,
         storyIndex: navigationParams.storyIndex,
         dataLang: navigationParams.dataLang,
-        topicId
+        topicId,
+        slug
     });
 });
 </script>
@@ -79,7 +81,7 @@ const reportUrl = $derived.by(() => {
 
 	<!-- Center: Close Button -->
 	<button
-		onclick={onClose}
+		onclick={(e) => { e.stopPropagation(); onClose?.(); }}
 		class="focus:ring-opacity-75 rounded-lg bg-black px-6 py-3 font-semibold text-white transition-colors duration-200 ease-in-out hover:bg-gray-800 focus:ring-2 focus:ring-gray-400 focus:outline-none"
 	>
 		{s('article.closeStory') || 'Close'}

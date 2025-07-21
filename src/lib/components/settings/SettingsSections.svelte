@@ -108,6 +108,7 @@
 
 					<!-- Toggle Switch -->
 					<button
+						type="button"
 						onclick={() => toggleSection(section.id)}
 						class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
 						class:bg-blue-600={section.enabled}
@@ -131,6 +132,7 @@
 	<!-- Reset button -->
 	<div class="text-center mb-4">
 		<button
+			type="button"
 			onclick={resetToDefaults}
 			class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
 		>

@@ -19,6 +19,14 @@ function toggleChaosIndex() {
 	experimental.toggleFeature('showChaosIndex');
 }
 
+function toggleWikiTooltips() {
+	experimental.toggleFeature('showWikipediaTooltips');
+}
+
+function toggleDisableWikiHeadlines() {
+	experimental.toggleFeature('disableWikiTooltipsInHeadlines');
+}
+
 </script>
 
 <div class="space-y-6">
@@ -145,5 +153,65 @@ function toggleChaosIndex() {
 			{s('settings.experimental.chaosIndex.description') || 'Display a global temperature reading of world stability based on current events.'}
 		</p>
 	</div>
+
+    <!-- Wikipedia Tooltips in Stories -->
+    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+        <div class="mb-2 flex items-center justify-between">
+            <label for="wiki-tooltips" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Show Wikipedia Tooltips in Stories
+            </label>
+            <button
+                id="wiki-tooltips"
+                onclick={toggleWikiTooltips}
+                type="button"
+                class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+                class:bg-blue-600={experimental.showWikipediaTooltips}
+                class:bg-gray-200={!experimental.showWikipediaTooltips}
+                class:dark:bg-gray-600={!experimental.showWikipediaTooltips}
+                role="switch"
+                aria-checked={experimental.showWikipediaTooltips}
+            >
+                <span class="sr-only">Show Wikipedia Tooltips</span>
+                <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    class:translate-x-6={experimental.showWikipediaTooltips}
+                    class:translate-x-1={!experimental.showWikipediaTooltips}
+                ></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Enable or disable automatic Wikipedia hover tooltips inside story content.
+        </p>
+    </div>
+
+    <!-- Disable Tooltips in Headlines -->
+    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+        <div class="mb-2 flex items-center justify-between">
+            <label for="wiki-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Disable Wikipedia Tooltips in Headlines
+            </label>
+            <button
+                id="wiki-headlines"
+                onclick={toggleDisableWikiHeadlines}
+                type="button"
+                class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+                class:bg-blue-600={experimental.disableWikiTooltipsInHeadlines}
+                class:bg-gray-200={!experimental.disableWikiTooltipsInHeadlines}
+                class:dark:bg-gray-600={!experimental.disableWikiTooltipsInHeadlines}
+                role="switch"
+                aria-checked={experimental.disableWikiTooltipsInHeadlines}
+            >
+                <span class="sr-only">Disable tooltips in headlines</span>
+                <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    class:translate-x-6={experimental.disableWikiTooltipsInHeadlines}
+                    class:translate-x-1={!experimental.disableWikiTooltipsInHeadlines}
+                ></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Prevent Wikipedia links from being added to story headlines, questions, and similar titles.
+        </p>
+    </div>
 
 </div> 

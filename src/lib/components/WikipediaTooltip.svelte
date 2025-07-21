@@ -54,6 +54,7 @@ let tooltipWikiUrl = $state('');
 let currentTooltipId = $state('');
 let isMobile = $state(false);
 let isLoading = $state(false);
+let tooltipFlag = $state('');
 
 // Elements
 let arrowElement: HTMLElement;
@@ -75,6 +76,7 @@ export async function handleWikipediaInteraction(event: Event) {
 	const wikiLink = target.closest('a[data-wiki-id]') as HTMLElement;
 	
 	if (wikiLink) {
+		const interactionType = event.type;
 		const title = wikiLink.getAttribute('title') || wikiLink.textContent || '';
 		const wikiId = wikiLink.getAttribute('data-wiki-id') || '';
 		const href = wikiLink.getAttribute('href') || '';
@@ -139,7 +141,27 @@ export async function handleWikipediaInteraction(event: Event) {
 				tooltipImage = loadedData?.thumbnail?.source || '';
 				tooltipFullImage = loadedData?.originalImage?.source || tooltipImage;
 				tooltipWikiUrl = loadedData?.wikiUrl || tooltipWikiUrl;
+
+				// Country flag detection – if description contains 'country' etc.
+				const desc = (loadedData as any)?.description as string | undefined;
+				if (desc && /\bcountry\b/i.test(desc)) {
+					tooltipFlag = getFlagEmoji(loadedData.title);
+				} else {
+					tooltipFlag = '';
+				}
 				isLoading = false;
+
+				// If this was a click/tap interaction and a callback is provided, open full popup
+				if (interactionType === 'click' && typeof onWikipediaClick === 'function') {
+					// Prefer full-size image if available
+					const imgUrl = loadedData?.originalImage?.source || loadedData?.thumbnail?.source || '';
+					// Hide any tooltip that may have appeared
+					hideTooltip();
+					// Defer call slightly to allow tooltip hide state
+					setTimeout(() => {
+						onWikipediaClick(loadedData.title || title, loadedData.extract || '', imgUrl);
+					}, 0);
+				}
 				
 				// Update scrollbars after content loads
 				setTimeout(() => {
@@ -150,9 +172,9 @@ export async function handleWikipediaInteraction(event: Event) {
 			}
 		} catch (error) {
 			console.error('Error loading Wikipedia content:', error);
+			// Hide tooltip entirely when content fails to load
 			if (showTooltip && currentTooltipId === tooltipId) {
-				tooltipContent = 'Failed to load Wikipedia content.';
-				isLoading = false;
+				hideTooltip();
 			}
 		}
 	}
@@ -272,6 +294,31 @@ onDestroy(() => {
 });
 </script>
 
+<!-- Helper to derive flag emoji from country name using ISO mapping -->
+<script lang="ts" module>
+const countryToIso: Record<string, string> = {
+    'United States': 'US',
+    'United Kingdom': 'GB',
+    Canada: 'CA',
+    Germany: 'DE',
+    France: 'FR',
+    Italy: 'IT',
+    Spain: 'ES',
+    China: 'CN',
+    India: 'IN',
+    Japan: 'JP',
+    Australia: 'AU'
+    // add more as needed
+};
+
+export function getFlagEmoji(countryName: string): string {
+    const iso = countryToIso[countryName];
+    if (!iso) return '';
+    const codePoints = [...iso.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65);
+    return String.fromCodePoint(...codePoints);
+}
+</script>
+
 
 {#if showTooltip}
 	{#if !isMobile}
@@ -311,7 +358,9 @@ onDestroy(() => {
 					}}
 				>
 					<div class="p-3">
-						<h4 class="mb-2 font-semibold text-gray-800 dark:text-gray-200 break-words">{tooltipTitle}</h4>
+						<h4 class="mb-2 font-semibold text-gray-800 dark:text-gray-200 break-words">
+                            {#if tooltipFlag}{tooltipFlag}&nbsp;{/if}{tooltipTitle}
+                        </h4>
 						
 						{#if isLoading}
 							<div class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">

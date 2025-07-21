@@ -72,6 +72,7 @@ const displayTitle = $derived.by(() => {
 <div class="flex items-start">
 	<div class="flex-grow">
 		<button
+			data-no-wiki
 			class="dark:text-dark-text mb-2 flex cursor-pointer items-center text-xl text-gray-800 text-left w-full bg-transparent border-none p-0 focus-visible-ring rounded"
 			class:font-semibold={!isRead}
 			onclick={(e) => { e.stopPropagation(); onTitleClick?.(); }}

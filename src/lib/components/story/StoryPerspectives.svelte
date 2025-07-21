@@ -66,7 +66,7 @@ function handleTouchEnd() {
 			{@const parsed = parseStructuredText(perspective.text)}
 			<div class="w-56 flex-shrink-0 rounded-lg bg-gray-100 p-4 dark:bg-gray-700">
 				{#if parsed.hasTitle}
-					<p class="mb-2 font-bold text-gray-800 dark:text-gray-200">
+					<p data-no-wiki class="mb-2 font-bold text-gray-800 dark:text-gray-200">
 						<CitationText 
 							text={parsed.title!} 
 							showFavicons={false} 

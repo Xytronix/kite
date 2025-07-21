@@ -2,7 +2,6 @@
 import { onMount } from 'svelte';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
-import { replaceState } from '$app/navigation';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
 import { categories as categoriesStore } from '$lib/stores/categories.svelte.js';
@@ -13,6 +12,7 @@ import { imagePreloadingService } from '$lib/services/imagePreloadingService';
 import { categorySwipeHandler } from '$lib/utils/categorySwipeHandler';
 import { formatTimeAgo } from '$lib/utils/formatTimeAgo';
 import { UrlNavigationService, type NavigationParams } from '$lib/services/urlNavigationService';
+import { slugify } from '$lib/utils/urlShortener';
 import { navigationHandlerService } from '$lib/services/navigationHandlerService';
 import type { Category, Story, OnThisDayEvent } from '$lib/types';
 
@@ -110,6 +110,30 @@ let wikipediaPopup = $state({
 
 // State for story URL management - Initialize with empty reactive objects
 let expandedStories = $state<Record<string, boolean>>({});
+// Map of category -> expanded stories for that category
+let expandedStoriesByCategory = $state<Record<string, Record<string, boolean>>>({});
+// NEW: Load persisted expanded story state from localStorage (if available)
+if (typeof localStorage !== 'undefined') {
+	try {
+		const persisted = localStorage.getItem('expandedStoriesByCategory');
+		if (persisted) {
+			expandedStoriesByCategory = JSON.parse(persisted);
+		}
+	} catch (err) {
+		console.warn('Failed to parse expandedStoriesByCategory from storage', err);
+	}
+}
+
+// Persist map to localStorage whenever it changes
+$effect(() => {
+	if (typeof localStorage !== 'undefined') {
+		try {
+			localStorage.setItem('expandedStoriesByCategory', JSON.stringify(expandedStoriesByCategory));
+		} catch (err) {
+			console.warn('Failed to save expandedStoriesByCategory to storage', err);
+		}
+	}
+});
 let isLatestBatch = $state(true);
 let historyManager = $state<HistoryManager>();
 
@@ -185,6 +209,8 @@ function handleDataLoaded(data: {
 	totalReadCount = data.totalReadCount;
 	lastUpdated = data.lastUpdated;
 	currentCategory = data.currentCategory;
+	// Restore any persisted expanded stories for this category
+	expandedStories = { ...(expandedStoriesByCategory[currentCategory] ?? {}) };
 	allCategoryStories = data.allCategoryStories;
 	categoryMap = data.categoryMap;
 	currentBatchId = data.batchId;
@@ -212,12 +238,25 @@ function handleDataLoaded(data: {
 	
 	console.log(`🚀 Loaded ${Object.keys(allCategoryStories).length} categories with ${Object.values(allCategoryStories).flat().length} total stories`);
 	
-	// After initial data load, check if we need to handle story expansion from URL
+	// After initial data load, clean URL if we're on latest batch but URL had a batchId
 	if (browser) {
 		const urlParams = parseInitialUrl();
-		if (urlParams.storyIndex !== undefined && urlParams.storyIndex !== null && stories[urlParams.storyIndex]) {
+
+		if (isLatestBatch && urlParams.batchId) {
+			// Replace the URL without batchId
+			historyManager?.updateUrl({ batchId: null });
+		}
+
+		let storyToExpand: Story | undefined;
+		if (urlParams.slug) {
+			storyToExpand = stories.find(s => slugify(s.title) === urlParams.slug);
+		} else if (urlParams.storyIndex !== undefined && urlParams.storyIndex !== null && stories[urlParams.storyIndex]) {
+			storyToExpand = stories[urlParams.storyIndex];
+		}
+
+		if (storyToExpand) {
 			// Expand the story from URL - create new object to avoid mutation
-			const story = stories[urlParams.storyIndex];
+			const story = storyToExpand;
 			const storyId = story.cluster_number?.toString() || story.title;
 			expandedStories = { ...expandedStories, [storyId]: true };
 		}
@@ -392,7 +431,9 @@ onMount(() => {
 			const tab = parts[1] || undefined;
 			settings.open(tab);
 			// Clear the hash without disrupting SvelteKit's router
-			replaceState(window.location.pathname + window.location.search, {});
+			import('$app/navigation').then(({ goto }) => {
+				goto(window.location.pathname + window.location.search, { replaceState: true, noscroll: true, keepfocus: true });
+			});
 		}
 	}
 
@@ -424,8 +465,11 @@ function handleCategoryChange(category: string, updateUrl: boolean = true) {
 		// 	viewMode = 'list';
 		// }
 
-		// Clear expanded stories when switching categories
-		expandedStories = {};
+		// Save current expanded state
+		expandedStoriesByCategory[currentCategory] = { ...expandedStories };
+
+		// Restore expanded stories for new category if available
+		expandedStories = { ...(expandedStoriesByCategory[category] ?? {}) };
 		
 		// Clear temporary category if user manually navigates
 		if (updateUrl && temporaryCategory) {
@@ -455,44 +499,45 @@ const closeWikipediaPopup = () => {
 	wikipediaPopup = { visible: false, title: '', content: '', imageUrl: '' };
 };
 
-function handleStoryToggle(storyId: string, updateUrl: boolean = true) {
+// Clicking a story should expand/collapse it without triggering a full page navigation. 
+// We therefore disable the automatic URL update that caused SvelteKit to reload the page.
+function handleStoryToggle(storyId: string, updateUrl: boolean = false) {
     // Determine if clicked story is already expanded
     const currentlyExpanded = expandedStories[storyId];
 
-    // Always start with a fresh object – this guarantees stale stories collapse
-    let newExpandedStories: Record<string, boolean> = {};
+    // Clone existing map
+    const newExpandedStories: Record<string, boolean> = { ...expandedStories };
 
-    if (!currentlyExpanded) {
-        // Expand the newly-clicked story and collapse all others
-        newExpandedStories[storyId] = true;
-
-        // Mark story as read & update URL
-        const story = stories.find(
-            (s) => s.cluster_number?.toString() === storyId || s.title === storyId,
-        );
-
-        if (story) {
-            // Ensure reactivity when updating read status
-            readStories = { ...readStories, [story.title]: true };
-
-            if (updateUrl && historyManager) {
-                const storyIndex = stories.indexOf(story);
-                if (storyIndex >= 0) {
-                    historyManager.updateUrl({ storyIndex });
-                }
-            }
-        }
-    } else {
-        // Collapse the currently-expanded story (no others should be open)
-        newExpandedStories = {};
+    if (currentlyExpanded) {
+        // Collapse only this story
+        delete newExpandedStories[storyId];
 
         if (updateUrl && historyManager) {
             historyManager.updateUrl({ storyIndex: null });
         }
+    } else {
+        // Expand clicked story in addition to others
+        newExpandedStories[storyId] = true;
+
+        // Mark as read
+        const story = stories.find(
+            (s) => s.cluster_number?.toString() === storyId || s.title === storyId,
+        );
+        if (story) {
+            readStories = { ...readStories, [story.title]: true };
+
+            if (updateUrl && historyManager) {
+                const storyIndex = stories.indexOf(story);
+                const slug = story.title ? slugify(story.title) : undefined;
+                // Prefer new slug-only URLs; keep numeric index out of the path
+                historyManager.updateUrl({ storyIndex, slug });
+            }
+        }
     }
 
-    // Trigger reactivity
     expandedStories = newExpandedStories;
+    // Persist per-category map
+    expandedStoriesByCategory[currentCategory] = { ...expandedStories };
 }
 
 // Derived value for total stories read count
@@ -643,15 +688,12 @@ if (browser && typeof window !== 'undefined') {
 		initialBatchId={initialUrlParams.batchId}
 		initialCategoryId={initialUrlParams.categoryId}
 	/>
-{:else if settings.showIntro}
-	<IntroScreen visible={settings.showIntro} onClose={handleIntroClose} />
 {:else}
 	<!-- History Manager for URL state -->
 	<HistoryManager
 		bind:this={historyManager}
-		batchId={currentBatchId}
+		batchId={isLatestBatch ? null : currentBatchId}
 		categoryId={currentCategory}
-		storyIndex={currentStoryIndex}
 		onNavigate={handleUrlNavigation}
 	/>
 	<!-- Category Navigation - Mobile only (fixed positioning) -->
@@ -766,4 +808,10 @@ if (browser && typeof window !== 'undefined') {
 <TemporaryCategoryTooltip 
 	show={showTemporaryCategoryTooltip}
 	referenceElement={temporaryCategoryElement}
+/>
+
+<!-- Intro Screen Modal -->
+<IntroScreen 
+	visible={settings.showIntro}
+	onClose={handleIntroClose}
 />

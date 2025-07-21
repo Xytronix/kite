@@ -1,7 +1,7 @@
 <script lang="ts">
 import { browser } from '$app/environment';
 import { page } from '$app/state';
-import { goto, replaceState } from '$app/navigation';
+import { goto, replaceState as skReplaceState } from '$app/navigation';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
 import { UrlNavigationService, type NavigationParams } from '$lib/services/urlNavigationService';
 
@@ -29,6 +29,7 @@ function buildUrl(params?: Partial<NavigationParams>): string {
 		batchId: params?.batchId !== undefined ? params.batchId : batchId,
 		categoryId: params?.categoryId !== undefined ? params.categoryId : categoryId,
 		storyIndex: params?.storyIndex !== undefined ? params.storyIndex : storyIndex,
+		slug: params?.slug,
 	};
 	
 	return UrlNavigationService.buildUrl(navigationParams, dataLanguage.current);
@@ -43,8 +44,11 @@ export function updateUrl(params?: Partial<NavigationParams>) {
 	// Only update if URL actually changed
 	if (newUrl !== previousUrl) {
 		previousUrl = newUrl;
-		// Use SvelteKit's replaceState helper to avoid router conflicts
-		replaceState(newUrl, {});
+		// Use the History API directly to update the address bar without triggering
+		// SvelteKit navigation. This avoids a full page reload / data fetch which
+		// previously caused the splash screen and redirect flashes when expanding
+		// or collapsing a story card.
+		skReplaceState(newUrl, { keepfocus: true, noscroll: true });
 	}
 }
 

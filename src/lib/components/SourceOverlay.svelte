@@ -5,6 +5,7 @@ import Icon from '@iconify/svelte';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
+import { fetchWikipediaContentForDomain, type WikipediaContent } from '$lib/services/wikipediaService';
 
 // Props
 interface Props {
@@ -156,6 +157,32 @@ function handleBackdropClick(event: MouseEvent) {
 		handleClose();
 	}
 }
+
+let wikipediaInfo = $state<WikipediaContent | null>(null);
+let isLoadingWikipediaInfo = $state(false);
+
+// Watch for overlay open & missing media info to fetch Wikipedia fallback
+$effect(() => {
+    // Run asynchronously but do not return a Promise to the effect caller
+    (async () => {
+        if (isOpen && !currentMediaInfo && currentSource?.name) {
+            // Avoid refetching if we already have data for the same source
+            if (wikipediaInfo && currentSource.name === wikipediaInfo.title) return;
+            isLoadingWikipediaInfo = true;
+            wikipediaInfo = await fetchWikipediaContentForDomain(currentSource.name);
+            isLoadingWikipediaInfo = false;
+        } else if (!isOpen) {
+            wikipediaInfo = null;
+        }
+    })();
+});
+
+// Helper derived – any loading state
+const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
+
+// Replace rendering checks
+// Find the block where source info is shown
+// We'll insert new else-if for wikipediaInfo.
 </script>
 
 {#if isOpen}
@@ -197,6 +224,7 @@ function handleBackdropClick(event: MouseEvent) {
 					onclick={handleClose}
 					class="text-gray-500 hover:text-gray-700 focus-visible-ring rounded dark:text-gray-400 dark:hover:text-gray-200"
 					aria-label="Close source overlay"
+					type="button"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -254,6 +282,7 @@ function handleBackdropClick(event: MouseEvent) {
 				<button
 					onclick={() => showSourceInfo = !showSourceInfo}
 					class="flex w-full items-center justify-between rounded-lg p-2 text-left text-gray-800 hover:bg-gray-50 focus-visible-ring dark:text-gray-200 dark:hover:bg-gray-700"
+					type="button"
 				>
 					<span class="font-semibold">
 						{s('source.info.title') || 'Source Information'}
@@ -275,7 +304,7 @@ function handleBackdropClick(event: MouseEvent) {
 
 				{#if showSourceInfo}
 					<div class="mt-4">
-						{#if isLoadingMediaInfo}
+						{#if isLoadingInfo}
 							<div class="py-6 text-center">
 								<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-4"></div>
 								<p class="text-gray-600 dark:text-gray-400">
@@ -357,6 +386,27 @@ function handleBackdropClick(event: MouseEvent) {
 											{mediaInfo?.description}
 										</p>
 									</div>
+								{/if}
+							</div>
+						{:else if wikipediaInfo}
+							<div class="mt-4 space-y-3">
+								<h4 class="font-medium text-gray-700 dark:text-gray-300 text-lg">
+									{wikipediaInfo.title}
+								</h4>
+								<p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+									{wikipediaInfo.extract}
+								</p>
+								{#if wikipediaInfo.wikiUrl}
+									<a
+										href={wikipediaInfo.wikiUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+										onclick={(e) => e.stopPropagation()}
+									>
+										<Icon icon="tabler:external-link" class="h-4 w-4" />
+										<span>View on Wikipedia</span>
+									</a>
 								{/if}
 							</div>
 						{:else}

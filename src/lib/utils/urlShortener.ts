@@ -8,6 +8,44 @@ interface ShareableState {
   storyIndex?: number | null;
   dataLang?: string | null;
   topicId?: string | null;
+  /** Optional slug (URL-friendly version of the story title) */
+  slug?: string | null;
+}
+
+/**
+ * Create a URL-friendly slug from a string.
+ * – lower-cases
+ * – replaces spaces and consecutive non-alphanumerics with '-'
+ * – trims leading/trailing hyphens
+ */
+export function slugify(text: string): string {
+  // Normalize diacritics: Südkorea -> Sudkorea (ASCII)
+  const ascii = text
+    // Normalize to decomposed form and strip diacritic marks
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // German sharp s -> ss, others left as is (already decomposed)
+    .replace(/ß/g, 'ss');
+
+  return ascii
+    .toLowerCase()
+    .trim()
+    // Replace apostrophes & similar marks first to avoid extra hyphens
+    .replace(/[’'"`]/g, '')
+    // Replace non-alphanumerics with hyphen
+    .replace(/[^a-z0-9]+/g, '-')
+    // Collapse multiple hyphens
+    .replace(/-{2,}/g, '-')
+    // Trim leftover hyphens
+    .replace(/^-+|-+$/g, '')
+    // Limit length to reasonable 80 chars
+    .slice(0, 80) ||
+    // Fallback: keep original characters (including non-Latin) but hyphenate spaces
+    text
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[\u2000-\u206F]/g, '') // remove direction & spacing marks
+      .slice(0, 80);
 }
 
 /**
@@ -26,16 +64,22 @@ export function generateShareUrl(
     return url;
   }
 
-  const parts = [] as string[];
+  const parts: string[] = [];
   if (state.batchId) parts.push(state.batchId);
   if (state.categoryId) parts.push(state.categoryId);
+
+  // Preferred format: include index+slug when both available for clarity & backward compatibility
   if (state.storyIndex !== null && state.storyIndex !== undefined) {
-    parts.push(state.storyIndex.toString());
+    const segment = state.slug ? `${state.storyIndex}-${state.slug}` : state.storyIndex.toString();
+    parts.push(segment);
+  } else if (state.slug) {
+    // Edge case: slug without index
+    parts.push(state.slug);
   }
 
   let url = baseUrl + '/' + parts.join('/');
 
-  // Add language as query parameter if not English
+  // Append data language if necessary
   if (state.dataLang && state.dataLang !== 'en') {
     url += `?data_lang=${state.dataLang}`;
   }

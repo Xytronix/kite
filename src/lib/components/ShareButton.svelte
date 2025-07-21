@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { page } from '$app/state';
-  import { generateShareUrl } from '$lib/utils/urlShortener';
+  import { generateShareUrl, slugify } from '$lib/utils/urlShortener';
   import Icon from '@iconify/svelte';
   import { s } from '$lib/client/localization.svelte';
   import { useFloating, offset, flip, shift } from '@skeletonlabs/floating-ui-svelte';
@@ -76,27 +76,92 @@
     }
   });
   
-  async function handleShare() {
+  /**
+   * Robustly copy text to the user clipboard.
+   * 1. Prefer the modern Clipboard API (requires secure context)
+   * 2. Fallback to the deprecated `execCommand('copy')` for older browsers
+   *    – Ensure we focus & select the textarea before executing the command.
+   *
+   * Returns `true` when the copy succeeds, `false` otherwise.
+   */
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (browser && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (err) {
+      // Continue to fallback below
+      console.warn('Primary clipboard API failed – falling back to execCommand', err);
+    }
+
+    // Fallback for Safari < 13 and other legacy browsers
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '-9999px';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful;
+    } catch (err) {
+      console.error('Fallback clipboard copy failed', err);
+      return false;
+    }
+  }
+
+  async function handleShare(event?: MouseEvent) {
+    event?.stopPropagation?.();
     if (!browser || isLoading || showCopiedFeedback) return;
     
-    isLoading = true;
-    
+    // Generate full URL first (sync to preserve user-gesture context)
+    const baseUrl = window.location.origin;
+    const slug = title ? slugify(title) : undefined;
+    const fullUrl = generateShareUrl(baseUrl, {
+      batchId,
+      categoryId,
+      storyIndex,
+      dataLang,
+      topicId,
+      slug
+    });
+
+    // Decide mobile vs desktop early
+    const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
+
+    // Perform share / copy IMMEDIATELY while still in user-gesture
     try {
-      // Generate full URL first
-      const baseUrl = window.location.origin;
-      const fullUrl = generateShareUrl(
-        baseUrl,
-        { batchId, categoryId, storyIndex, dataLang, topicId }
-      );
-      
-      let shareUrl = fullUrl;
-      
-      // Try to get short URL from API
+      if (isMobile && navigator.share) {
+        const shareTitle = `${title} - Kite News`;
+        const shareText = description ? `${description}\n\nRead more on Kite:` : `${title}\n\nRead more on Kite:`;
+        await navigator.share({ title: shareTitle, text: shareText, url: fullUrl });
+        return; // Native share handled
+      }
+
+      const copied = await copyToClipboard(fullUrl);
+      if (copied) {
+        // Show feedback
+        showCopiedFeedback = true;
+        if (feedbackTimer) clearTimeout(feedbackTimer);
+        feedbackTimer = setTimeout(() => (showCopiedFeedback = false), 2000);
+      } else {
+        console.error('Clipboard copy failed (initial)');
+      }
+    } catch (err) {
+      console.error('Initial share/copy failed:', err);
+    }
+
+    // 🔗 Background: attempt to shorten URL and update clipboard (best effort)
+    ;(async () => {
       try {
         const response = await fetch('/api/shorten', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             url: fullUrl,
             batchId,
             categoryId,
@@ -104,82 +169,17 @@
             languageCode: dataLang
           })
         });
-        
         if (response.ok) {
-          const { shortUrl } = await response.json();
-          shareUrl = shortUrl;
+          const data = await response.json();
+          const shortUrl = data?.shortUrl as string | undefined;
+          if (shortUrl && /^https?:\/\//.test(shortUrl)) {
+            await copyToClipboard(shortUrl).catch(() => {});
+          }
         }
       } catch (err) {
-        console.warn('Failed to shorten URL, using full URL:', err);
+        // Ignore background shortening errors
       }
-      
-      isLoading = false;
-    
-    // Check if mobile and Web Share API is available
-    const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
-    
-    if (isMobile && navigator.share) {
-      try {
-        // Format the shared text nicely
-        // Include title, description, and attribution
-        const shareTitle = `${title} - Kite News`;
-        const shareText = description ? 
-          `${description}\n\nRead more on Kite:` : 
-          `${title}\n\nRead more on Kite:`;
-        
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl
-        });
-        
-        // Don't show floating tooltip on mobile - native share is enough
-        return;
-      } catch (err) {
-        // User cancelled or error occurred
-        if (err instanceof Error && err.name !== 'AbortError') {
-          console.error('Error sharing:', err);
-        }
-        // Fall through to clipboard copy if share fails
-      }
-    }
-    
-    // Desktop: Copy to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      
-      // Show feedback
-      showCopiedFeedback = true;
-      
-      // Clear any existing timer
-      if (feedbackTimer) clearTimeout(feedbackTimer);
-      
-      // Hide feedback after 2 seconds
-      feedbackTimer = setTimeout(() => {
-        showCopiedFeedback = false;
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy URL:', err);
-      // Fallback: select and copy
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      // Show feedback
-      showCopiedFeedback = true;
-      feedbackTimer = setTimeout(() => {
-        showCopiedFeedback = false;
-      }, 2000);
-    }
-    } catch (error) {
-      console.error('Share failed:', error);
-      isLoading = false;
-    }
+    })();
   }
   
 </script>
@@ -188,6 +188,7 @@
 <button
   bind:this={floating.elements.reference}
   onclick={handleShare}
+  type="button"
   class="group relative flex h-10 w-10 items-center justify-center rounded-lg {className}"
   aria-label={s('article.shareStory') || 'Share story'}
   title={s('article.shareStory') || 'Share story'}
@@ -222,7 +223,7 @@
   </Portal>
 {/if}
 
-<style>
+<style lang="postcss">
   button {
     -webkit-tap-highlight-color: transparent;
   }

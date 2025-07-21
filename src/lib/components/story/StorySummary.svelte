@@ -70,6 +70,7 @@ const allCitedArticles = $derived.by(() => {
 	</div>
 	{#if story.location}
 		<button
+			data-no-wiki
 			class="flex cursor-pointer items-center text-gray-600 dark:text-gray-300 bg-transparent border-none p-0 focus-visible-ring rounded"
 			onclick={handleLocationClick}
 			onkeydown={handleLocationKeydown}

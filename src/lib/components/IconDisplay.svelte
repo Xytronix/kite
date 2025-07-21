@@ -266,14 +266,32 @@
     "🎺": "material-symbols:music-note",
     "🎸": "material-symbols:music-note",
     "🪕": "material-symbols:music-note",
-    "🎻": "material-symbols:music-note"
+    "🎻": "material-symbols:music-note",
+    "🌍": "heroicons:globe-europe-africa",
+    "🌎": "heroicons:globe-americas",
+    "🌏": "heroicons:globe-asia-australia",
+    "⛅️": "material-symbols:cloud"
   };
 
-  // Derive the iconify icon name from the emoji
+  // Derive the iconify icon name from the emoji, normalizing variation selectors
   let iconName = $derived(() => {
     if (!emoji) return null;
-    return EMOJI_TO_ICONIFY[emoji] || null;
+    // Trim whitespace and remove variation selectors for consistent mapping
+    const trimmed = emoji.trim();
+    const normalized = trimmed.replace(/[\uFE0E\uFE0F]/g, "");
+    // Try mapping the raw trimmed emoji, then normalized version
+    const mapped = EMOJI_TO_ICONIFY[trimmed] || EMOJI_TO_ICONIFY[normalized] || null;
+    if (!mapped) return null;
+    // Auto-convert old heroicons: prefix to new heroicons-outline: collection
+    if (mapped.startsWith('heroicons:')) {
+      return mapped.replace('heroicons:', 'heroicons-outline:');
+    }
+    return mapped;
   });
+
+  // Iconify component will fetch icons from the Iconify API the first time
+  // they are used and cache them in localStorage / in-memory, so we keep the
+  // bundle small without additional code.
 </script>
 
 {#if iconName}

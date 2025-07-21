@@ -16,7 +16,7 @@ interface Props {
 	batchId?: string;
 	readStories?: Record<string, boolean>;
 	expandedStories?: Record<string, boolean>;
-	onStoryToggle?: (storyId: string) => void;
+	onStoryToggle?: (storyId: string, updateUrl?: boolean) => void;
 	showSourceOverlay?: boolean;
 	currentSource?: unknown;
 	sourceArticles?: unknown[];
@@ -50,10 +50,10 @@ let {
 }: Props = $props();
 
 // Handle story toggle
-function handleStoryToggle(story: Story) {
+function handleStoryToggle(story: Story, updateUrl: boolean = false) {
 	const storyId = story.cluster_number?.toString() || story.title;
 	
-	onStoryToggle?.(storyId);
+	onStoryToggle?.(storyId, updateUrl);
 }
 
 // Handle read toggle
@@ -221,7 +221,7 @@ onDestroy(() => {
 					categoryId={currentCategory}
 					isRead={readStories[story.cluster_number?.toString() || story.title] || false}
 					isExpanded={expandedStories[story.cluster_number?.toString() || story.title] || false}
-					onToggle={() => handleStoryToggle(story)}
+					onToggle={() => handleStoryToggle(story, true)}
 					onReadToggle={() => handleReadToggle(story)}
 					priority={index < 3}
 					isFiltered={isFiltered}

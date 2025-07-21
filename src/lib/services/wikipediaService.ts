@@ -1,4 +1,7 @@
-// Wikipedia content cache
+import { browser } from '$app/environment';
+import { language } from '$lib/stores/language.svelte.js';
+
+// Wikipedia content cache (key: "<lang>:<wikiId>")
 const wikipediaCache = new Map<string, any>();
 
 export interface WikipediaContent {
@@ -13,70 +16,107 @@ export interface WikipediaContent {
  * Fetch Wikipedia content from API
  * Supports both regular Wikipedia page IDs and Wikidata Q-IDs
  */
-export async function fetchWikipediaContent(wikiId: string): Promise<WikipediaContent> {
-	// Check cache first
-	if (wikipediaCache.has(wikiId)) {
-		return wikipediaCache.get(wikiId)!;
-	}
+export async function fetchWikipediaContent(wikiId: string, lang?: string): Promise<WikipediaContent> {
+    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    const cacheKey = `${wikiLang}:${wikiId}`;
 
-	try {
-		let url: string;
-		let data: any;
-		
-		// Check if this is a Wikidata Q-ID
-		if (/^Q\d+$/.test(wikiId)) {
-			// First, resolve the Q-ID to get the actual Wikipedia page
-			const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikiId}&props=sitelinks&sitefilter=enwiki&format=json&origin=*`;
-			const wikidataResponse = await fetch(wikidataUrl);
-			
-			if (!wikidataResponse.ok) {
-				throw new Error('Failed to fetch Wikidata entity');
-			}
-			
-			const wikidataData = await wikidataResponse.json();
-			const entity = wikidataData.entities?.[wikiId];
-			const enwikiTitle = entity?.sitelinks?.enwiki?.title;
-			
-			if (!enwikiTitle) {
-				throw new Error('No English Wikipedia page found for this entity');
-			}
-			
-			// Now fetch the Wikipedia content using the resolved title
-			url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(enwikiTitle)}`;
-			console.log(`Resolved Q-ID ${wikiId} to Wikipedia page: ${enwikiTitle}`);
-		} else {
-			// Regular Wikipedia page ID
-			url = `https://en.wikipedia.org/api/rest_v1/page/summary/${wikiId}`;
-		}
-		
-		const response = await fetch(url);
-		
-		if (!response.ok) {
-			throw new Error('Failed to fetch Wikipedia content');
-		}
-		
-		data = await response.json();
-		const result: WikipediaContent = {
-			extract: data.extract || 'No summary available.',
-			thumbnail: data.thumbnail || null,
-			originalImage: data.originalimage || null,
-			title: data.title || '',
-			wikiUrl: data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(data.title || wikiId)}`
-		};
-		
-		// Cache the content
-		wikipediaCache.set(wikiId, result);
-		return result;
-	} catch (error) {
-		console.error('Error fetching Wikipedia content:', error);
-		return {
-			extract: 'Failed to load Wikipedia content.',
-			thumbnail: null,
-			originalImage: null,
-			title: '',
-			wikiUrl: ''
-		};
-	}
+    // Check cache first
+    if (wikipediaCache.has(cacheKey)) {
+        return wikipediaCache.get(cacheKey)!;
+    }
+
+    try {
+        let url: string;
+        let data: any;
+        let summaryLang = wikiLang; // language we will ultimately query in
+
+        // Check if this is a Wikidata Q-ID
+        if (/^Q\d+$/.test(wikiId)) {
+            // First, resolve the Q-ID to get the actual Wikipedia page in the requested language
+            const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikiId}&props=sitelinks&sitefilter=${wikiLang}wiki&format=json&origin=*`;
+            const wikidataResponse = await fetch(wikidataUrl);
+
+            if (!wikidataResponse.ok) {
+                throw new Error('Failed to fetch Wikidata entity');
+            }
+
+            const wikidataData = await wikidataResponse.json();
+            const entity = wikidataData.entities?.[wikiId];
+            const localizedTitle = entity?.sitelinks?.[`${wikiLang}wiki`]?.title as string | undefined;
+            const enwikiTitle = entity?.sitelinks?.enwiki?.title as string | undefined;
+            const pageTitle = localizedTitle || enwikiTitle;
+
+            if (!pageTitle) {
+                throw new Error('No Wikipedia page found for this entity');
+            }
+
+            // If we had to fall back to English, make sure we query en.wikipedia.org
+            if (!localizedTitle) {
+                summaryLang = 'en';
+            }
+
+            // Now fetch the Wikipedia content using the resolved title
+            url = `https://${summaryLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+            console.log(`Resolved Q-ID ${wikiId} to Wikipedia page: ${pageTitle} (${summaryLang})`);
+        } else {
+            // Regular Wikipedia page ID / title
+            url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiId)}`;
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch Wikipedia content');
+        }
+
+        data = await response.json();
+        const result: WikipediaContent = {
+            extract: data.extract || 'No summary available.',
+            thumbnail: data.thumbnail || null,
+            originalImage: data.originalimage || null,
+            title: data.title || '',
+            wikiUrl: data.content_urls?.desktop?.page || `https://${summaryLang}.wikipedia.org/wiki/${encodeURIComponent(data.title || wikiId)}`
+        };
+
+        // Cache the content
+        wikipediaCache.set(cacheKey, result);
+        return result;
+    } catch (error) {
+        console.warn('Primary Wikipedia fetch failed, attempting fallbacks:', error);
+
+        // 1) If we already tried English or userLang === 'en', give up directly
+        if (wikiLang === 'en') {
+            return {
+                extract: 'Failed to load Wikipedia content.',
+                thumbnail: null,
+                originalImage: null,
+                title: '',
+                wikiUrl: ''
+            };
+        }
+
+        // 2) Try fetching summary in English to obtain its Wikidata ID
+        try {
+            const enSummaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiId)}`;
+            const enData = await safeJsonFetch(enSummaryUrl);
+            const qid = enData?.wikibase_item as string | undefined;
+
+            if (qid && /^Q\d+$/.test(qid)) {
+                // Recursively fetch using Q-ID which has full language logic
+                return await fetchWikipediaContent(qid, uiLang);
+            }
+        } catch {/* ignore */}
+
+        // 3) Final failure
+        return {
+            extract: 'Failed to load Wikipedia content.',
+            thumbnail: null,
+            originalImage: null,
+            title: '',
+            wikiUrl: ''
+        };
+    }
 }
 
 /**
@@ -91,4 +131,130 @@ export function clearWikipediaCache() {
  */
 export function getWikipediaCacheSize(): number {
 	return wikipediaCache.size;
+}
+
+// Add a separate cache for domain look-ups to avoid mixing keys with page/Q-IDs
+const wikipediaDomainCache = new Map<string, WikipediaContent>();
+
+/**
+ * Attempt to resolve a news source domain (e.g. "cnn.com") to a Wikipedia page
+ * and return its summary data.
+ *
+ * The heuristic is:
+ * 1. Strip protocol / path and keep the hostname
+ * 2. Pick the second-level domain (e.g. "cnn" from "www.cnn.com")
+ * 3. Use Wikipedia's search API to find the most relevant article
+ * 4. Return the {@link WikipediaContent} for the first result, or null if none found
+ */
+export async function fetchWikipediaContentForDomain(domain: string, lang?: string): Promise<WikipediaContent | null> {
+    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    // Normalise domain (remove protocol, path, port)
+    let hostname = domain.trim();
+    if (hostname.startsWith('http://') || hostname.startsWith('https://')) {
+        hostname = hostname.replace(/^https?:\/\//, '');
+    }
+    // Remove any path after the domain
+    hostname = hostname.split('/')[0];
+
+    const cacheKey = `${wikiLang}:${hostname}`;
+    // If we have already fetched this domain, return cached value
+    if (wikipediaDomainCache.has(cacheKey)) {
+        return wikipediaDomainCache.get(cacheKey)!;
+    }
+
+    // Derive a basic search query from the hostname – take the second-level label
+    const parts = hostname.split('.');
+    let query = parts.length >= 2 ? parts[parts.length - 2] : hostname;
+    // Replace common edge-case labels (e.g. co.uk)
+    if (['co', 'com', 'net', 'org', 'gov'].includes(query) && parts.length >= 3) {
+        query = parts[parts.length - 3];
+    }
+    // Replace hyphens with spaces for better search matching
+    query = query.replace(/-/g, ' ');
+
+    try {
+        // 1. Search for the most relevant Wikipedia article in the requested language
+        const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+        const searchResp = await fetch(searchUrl);
+        if (!searchResp.ok) throw new Error('Failed to search Wikipedia');
+        const searchData = await searchResp.json();
+        const firstResultTitle: string | undefined = searchData?.query?.search?.[0]?.title;
+
+        if (!firstResultTitle) {
+            return null; // Nothing found
+        }
+
+        // 2. Fetch the summary for that article
+        const summary = await fetchWikipediaContent(firstResultTitle, uiLang);
+        // Cache the result for future look-ups
+        wikipediaDomainCache.set(cacheKey, summary);
+        return summary;
+    } catch (err) {
+        console.error('Error fetching Wikipedia content for domain:', domain, err);
+        return null;
+    }
+}
+
+// Generic cache for arbitrary search queries (e.g. person names, concepts)
+const wikipediaSearchCache = new Map<string, WikipediaContent>();
+
+/**
+ * Fetch Wikipedia summary for an arbitrary query string (e.g. person name, concept).
+ * Uses the search API to resolve to the most relevant article then returns its summary.
+ * Returns `null` when nothing relevant is found.
+ */
+export async function fetchWikipediaContentBySearch(query: string, lang?: string): Promise<WikipediaContent | null> {
+    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return null;
+
+    const cacheKey = `${wikiLang}:${normalized}`;
+    // Return cached
+    if (wikipediaSearchCache.has(cacheKey)) {
+        return wikipediaSearchCache.get(cacheKey)!;
+    }
+
+    try {
+        const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+        const resp = await fetch(searchUrl);
+        if (!resp.ok) throw new Error('Failed to search Wikipedia');
+        const data = await resp.json();
+        const title: string | undefined = data?.query?.search?.[0]?.title;
+        if (!title) return null;
+
+        const summary = await fetchWikipediaContent(title, uiLang);
+        wikipediaSearchCache.set(cacheKey, summary);
+        return summary;
+    } catch (err) {
+        console.error('Error fetching Wikipedia content for query:', query, err);
+        return null;
+    }
+}
+
+// helper to safely fetch URL returning JSON or null
+async function safeJsonFetch(url: string): Promise<any | null> {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+// Map language codes used in UI to Wikipedia sub-domains
+function normalizeWikiLang(lang: string | undefined): string {
+    if (!lang) return 'en';
+    const lower = lang.toLowerCase();
+    const overrides: Record<string, string> = {
+        'pt-br': 'pt',
+        'zh-hans': 'zh',
+        'zh-hant': 'zh',
+        'nb': 'no'
+    };
+    if (overrides[lower]) return overrides[lower];
+    // Take first segment before dash (e.g. "en-us" -> "en")
+    return lower.split('-')[0] || 'en';
 }

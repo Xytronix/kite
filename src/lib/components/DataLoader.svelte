@@ -58,8 +58,15 @@
 	
 	const isPostMaintenance = checkPostMaintenance();
 	
-	// Loading state - skip initial loading if coming from maintenance
-	let initialLoading = $state(!isPostMaintenance);
+	// Determine initial loading flag
+	const shouldShowInitialLoading = (() => {
+	    if (isPostMaintenance) return false;
+	    if (typeof window !== 'undefined' && sessionStorage.getItem('kite-loaded')) return false;
+	    return true;
+	})();
+
+	// Loading state
+	let initialLoading = $state(shouldShowInitialLoading);
 	let loadingProgress = $state(0);
 	let hasError = $state(false);
 	let errorMessage = $state('');

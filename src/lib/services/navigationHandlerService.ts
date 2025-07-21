@@ -2,6 +2,7 @@ import type { SupportedLanguage } from '$lib/stores/language.svelte';
 import type { Category, Story } from '$lib/types';
 import { UrlNavigationService, type NavigationParams } from './urlNavigationService';
 import { dataService, dataReloadService } from './dataService';
+import { slugify } from '$lib/utils/urlShortener';
 
 export interface NavigationState {
 	currentBatchId: string;
@@ -50,6 +51,7 @@ export class NavigationHandlerService {
 		if (params.batchId === undefined && 
 		    params.categoryId === undefined && 
 		    params.storyIndex === undefined && 
+		    params.slug === undefined &&
 		    params.dataLang === undefined) {
 			return {};
 		}
@@ -122,13 +124,25 @@ export class NavigationHandlerService {
 			}
 			
 			// Handle story expansion - after category is loaded
-			if (params.storyIndex !== undefined) {
+			if (params.storyIndex !== undefined || params.slug !== undefined) {
 				// Clear all expanded stories first
 				updates.expandedStories = {};
-				
-				if (params.storyIndex !== null) {
-					// Get stories for the current category
-					const categoryStories = state.allCategoryStories[state.currentCategory] || state.stories;
+
+				const categoryStories = state.allCategoryStories[state.currentCategory] || state.stories;
+
+				// Priority 1: slug (new style links)
+				if (params.slug) {
+					const target = categoryStories.find((s) => slugify(s.title) === params.slug);
+					if (target) {
+						const storyId = target.cluster_number?.toString() || target.title;
+						updates.expandedStories = { [storyId]: true };
+						// Nothing more to do
+						return updates;
+					}
+				}
+
+				// Priority 2: numeric index (legacy links)
+				if (params.storyIndex !== null && params.storyIndex !== undefined) {
 					if (categoryStories[params.storyIndex]) {
 						const story = categoryStories[params.storyIndex];
 						const storyId = story.cluster_number?.toString() || story.title;

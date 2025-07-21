@@ -166,9 +166,9 @@ function startPostMaintenanceSequence() {
 // Smooth animation for progress counter
 let animationFrame: number;
 
-onMount(async () => {
-    // Initial update
-    await updateProgress();
+onMount(() => {
+    // Initial update (non-blocking)
+    void updateProgress();
     
     // Update every 5 seconds (less frequent since we're using server API)
     const interval = setInterval(() => {

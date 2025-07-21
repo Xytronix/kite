@@ -95,7 +95,7 @@ async function submitReport() {
 
 <!-- Report / Flag Button -->
 <button
-    onclick={() => (isModalOpen = true)}
+    onclick={(e) => { e.stopPropagation(); isModalOpen = true; }}
     class="group relative flex h-10 w-10 items-center justify-center rounded-lg {className}"
     aria-label={tr('report.flagStory', 'Report story')}
     title={tr('report.flagStory', 'Report story')}
@@ -139,9 +139,10 @@ async function submitReport() {
                     <select
                         id="source-select"
                         multiple
-                        size="1"
+                        size={Math.min(sourceOptions.length, 6)}
                         bind:value={selectedSources}
-                        class="w-full rounded-md border border-gray-300 bg-white p-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        onclick={(e) => e.stopPropagation()}
+                        class="w-full rounded-md border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-white dark:text-gray-900 p-2 text-sm overflow-y-auto"
                     >
                         <option disabled value="">{tr('report.sourcePlaceholder', 'Choose source(s)')}</option>
                         {#each sourceOptions as opt}
@@ -196,7 +197,7 @@ async function submitReport() {
     </div>
 </BaseModal>
 
-<style>
+<style lang="postcss">
     textarea {
         resize: vertical;
     }

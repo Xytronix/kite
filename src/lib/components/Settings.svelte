@@ -249,9 +249,10 @@ const tabs = $derived([
 			<header class="flex-shrink-0 bg-white p-4 md:p-0 dark:bg-gray-800">
 				<div class="mb-1 flex justify-end">
 					<button
+                        type="button"
 						onclick={handleClose}
-						class="text-gray-500 transition-colors duration-200 hover:text-gray-700 focus-visible-ring rounded dark:text-gray-400 dark:hover:text-gray-200"
-						aria-label={s('ui.close') || 'Close'}
+                        class="text-gray-500 transition-colors duration-200 hover:text-gray-700 focus-visible-ring rounded dark:text-gray-400 dark:hover:text-gray-200"
+                        aria-label={s('ui.close') || 'Close'}
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -275,6 +276,7 @@ const tabs = $derived([
 					<div class="flex min-w-max">
 						{#each tabs as tab}
 							<button
+                                type="button"
 								onclick={() => changeTab(tab.id)}
 								class="border-b-2 px-4 py-2 text-sm font-medium transition-colors focus-visible-ring"
 								class:border-blue-500={activeTab === tab.id}

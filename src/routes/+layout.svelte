@@ -25,11 +25,10 @@ let { data, children }: {data: PageData, children: Snippet } = $props();
 const maintenanceActive = $derived.by(() => {
     const pg = $page;
     
-    // Check manual overrides first (these always take precedence)
-    const urlMaintenance = pg.url?.searchParams.get('maintenance') === '1';
+    // Manual override via localStorage only (remove ?maintenance=1 support)
     const localMaintenance = browser && typeof localStorage !== 'undefined' && localStorage.getItem('kite-maintenance') === 'true';
-    
-    if (urlMaintenance || localMaintenance) {
+
+    if (localMaintenance) {
         return true;
     }
     
@@ -127,7 +126,7 @@ function formatFriendlyTime(timestamp: string): { text: string; boldPart: string
 }
 
 // Reactive maintenance progress tracking
-let maintenanceInterval: number | undefined;
+let maintenanceInterval: ReturnType<typeof setInterval> | undefined;
 
 $effect(() => {
     // Clear any existing interval

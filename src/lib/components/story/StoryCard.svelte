@@ -5,6 +5,11 @@ import StorySectionManager from './StorySectionManager.svelte';
 import StoryActions from './StoryActions.svelte';
 import { browser } from '$app/environment';
 import { useViewportPreloading, useHoverPreloading } from '$lib/hooks/useImagePreloading.svelte';
+import { autoLinkPersons } from '$lib/utils/personAutoLink';
+import { autoLinkPlaces } from '$lib/utils/placeAutoLink';
+import { autoLinkOrgs } from '$lib/utils/orgAutoLink';
+import { autoLinkAcronyms } from '$lib/utils/acronymAutoLink';
+import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
 
 // Props
 interface Props {
@@ -24,6 +29,7 @@ interface Props {
 	priority?: boolean; // For high-priority stories (first few visible)
 	isFiltered?: boolean;
 	filterKeywords?: string[];
+    onWikipediaClick?: (title: string, content: string, imageUrl?: string) => void;
 }
 
 let { 
@@ -42,7 +48,8 @@ let {
 	isLoadingMediaInfo = $bindable(false),
 	priority = false,
 	isFiltered = false,
-	filterKeywords = []
+	filterKeywords = [],
+    onWikipediaClick
 }: Props = $props();
 
 // Story element reference
@@ -50,6 +57,11 @@ let storyElement: HTMLElement;
 
 // Blur state - re-check filtering in real-time
 let isBlurred = $state(isFiltered);
+// Track if we already ran the automatic person linker for this card
+let processedAutoLink = $state(false);
+let processedAutoLinkPlaces = $state(false);
+let processedAutoLinkOrg = $state(false);
+let processedAutoLinkAcr = $state(false);
 
 // Re-check if story should still be blurred when filter changes
 $effect(() => {
@@ -92,7 +104,15 @@ function handleReadClick(e: Event) {
 	if (onReadToggle) onReadToggle();
 }
 
+let wikipediaTooltip: WikipediaTooltip | null = $state(null);
 
+function handleWikiInteraction(e: Event) {
+    wikipediaTooltip?.handleWikipediaInteraction(e);
+}
+
+function handleWikiLeave(e: Event) {
+    wikipediaTooltip?.handleWikipediaLeave(e);
+}
 
 // Scroll to story when expanded, and cancel pending scroll when collapsed
 $effect(() => {
@@ -142,6 +162,48 @@ $effect(() => {
         }
     };
 });
+
+// Auto-link person names once when expanded
+$effect(() => {
+    if (isExpanded && !processedAutoLink && storyElement) {
+        processedAutoLink = true;
+        // Wrap delayed tasks to ensure the element still exists when the callback runs
+        const safeRun = (delay: number, fn: () => void) => {
+            setTimeout(() => {
+                if (storyElement) fn();
+            }, delay);
+        };
+
+        safeRun(0, () => autoLinkPersons(storyElement!));
+        // Also link places separately (after persons to avoid overlaps)
+        safeRun(10, () => autoLinkPlaces(storyElement!));
+
+        safeRun(20, () => autoLinkOrgs(storyElement!));
+        safeRun(30, () => autoLinkAcronyms(storyElement!));
+
+        // Prefetch Wikipedia summaries for all linked wiki IDs in background
+        safeRun(100, () => {
+            if (!storyElement) return;
+            const anchors = storyElement.querySelectorAll('a[data-wiki-id]');
+            const ids = Array.from(anchors).map(a => decodeURIComponent(a.getAttribute('data-wiki-id') || ''));
+            const uniqueIds = Array.from(new Set(ids));
+            import('$lib/services/wikipediaService').then(mod => {
+                uniqueIds.forEach(id => mod.fetchWikipediaContent(id));
+            });
+        });
+    }
+});
+
+// After isExpanded effect for auto-link
+$effect(() => {
+    // Reset processed flags when story collapses so links regenerate next time
+    if (!isExpanded) {
+        processedAutoLink = false;
+        processedAutoLinkPlaces = false;
+        processedAutoLinkOrg = false;
+        processedAutoLinkAcr = false;
+    }
+});
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -176,6 +238,14 @@ $effect(() => {
 			<div class="dark:bg-dark-bg flex flex-col bg-white py-4" role="region" aria-label="Story content">
 				
 				<!-- Dynamic Sections based on user settings -->
+                <div role="presentation"
+                    onmouseover={handleWikiInteraction}
+                    onmouseleave={handleWikiLeave}
+                    onfocus={handleWikiInteraction}
+                    onblur={handleWikiLeave}
+                    onclick={handleWikiInteraction}
+                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleWikiInteraction(e); }}
+                >
 				<StorySectionManager 
 					{story}
 					{imagesPreloaded}
@@ -194,6 +264,11 @@ $effect(() => {
 					{storyIndex}
 					onClose={handleStoryClick}
 				/>
+
+                <!-- Tooltip instance -->
+                <WikipediaTooltip bind:this={wikipediaTooltip} {onWikipediaClick} />
+
+                </div>
 			</div>
 		{/if}
 	</div>

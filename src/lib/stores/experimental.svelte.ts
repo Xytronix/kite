@@ -5,6 +5,8 @@ export interface ExperimentalFeatures {
   showCategoryIcons: boolean;
   disableCategorySwipe: boolean;
   showChaosIndex: boolean;
+  showWikipediaTooltips: boolean; // master toggle
+  disableWikiTooltipsInHeadlines: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -14,6 +16,8 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   showCategoryIcons: false,
   disableCategorySwipe: false,
   showChaosIndex: false,
+  showWikipediaTooltips: true,
+  disableWikiTooltipsInHeadlines: false,
 };
 
 // Initialize experimental features state
@@ -72,6 +76,14 @@ export const experimental = {
 
   get showChaosIndex() {
     return experimentalState.showChaosIndex;
+  },
+
+  get showWikipediaTooltips() {
+    return experimentalState.showWikipediaTooltips;
+  },
+
+  get disableWikiTooltipsInHeadlines() {
+    return experimentalState.disableWikiTooltipsInHeadlines;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

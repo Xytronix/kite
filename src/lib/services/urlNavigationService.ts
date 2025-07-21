@@ -7,6 +7,7 @@ export interface NavigationParams {
 	categoryId?: string | null;
 	storyIndex?: number | null;
 	dataLang?: string | null;
+	slug?: string | null;
 }
 
 export interface ParsedUrl extends NavigationParams {
@@ -39,19 +40,37 @@ export class UrlNavigationService {
 		const firstSegment = pathSegments[0];
 		const isBatchId = this.isBatchId(firstSegment);
 		
+		// Helper to extract storyIndex / slug from a path segment
+		const extractStoryParams = (segment?: string | null) => {
+			if (!segment) return;
+
+			// Case 1: Segment starts with number – could be "5" or "5-slug-of-story"
+			const match = segment.match(/^(\d+)(?:-(.*))?$/);
+			if (match) {
+				params.storyIndex = parseInt(match[1]);
+				// If there is a slug after the number, capture it as well for completeness
+				if (match[2]) params.slug = match[2];
+				return;
+			}
+
+			// Case 2: Pure slug without leading index
+			params.slug = segment;
+			params.storyIndex = null;
+		};
+
 		if (!isBatchId) {
 			// No batch ID, this is latest batch with category
 			params.batchId = null;
 			params.categoryId = pathSegments[0];
-			params.storyIndex = pathSegments[1] ? parseInt(pathSegments[1]) : null;
+			extractStoryParams(pathSegments[1] || null);
 		} else {
 			// Has batch ID
 			params.batchId = pathSegments[0];
 			params.categoryId = pathSegments[1] || null;
-			params.storyIndex = pathSegments[2] ? parseInt(pathSegments[2]) : null;
+			extractStoryParams(pathSegments[2] || null);
 		}
-		
-		// Validate story index if present
+
+		// Validate story index if present (and not null)
 		if (params.storyIndex !== null && params.storyIndex !== undefined) {
 			if (isNaN(params.storyIndex) || params.storyIndex < 0) {
 				params.isValid = false;
@@ -65,28 +84,41 @@ export class UrlNavigationService {
 	 * Build a URL from navigation parameters
 	 */
 	static buildUrl(params: NavigationParams, currentDataLang?: SupportedLanguage): string {
-		const { batchId, categoryId, storyIndex } = params;
-		
-		// Always include batch ID for shareability
-		if (!batchId) {
-			return '/';
+		const { batchId, categoryId, storyIndex, slug } = params;
+
+		// Start path
+		let url = '/';
+		if (batchId) {
+			url += `${batchId}`;
 		}
-		
-		// Build URL path
-		let url = `/${batchId}`;
+
 		if (categoryId) {
-			url += `/${categoryId}`;
+			// Ensure leading slash when no batchId
+			if (!batchId && url === '/') {
+				url += categoryId;
+			} else {
+				url += `/${categoryId}`;
+			}
 		}
+
+		// Prefer slug-only URLs when a slug is provided
 		if (storyIndex !== null && storyIndex !== undefined) {
-			url += `/${storyIndex}`;
+			url += '/';
+			if (slug) {
+				url += `${storyIndex}-${slug}`;
+			} else {
+				url += `${storyIndex}`;
+			}
+		} else if (slug) {
+			url += `/${slug}`;
 		}
-		
+
 		// Add data language as query parameter
 		const dataLang = params.dataLang || currentDataLang;
 		if (dataLang) {
 			url += `?data_lang=${dataLang}`;
 		}
-		
+
 		return url;
 	}
 	

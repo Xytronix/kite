@@ -252,8 +252,8 @@ const citedArticles = $derived.by(() => {
 		onmouseleave={(e) => tooltipReference?.handleCitationLeave(e)}
 		onfocus={(e) => tooltipReference?.handleCitationInteraction(e, uniqueDomains)}
 		onblur={(e) => tooltipReference?.handleCitationLeave(e)}
-		onclick={(e) => tooltipReference?.handleCitationInteraction(e, uniqueDomains)}
-		onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleCitationInteraction(e, uniqueDomains)}
+		onclick={(e) => { e.stopPropagation(); tooltipReference?.handleCitationInteraction(e, uniqueDomains); }}
+		onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); tooltipReference?.handleCitationInteraction(e, uniqueDomains);} }}
 		role="button"
 		tabindex="0"
 		aria-label="View sources: {uniqueDomains.join(', ')}"
