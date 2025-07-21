@@ -60,14 +60,12 @@ const displayTitle = $derived.by(() => {
 
 <!-- Story Header -->
 <header class="mb-1 flex items-center justify-between">
-	<span class="category-label inline-flex items-center rounded py-1 text-sm text-gray-700 dark:text-gray-300">
-		<span class="relative pl-4">
-			{#if categoryEmoji}
-				<IconDisplay emoji={categoryEmoji} className="absolute left-0 top-0.5 w-3 h-3" />
-			{/if}
-			<span class={getTopicColorClass(story.category)}>
-				{story.category}
-			</span>
+	<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300">
+		{#if categoryEmoji}
+			<IconDisplay emoji={categoryEmoji} className="w-3 h-3" />
+		{/if}
+		<span class={getTopicColorClass(story.category)}>
+			{story.category}
 		</span>
 	</span>
 </header>
@@ -77,18 +75,16 @@ const displayTitle = $derived.by(() => {
 	<div class="flex-grow">
 		<button
 			data-no-wiki
-			class="dark:text-dark-text mb-2 flex cursor-pointer items-center text-xl text-gray-800 text-left w-full bg-transparent border-none p-0 focus-visible-ring rounded"
+			class="dark:text-dark-text mb-2 flex cursor-pointer items-center gap-2 text-xl text-gray-800 text-left w-full bg-transparent border-none p-0 focus-visible-ring rounded"
 			class:font-semibold={!isRead}
 			onclick={(e) => { e.stopPropagation(); onTitleClick?.(); }}
 			id="story-title-{story.cluster_number}"
 			aria-label="Expand story: {story.title}"
 		>
-			<span class="relative pl-6 w-full block">
-				{#if articleEmoji}
-					<IconDisplay emoji={articleEmoji} className="absolute left-0 top-1 w-4 h-4" />
-				{/if}
-				<span class="block"><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
-			</span>
+			{#if articleEmoji}
+				<IconDisplay emoji={articleEmoji} className="w-4 h-4" />
+			{/if}
+			<span class="flex-grow"><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
 		</button>
 	</div>
 	
