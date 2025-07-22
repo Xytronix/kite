@@ -62,7 +62,7 @@ const displayTitle = $derived.by(() => {
 <header class="mb-1 flex items-center justify-between">
 	<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300">
 		{#if categoryEmoji}
-			<IconDisplay emoji={categoryEmoji} className="w-3 h-3" />
+			<IconDisplay emoji={categoryEmoji} className="icon-sm" />
 		{/if}
 		<span class={getTopicColorClass(story.category)}>
 			{story.category}
@@ -82,7 +82,7 @@ const displayTitle = $derived.by(() => {
 			aria-label="Expand story: {story.title}"
 		>
 			{#if articleEmoji}
-				<IconDisplay emoji={articleEmoji} className="w-4 h-4" />
+				<IconDisplay emoji={articleEmoji} className="icon-lg" />
 			{/if}
 			<span class="flex-grow"><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
 		</button>

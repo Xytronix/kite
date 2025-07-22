@@ -584,9 +584,9 @@ const handleUrlNavigation = async (params: NavigationParams) => {
 	}
 };
 
-// Effect for state updates (category initialization) - runs before DOM updates
-$effect.pre(() => {
-	if (!dataLoaded) return;
+// Effect for state updates (category initialization)
+$effect(() => {
+	if (!browser || !dataLoaded) return;
 	
 	// Initialize category if needed
 	// Don't reset if we have a temporary category that matches current
@@ -617,7 +617,8 @@ $effect(() => {
 // Chaos index will be reloaded with all other data when language changes
 
 // Update temporary category element reference when needed
-$effect.pre(() => {
+$effect(() => {
+	if (!browser) return;
 	if (temporaryCategory && desktopCategoryNavigation && showTemporaryCategoryTooltip) {
 		temporaryCategoryElement = desktopCategoryNavigation.getCategoryElement(temporaryCategory);
 	} else {

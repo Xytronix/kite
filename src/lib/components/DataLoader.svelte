@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { s } from '$lib/client/localization.svelte';
 	import { dataService, dataReloadService } from '$lib/services/dataService';
 	import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
@@ -502,7 +503,8 @@
 	let needsReload = $state(false);
 	
 	// Track when batch changes and trigger reload
-	$effect.pre(() => {
+	$effect(() => {
+		if (!browser) return;
 		const currentBatchId = timeTravelBatch.batchId;
 		
 		// Check if we need to reload

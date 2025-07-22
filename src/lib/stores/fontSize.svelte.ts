@@ -92,9 +92,59 @@ function applyFontSize(fontSize: FontSize) {
       },
     };
 
+    // Define icon size scales that are proportional to text sizes
+    const iconSizes = {
+      xs: {
+        // Extra small icons - proportional to text-xl (16px)
+        "icon-xs": "0.5rem", // 8px
+        "icon-sm": "0.625rem", // 10px  
+        "icon-base": "0.75rem", // 12px
+        "icon-lg": "0.875rem", // 14px
+        "icon-xl": "1rem", // 16px (matches text-xl)
+      },
+      small: {
+        // Small icons - proportional to text-xl (18px)
+        "icon-xs": "0.5625rem", // 9px
+        "icon-sm": "0.6875rem", // 11px
+        "icon-base": "0.8125rem", // 13px
+        "icon-lg": "0.9375rem", // 15px
+        "icon-xl": "1.125rem", // 18px (matches text-xl)
+      },
+      normal: {
+        // Normal icons - proportional to text-xl (20px)
+        "icon-xs": "0.625rem", // 10px
+        "icon-sm": "0.75rem", // 12px
+        "icon-base": "0.875rem", // 14px
+        "icon-lg": "1rem", // 16px
+        "icon-xl": "1.25rem", // 20px (matches text-xl)
+      },
+      large: {
+        // Large icons - proportional to text-xl (24px)
+        "icon-xs": "0.75rem", // 12px
+        "icon-sm": "0.875rem", // 14px
+        "icon-base": "1rem", // 16px
+        "icon-lg": "1.25rem", // 20px
+        "icon-xl": "1.5rem", // 24px (matches text-xl)
+      },
+      xl: {
+        // Extra large icons - proportional to text-xl (26px)
+        "icon-xs": "0.8125rem", // 13px
+        "icon-sm": "0.9375rem", // 15px
+        "icon-base": "1.0625rem", // 17px
+        "icon-lg": "1.3125rem", // 21px
+        "icon-xl": "1.625rem", // 26px (matches text-xl)
+      },
+    };
+
     // Apply the font size variables
     const sizes = fontSizes[fontSize];
     Object.entries(sizes).forEach(([key, value]) => {
+      root.style.setProperty(`--${key}`, value);
+    });
+
+    // Apply the icon size variables
+    const icons = iconSizes[fontSize];
+    Object.entries(icons).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value);
     });
   } catch (error) {

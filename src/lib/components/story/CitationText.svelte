@@ -271,7 +271,7 @@ const citedArticles = $derived.by(() => {
 					<img 
 						src={getFaviconUrl(domain)} 
 						alt="{domain} favicon" 
-						class="w-5 h-5 rounded-full"
+						class="icon-lg rounded-full"
 						loading="lazy"
 					/>
 				</div>
@@ -303,7 +303,7 @@ const citedArticles = $derived.by(() => {
 						<img 
 							src={getFaviconUrl(citation.domain)} 
 							alt="{citation.domain} favicon" 
-							class="inline-block w-3 h-3 ml-1"
+							class="inline-block icon-sm ml-1"
 							loading="lazy"
 						/>
 					{/if}

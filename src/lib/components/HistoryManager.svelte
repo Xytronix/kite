@@ -77,7 +77,7 @@ export function navigateTo(params: Partial<NavigationParams>) {
 let initialLoadProcessed = $state(false);
 
 // Handle initial page load and browser navigation
-$effect.pre(() => {
+$effect(() => {
 	if (!browser) return;
 	
 	// Parse current URL

@@ -35,6 +35,13 @@
   --text-3xl: var(--text-3xl, 1.875rem);
   --text-4xl: var(--text-4xl, 2.25rem);
 
+  /* Dynamic icon size variables (proportional to text sizes) */
+  --icon-xs: var(--icon-xs, 0.625rem);
+  --icon-sm: var(--icon-sm, 0.75rem);
+  --icon-base: var(--icon-base, 0.875rem);
+  --icon-lg: var(--icon-lg, 1rem);
+  --icon-xl: var(--icon-xl, 1.25rem);
+
   /* TODO: Use proper way to adjust dark mode for background and text */
   --color-dark-bg: #1a202c;
   --color-dark-text: #e2e8f0;
@@ -278,5 +285,31 @@
 
   .dark .focus-visible-ring {
     --color-focus-offset: #1a202c;
+  }
+
+  /* Responsive icon size utilities */
+  .icon-xs {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+  }
+  
+  .icon-sm {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+  }
+  
+  .icon-base {
+    width: var(--icon-base);
+    height: var(--icon-base);
+  }
+  
+  .icon-lg {
+    width: var(--icon-lg);
+    height: var(--icon-lg);
+  }
+  
+  .icon-xl {
+    width: var(--icon-xl);
+    height: var(--icon-xl);
   }
 }

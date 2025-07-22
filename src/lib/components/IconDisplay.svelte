@@ -5,7 +5,7 @@
 		className?: string;
 	}
 
-	let { emoji, className = 'w-5 h-5' }: Props = $props();
+	let { emoji, className = 'icon-lg' }: Props = $props();
 
 	// State for the fetched icon data
 	let iconData = $state<any>(null);
