@@ -50,6 +50,7 @@
 
 /* Custom overrides  */
 @layer base {
+
   /* This adds behavior as it was in Tailwind v3.
    * In v4 the button doesn't have a pointer as default.
    * https://github.com/tailwindlabs/tailwindcss/issues/8961#issuecomment-2685614710
@@ -58,6 +59,7 @@
   [role="button"] {
     cursor: pointer;
   }
+
   button:disabled,
   [role="button"]:disabled {
     cursor: default;
@@ -67,6 +69,7 @@
 [x-cloak] {
   display: none !important;
 }
+
 .story-image {
   max-width: 100%;
   height: auto;
@@ -75,26 +78,33 @@
 .kite-logo {
   animation: fly 3s ease-in-out forwards;
 }
+
 @keyframes fly {
   0% {
     transform: translate(0, 0) rotate(0deg);
   }
+
   25% {
     transform: translate(15px, -15px) rotate(10deg);
   }
+
   50% {
     transform: translate(30px, -30px) rotate(0deg);
   }
+
   75% {
     transform: translate(15px, -15px) rotate(-10deg);
   }
+
   90% {
     transform: translate(5px, -5px) rotate(-5deg);
   }
+
   100% {
     transform: translate(0, 0) rotate(0deg);
   }
 }
+
 .category-label {
   transition: background-color 0.8s ease-out;
 }
@@ -102,31 +112,49 @@
 /* Topic Colors */
 .topic-color-1 {
   color: #cc3333;
-} /* Red */
+}
+
+/* Red */
 .topic-color-2 {
   color: #b85c2e;
-} /* Orange/Brown */
+}
+
+/* Orange/Brown */
 .topic-color-3 {
   color: #0077cc;
-} /* Medium Blue */
+}
+
+/* Medium Blue */
 .topic-color-4 {
   color: #666633;
-} /* Olive */
+}
+
+/* Olive */
 .topic-color-5 {
   color: #8822cc;
-} /* Purple */
+}
+
+/* Purple */
 .topic-color-6 {
   color: #b8288f;
-} /* Magenta */
+}
+
+/* Magenta */
 .topic-color-7 {
   color: #e60039;
-} /* Brighter Red */
+}
+
+/* Brighter Red */
 .topic-color-8 {
   color: #00855a;
-} /* Forest Green */
+}
+
+/* Forest Green */
 .topic-color-9 {
   color: #d14900;
-} /* Burnt Orange */
+}
+
+/* Burnt Orange */
 
 .dark img[src="svg/kite.svg"]:not([src*="kite_dark"]),
 .dark img[src="svg/quote.svg"],
@@ -258,9 +286,12 @@
 /* Perspectives section styles */
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
 }
+
 .overflow-x-auto::-webkit-scrollbar {
   /* WebKit */
   width: 0;
@@ -292,22 +323,22 @@
     width: var(--icon-xs);
     height: var(--icon-xs);
   }
-  
+
   .icon-sm {
     width: var(--icon-sm);
     height: var(--icon-sm);
   }
-  
+
   .icon-base {
     width: var(--icon-base);
     height: var(--icon-base);
   }
-  
+
   .icon-lg {
     width: var(--icon-lg);
     height: var(--icon-lg);
   }
-  
+
   .icon-xl {
     width: var(--icon-xl);
     height: var(--icon-xl);

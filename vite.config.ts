@@ -4,11 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [
-    sveltekit({
-      compilerOptions: {
-        runes: true,
-      },
-    }),
+    sveltekit(),
     tailwindcss(),
   ],
   ...(process.env.VITEST && {
