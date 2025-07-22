@@ -3,7 +3,7 @@ import { s } from '$lib/client/localization.svelte';
 import { fade } from 'svelte/transition';
 import { createModalBehavior } from '$lib/utils/modalBehavior.svelte';
 import { dataService } from '$lib/services/dataService';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte';
+import { language } from '$lib/stores/language.svelte.js';
 import Chart from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
 import LottieAnimation from './LottieAnimation.svelte';
@@ -96,7 +96,7 @@ async function handleClick() {
 	if (!isLoadingHistory && historicalData.length === 0) {
 		isLoadingHistory = true;
 		try {
-			historicalData = await dataService.getChaosIndexHistory(dataLanguage.current, 30);
+			historicalData = await dataService.getChaosIndexHistory(language.data, 30);
 		} catch (error) {
 			console.error('Failed to load historical data:', error);
 		} finally {

@@ -6,12 +6,17 @@
 	import type { SectionConfig } from '$lib/constants/sections';
 
 	// Local state for sections with required ID field
-	let sectionItems = $state<(SectionConfig & { id: string })[]>([]);
 	const flipDurationMs = 200;
 
-	// Initialize sections when store changes
+	// Initialize and keep local copy of sections that can be reordered
+	let sectionItems = $state(
+		sections.list
+			.sort((a, b) => a.order - b.order)
+			.map(section => ({ ...section, id: section.id }))
+	);
+
+	// Update local sectionItems whenever the sections store changes
 	$effect(() => {
-		// Convert sections to drag-drop format
 		sectionItems = sections.list
 			.sort((a, b) => a.order - b.order)
 			.map(section => ({ ...section, id: section.id }));

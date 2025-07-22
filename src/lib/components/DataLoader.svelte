@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { s } from '$lib/client/localization.svelte';
 	import { dataService, dataReloadService } from '$lib/services/dataService';
-	import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
+	import { language } from '$lib/stores/language.svelte.js';
 	import { categories as categoriesStore } from '$lib/stores/categories.svelte.js';
 	import { sections } from '$lib/stores/sections.svelte.js';
 	import { imagePreloadingService } from '$lib/services/imagePreloadingService.js';
@@ -119,7 +119,7 @@
 			// Check if we have a batch ID from URL
 			if (initialBatchId) {
 				// First, get the latest batch to compare
-				const latestResponse = await fetch(`/api/batches/latest?lang=${dataLanguage.current}`);
+				const latestResponse = await fetch(`/api/batches/latest?lang=${language.data}`);
 				if (latestResponse.ok) {
 					const latestBatch = await latestResponse.json();
 					
@@ -159,7 +159,7 @@
 			}
 
 			// Load initial data (batch info + categories) - pass batch info if we have it
-			const initialData = await dataService.loadInitialData(dataLanguage.current, providedBatchInfo);
+			const initialData = await dataService.loadInitialData(language.data, providedBatchInfo);
 			categories = initialData.categories;
 			const { batchId, categoryMap, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
 			totalReadCount = initialData.totalReadCount;
@@ -220,7 +220,7 @@
 						console.warn(`Category UUID not found for ${categoryId}`);
 						return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
 					}
-					const result = await dataService.loadStories(batchId, categoryUuid, 12, dataLanguage.current);
+					const result = await dataService.loadStories(batchId, categoryUuid, 12, language.data);
 					return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
 				} catch (error) {
 					console.warn(`Failed to load stories for category ${categoryId}:`, error);
@@ -363,10 +363,10 @@
 	// Comprehensive reload function for language changes
 	async function reloadAllData() {
 		try {
-			console.log(`🌍 reloadAllData called - Data language changed to ${dataLanguage.current}, reloading all data...`);
+			console.log(`🌍 reloadAllData called - Data language changed to ${language.data}, reloading all data...`);
 			
 			// Load initial data (batch info + categories)
-			const initialData = await dataService.loadInitialData(dataLanguage.current);
+			const initialData = await dataService.loadInitialData(language.data);
 			categories = initialData.categories;
 			const { batchId, categoryMap, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
 			totalReadCount = initialData.totalReadCount;
@@ -417,7 +417,7 @@
 						console.warn(`Category UUID not found for ${categoryId}`);
 						return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
 					}
-					const result = await dataService.loadStories(batchId, categoryUuid, 12, dataLanguage.current);
+					const result = await dataService.loadStories(batchId, categoryUuid, 12, language.data);
 					return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
 				} catch (error) {
 					console.warn(`Failed to load stories for category ${categoryId}:`, error);

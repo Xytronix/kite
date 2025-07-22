@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { toCamelCase } from '$lib/utils/string.js';
-import { fontSize } from '$lib/stores/fontSize.svelte.js';
+import { settings } from '$lib/stores/settings.svelte.js';
 import type { Category } from '$lib/types';
 import { onMount } from 'svelte';
 import { browser } from '$app/environment';
@@ -123,7 +123,7 @@ $effect(() => {
 
 // Watch for font size changes
 $effect(() => {
-	fontSize.current; // React to font size changes
+	settings.fontSize; // React to font size changes
 	// Use a longer delay to ensure CSS changes have taken effect
 	setTimeout(() => checkOverflow(), 100);
 });

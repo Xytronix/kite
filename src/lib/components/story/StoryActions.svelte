@@ -6,7 +6,7 @@ import ReportButton from '../ReportButton.svelte';
 import { generateShareUrl, slugify } from '$lib/utils/urlShortener';
 import { browser } from '$app/environment';
 import { UrlNavigationService } from '$lib/services/urlNavigationService';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte';
+import { language } from '$lib/stores/language.svelte.js';
 
 // Props
 interface Props {
@@ -22,7 +22,7 @@ let { story, onClose, batchId, categoryId, storyIndex }: Props = $props();
 // Get current navigation params from URL if not provided
 const navigationParams = $derived.by(() => {
 	if (batchId && categoryId && storyIndex !== undefined) {
-		return { batchId, categoryId, storyIndex, dataLang: dataLanguage.current };
+		return { batchId, categoryId, storyIndex, dataLang: language.data };
 	}
 	
 	// Fall back to parsing from current URL
@@ -31,7 +31,7 @@ const navigationParams = $derived.by(() => {
 		batchId: params.batchId || batchId,
 		categoryId: params.categoryId || categoryId,
 		storyIndex: params.storyIndex ?? storyIndex,
-		dataLang: params.dataLang || dataLanguage.current
+		dataLang: params.dataLang || language.data
 	};
 });
 

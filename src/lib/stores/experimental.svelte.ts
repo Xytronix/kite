@@ -3,6 +3,10 @@ import { browser } from "$app/environment";
 export interface ExperimentalFeatures {
   showArticleIcons: boolean;
   showCategoryIcons: boolean;
+  /** When true, UI will render raw emojis instead of mapped SVG icons for article thumbnails. */
+  useArticleEmojis: boolean;
+  /** When true, category pills will display raw emojis instead of mapped SVG icons. */
+  useCategoryEmojis: boolean;
   disableCategorySwipe: boolean;
   showChaosIndex: boolean;
   showWikipediaTooltips: boolean; // master toggle
@@ -14,6 +18,8 @@ const STORAGE_KEY = "kite-experimental-features";
 const DEFAULT_FEATURES: ExperimentalFeatures = {
   showArticleIcons: false,
   showCategoryIcons: false,
+  useArticleEmojis: false,
+  useCategoryEmojis: false,
   disableCategorySwipe: false,
   showChaosIndex: false,
   showWikipediaTooltips: true,
@@ -66,8 +72,16 @@ export const experimental = {
     return experimentalState.showArticleIcons;
   },
 
+  get useArticleEmojis() {
+    return experimentalState.useArticleEmojis;
+  },
+
   get showCategoryIcons() {
     return experimentalState.showCategoryIcons;
+  },
+
+  get useCategoryEmojis() {
+    return experimentalState.useCategoryEmojis;
   },
 
   get disableCategorySwipe() {

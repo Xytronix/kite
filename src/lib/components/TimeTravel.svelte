@@ -3,7 +3,6 @@
 import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
 import { s } from '$lib/client/localization.svelte';
 import { language } from '$lib/stores/language.svelte.js';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
 import { dataService, dataReloadService } from '$lib/services/dataService';
 import { goto } from '$app/navigation';
 
@@ -58,7 +57,7 @@ const calendarDays = $derived.by(() => {
 
 // Month/year display
 const monthYearDisplay = $derived(
-  new Intl.DateTimeFormat(language.current, { 
+  new Intl.DateTimeFormat(language.ui, { 
     month: 'long', 
     year: 'numeric' 
   }).format(currentMonth)
@@ -66,7 +65,7 @@ const monthYearDisplay = $derived(
 
 // Weekday headers
 const weekdayHeaders = $derived.by(() => {
-  const formatter = new Intl.DateTimeFormat(language.current, { weekday: 'short' });
+  const formatter = new Intl.DateTimeFormat(language.ui, { weekday: 'short' });
   const days = [];
   for (let i = 0; i < 7; i++) {
     const date = new Date(2024, 0, i + 7); // Start from Sunday
@@ -84,7 +83,7 @@ async function loadMonthBatches() {
     
     
     const response = await fetch(
-      `/api/batches?from=${startOfMonth.toISOString()}&to=${endOfMonth.toISOString()}&lang=${dataLanguage.current}`
+      `/api/batches?from=${startOfMonth.toISOString()}&to=${endOfMonth.toISOString()}&lang=${language.data}`
     );
     
     if (!response.ok) throw new Error('Failed to load batches');
@@ -96,7 +95,7 @@ async function loadMonthBatches() {
     for (const batch of data.batches) {
       const date = new Date(batch.createdAt);
       const dateKey = date.toISOString().split('T')[0];
-      const timeStr = date.toLocaleTimeString(language.current, { 
+      const timeStr = date.toLocaleTimeString(language.ui, { 
         hour: '2-digit', 
         minute: '2-digit' 
       });
@@ -248,7 +247,7 @@ async function selectBatch(batch: BatchInfo) {
   
   try {
     // Check if this is the absolute latest batch by fetching the current latest
-    const latestResponse = await fetch(`/api/batches/latest?lang=${dataLanguage.current}`);
+    const latestResponse = await fetch(`/api/batches/latest?lang=${language.data}`);
     const latestData = await latestResponse.json();
     // The API returns the batch directly, not wrapped in a 'batch' property
     const isLatestBatch = latestData.id && latestData.id === batch.id;
@@ -459,7 +458,7 @@ $effect(() => {
       </div>
     {:else}
       {@const selectedDate = selectedDayBatches[0] ? new Date(selectedDayBatches[0].createdAt) : new Date()}
-      {@const dateStr = new Intl.DateTimeFormat(language.current, { 
+      {@const dateStr = new Intl.DateTimeFormat(language.ui, { 
         weekday: 'long',
         month: 'long',
         day: 'numeric',
@@ -488,7 +487,7 @@ $effect(() => {
         <div class="space-y-2 max-h-96 overflow-y-auto">
           {#each selectedDayBatches as batch, index}
             {@const batchDate = new Date(batch.createdAt)}
-            {@const timeStr = batchDate.toLocaleTimeString(language.current, { 
+            {@const timeStr = batchDate.toLocaleTimeString(language.ui, { 
               hour: '2-digit', 
               minute: '2-digit',
               hour12: true 

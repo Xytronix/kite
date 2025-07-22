@@ -48,17 +48,18 @@
 		{ value: 'other', label: s('settings.categories.types.other') || 'Other', icon: 'tabler:dots' }
 	]);
 
-	// Initialize categories when they change
-	$effect(() => {
-		if (allCategories.length > 0) {
+	// Setup function to run when props change
+	function setup(props: Props) {
+		if (props.categories && props.categories.length > 0) {
 			untrack(() => {
-				categories.setAllCategories(allCategories);
+				categories.setAllCategories(props.categories);
 				categories.initWithDefaults();
 				loadCategoryMetadata();
 				syncFromStore();
 			});
 		}
-	});
+	}
+	$effect(() => setup({ categories: allCategories }));
 
 	// Load category metadata for filtering
 	async function loadCategoryMetadata() {

@@ -27,114 +27,92 @@ export type SupportedLanguage =
   | "tr";
 
 interface LanguageState {
-  current: SupportedLanguage;
-  currentStrings: Record<string, any>;
-  currentLocale: string;
+  ui: SupportedLanguage;
+  data: SupportedLanguage;
+  strings: Record<string, any>;
+  locale: string;
 }
 
-// Initialize language state
-const languageState = $state<LanguageState>({
-  current: "en",
-  currentStrings: {},
-  currentLocale: "en",
+const state = $state<LanguageState>({
+  ui: "en",
+  data: "default",
+  strings: {},
+  locale: "en",
 });
 
-// Helper functions
-function saveLanguage(language: SupportedLanguage) {
-  if (!browser) return;
-  localStorage.setItem("language", language);
-}
-
-function loadLanguage(): SupportedLanguage {
-  if (!browser) return "en";
-
-  const stored = localStorage.getItem("language") as SupportedLanguage;
-  
-  // Migrate "default" to "en" for UI language
-  if (stored === "default") {
-    localStorage.setItem("language", "en");
-    return "en";
-  }
-  
-  return stored || "en";
-}
-
-// Load locale data from API
-async function loadLocaleData(lang: string) {
-  if (!browser) return;
-
-  try {
-    const response = await fetch(`/api/locale/${lang}`);
-    if (response.ok) {
-      const data = await response.json();
-      languageState.currentStrings = data.strings;
-      languageState.currentLocale = data.locale;
-    }
-  } catch (error) {
-    console.warn("Failed to load locale data:", error);
+function save(key: "ui" | "data", value: SupportedLanguage) {
+  if (browser) {
+    localStorage.setItem(`language.${key}`, value);
   }
 }
 
-function applyLanguage(language: SupportedLanguage) {
-  if (!browser) return;
-
-  // Set document language
-  if (language !== "default") {
-    document.documentElement.lang = language;
-  } else {
-    // Use browser default
-    const browserLang = navigator.language.split("-")[0];
-    document.documentElement.lang = browserLang;
+function load(key: "ui" | "data", defaultValue: SupportedLanguage): SupportedLanguage {
+  if (browser) {
+    return (localStorage.getItem(`language.${key}`) as SupportedLanguage) || defaultValue;
   }
-
-  // Dispatch language change event
-  window.dispatchEvent(
-    new CustomEvent("language-changed", {
-      detail: { language },
-    }),
-  );
+  return defaultValue;
 }
 
-// Language store API
-export const language = {
-  get current() {
-    return languageState.current;
-  },
-
-  get currentStrings() {
-    return languageState.currentStrings;
-  },
-
-  set(language: SupportedLanguage) {
-    languageState.current = language;
-    applyLanguage(language);
-    saveLanguage(language);
-  },
-
-  init() {
-    if (!browser) return;
-
-    const storedLanguage = loadLanguage();
-    languageState.current = storedLanguage;
-    applyLanguage(storedLanguage);
-  },
-
-  initStrings(initialStrings: Record<string, any>) {
-    if (!browser) return;
-
-    // Initialize with page data
-    languageState.currentStrings = initialStrings;
-    languageState.currentLocale = "en";
-
-    // Watch for language changes
-    $effect(() => {
-      const lang = languageState.current;
-      const targetLang =
-        lang === "default" ? navigator.language.split("-")[0] : lang;
-
-      if (targetLang !== languageState.currentLocale) {
-        loadLocaleData(targetLang);
+async function loadStrings(lang: string) {
+  if (browser) {
+    try {
+      const response = await fetch(`/api/locale/${lang}`);
+      if (response.ok) {
+        const data = await response.json();
+        state.strings = data.strings;
+        state.locale = data.locale;
       }
-    });
+    } catch (error) {
+      console.warn("Failed to load locale data:", error);
+    }
+  }
+}
+
+function updateDocumentLanguage() {
+  if (browser) {
+    const lang = state.ui === "default" ? navigator.language.split("-")[0] : state.ui;
+    document.documentElement.lang = lang;
+  }
+}
+
+export const language = {
+  get ui() {
+    return state.ui;
   },
+  get data() {
+    return state.data;
+  },
+  get strings() {
+    return state.strings;
+  },
+  get locale() {
+    return state.locale;
+  },
+
+  setUI(lang: SupportedLanguage) {
+    state.ui = lang;
+    save("ui", lang);
+    updateDocumentLanguage();
+  },
+
+  setData(lang: SupportedLanguage) {
+    state.data = lang;
+    save("data", lang);
+    if (browser) {
+      window.dispatchEvent(
+        new CustomEvent("data-language-changed", {
+          detail: { language: lang },
+        })
+      );
+    }
+  },
+
+  init(initialStrings: Record<string, any>) {
+    state.ui = load("ui", "en");
+    state.data = load("data", "default");
+    state.strings = initialStrings;
+    updateDocumentLanguage();
+  },
+
+  loadNewStrings: loadStrings,
 };

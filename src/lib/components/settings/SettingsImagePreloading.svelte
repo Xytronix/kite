@@ -5,10 +5,11 @@ import { imagePreloadingService } from '$lib/services/imagePreloadingService';
 // Get current cache stats
 let cacheStats = $state(imagePreloadingService.getCacheStats());
 
+import { onMount } from 'svelte';
+
 // Update cache stats periodically
-let statsInterval: ReturnType<typeof setInterval>;
-$effect(() => {
-	statsInterval = setInterval(() => {
+onMount(() => {
+	const statsInterval = setInterval(() => {
 		cacheStats = imagePreloadingService.getCacheStats();
 	}, 1000);
 	

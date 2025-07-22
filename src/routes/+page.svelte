@@ -2,7 +2,7 @@
 import { onMount } from 'svelte';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
+import { language } from '$lib/stores/language.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
 import { categories as categoriesStore } from '$lib/stores/categories.svelte.js';
 import type { SupportedLanguage } from '$lib/stores/language.svelte';
@@ -72,7 +72,7 @@ let storiesLoading = $state<boolean>(false);
 async function fetchBatchList() {
     if (batchesLoaded) return;
     try {
-        const resp = await fetch(`/api/batches?lang=${dataLanguage.current}`);
+        const resp = await fetch(`/api/batches?lang=${language.data}`);
         if (resp.ok) {
             const data = await resp.json();
             batchList = data.batches.map((b: any) => b.id);
@@ -335,7 +335,7 @@ async function loadStoriesForCategory(categoryId: string, increment: boolean = f
                 catUuid = categoryMap[categoryId];
             } else {
                 try {
-                    const resp = await fetch(`/api/batches/${batchId}/categories?lang=${dataLanguage.current}`);
+                    const resp = await fetch(`/api/batches/${batchId}/categories?lang=${language.data}`);
                     if (resp.ok) {
                         const data = await resp.json();
                         const catObj = (data.categories || data).find((c: any)=> c.id === categoryId || c.categoryId === categoryId);
@@ -352,7 +352,7 @@ async function loadStoriesForCategory(categoryId: string, increment: boolean = f
             const remainingNeeded = requestedLimit - (allCategoryStories[categoryId]?.length || 0);
             const fetchAmount = Math.min(settings.storyCount, remainingNeeded);
 
-            const result = await dataService.loadStories(batchId, catUuid, fetchAmount, dataLanguage.current);
+            const result = await dataService.loadStories(batchId, catUuid, fetchAmount, language.data);
             if (!allCategoryStories[categoryId]) allCategoryStories[categoryId] = [];
 
             if (result.stories.length > 0) {
@@ -388,7 +388,7 @@ async function loadStoriesForCategory(categoryId: string, increment: boolean = f
 async function loadOnThisDayEvents() {
 	try {
 		lastLoadedCategory = 'onthisday';
-		const events = await dataService.loadOnThisDayEvents(dataLanguage.current);
+		const events = await dataService.loadOnThisDayEvents(language.data);
 		onThisDayEvents = events;
 		// OnThisDay doesn't have read count or timestamp in the same format
 		// We could add these later if needed
@@ -402,11 +402,11 @@ async function loadOnThisDayEvents() {
 onMount(() => {
 	// Check for data language in URL first
 	const urlParams = parseInitialUrl();
-	if (urlParams.dataLang && urlParams.dataLang !== dataLanguage.current) {
+	if (urlParams.dataLang && urlParams.dataLang !== language.data) {
 		// Validate it's a supported language
 		if (UrlNavigationService.isValidDataLanguage(urlParams.dataLang)) {
 			console.log('Setting data language from URL on mount:', urlParams.dataLang);
-			dataLanguage.set(urlParams.dataLang as SupportedLanguage);
+			language.setData(urlParams.dataLang as SupportedLanguage);
 		}
 	}
 	
@@ -571,8 +571,8 @@ const handleUrlNavigation = async (params: NavigationParams) => {
 		expandedStories,
 		isLatestBatch
 	}, {
-		setDataLanguage: (lang: SupportedLanguage) => dataLanguage.set(lang),
-		getCurrentDataLanguage: () => dataLanguage.current,
+		setDataLanguage: (lang: SupportedLanguage) => language.setData(lang),
+		getCurrentDataLanguage: () => language.data,
 		handleCategoryChange
 	});
 	

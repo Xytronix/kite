@@ -7,10 +7,8 @@ import SplashScreen from '$lib/components/SplashScreen.svelte';
 import MaintenanceScreen from '$lib/components/MaintenanceScreen.svelte';
 import { page } from '$app/stores';
 import { language } from '$lib/stores/language.svelte.js';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
 import { categories } from '$lib/stores/categories.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
-import { storyCount } from '$lib/stores/storyCount.svelte.js';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
@@ -189,15 +187,14 @@ const maintenanceTimestamp = (data.maintenanceEnd || PUBLIC_MAINTENANCE_END)
     ? formatFriendlyTime(data.maintenanceEnd || PUBLIC_MAINTENANCE_END)
     : null;
 
+import { s } from '$lib/client/localization.svelte';
+
 onMount(async () => {
 	// Initialize all stores
 	theme.init();
-	language.init();
-	language.initStrings(data.strings); // Initialize with page data
-	dataLanguage.init();
+	language.init(data.strings);
 	categories.init();
 	settings.init();
-	storyCount.init();
 	experimental.init();
 	
 	// Initialize OverlayScrollbars on the body element
@@ -223,10 +220,26 @@ onMount(async () => {
 		initialize(document.body);
 	}
 });
+
+// Update title and load new strings when language changes
+$effect(() => {
+	if (browser) {
+		const title = s('app.title');
+		const motto = s('app.motto');
+		document.title = `${title} - ${motto}`;
+		
+		const lang = language.ui;
+		const targetLang = lang === 'default' ? navigator.language.split('-')[0] : lang;
+
+		if (targetLang !== language.locale) {
+			language.loadNewStrings(targetLang);
+		}
+	}
+});
 </script>
 
 {#if maintenanceActive}
-    <MaintenanceScreen />
+		  <MaintenanceScreen />
 {:else}
-    {@render children()}
+		  {@render children()}
 {/if}

@@ -111,13 +111,14 @@ function handleWheel(event: WheelEvent) {
 	}
 }
 
-// Reactively preload people images when people array changes
-$effect(() => {
-	if (browser && people.length > 0) {
-		console.log('People data loaded, starting image preload for', people.length, 'people');
+// Setup function to run when props change
+function setup(props: Props) {
+	if (browser && props.people.length > 0) {
+		console.log('People data loaded, starting image preload for', props.people.length, 'people');
 		preloadPeopleImages();
 	}
-});
+}
+$effect(() => setup({ people }));
 </script>
 
 <div>

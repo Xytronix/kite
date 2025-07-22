@@ -3,19 +3,21 @@
 	interface Props {
 		emoji?: string;
 		className?: string;
+		forceEmoji?: boolean; // when true, always render raw emoji, skip mapping
 	}
 
-	let { emoji, className = 'icon-lg' }: Props = $props();
+	let { emoji, className = 'icon-lg', forceEmoji = false }: Props = $props();
 
 	// State for the fetched icon data
 	let iconData = $state<any>(null);
+	let loadingState = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 
 	// In-memory cache to avoid redundant API calls
 	const iconCache = new Map<string, any>();
 
 	// Comprehensive Functional Emoji to Iconify Mapping
 	const EMOJI_TO_ICONIFY: Record<string, string> = {
-		// Navigation & Arrows
+		// UI, Navigation & Controls
 		'🏠': 'heroicons-outline:home',
 		'🏡': 'heroicons-outline:home-modern',
 		'⬆️': 'heroicons-outline:arrow-up',
@@ -28,14 +30,43 @@
 		'↖️': 'heroicons-outline:arrow-up-left',
 		'↕️': 'heroicons-outline:arrows-up-down',
 		'↔️': 'heroicons-outline:arrows-right-left',
-		'🔙': 'heroicons-outline:arrow-left',
-		'🔜': 'heroicons-outline:arrow-right',
-		'🔝': 'heroicons-outline:arrow-up',
+		'🔄': 'heroicons-outline:arrow-path',
 		'↩️': 'heroicons-outline:arrow-uturn-left',
 		'↪️': 'heroicons-outline:arrow-uturn-right',
 		'⤴️': 'heroicons-outline:arrow-trending-up',
 		'⤵️': 'heroicons-outline:arrow-trending-down',
-		'🔄': 'heroicons-outline:arrow-path',
+		'🔝': 'heroicons-outline:arrow-up-circle',
+		'🔙': 'heroicons-outline:arrow-left-circle',
+		'🔜': 'heroicons-outline:arrow-right-circle',
+		'✅': 'heroicons-outline:check-circle',
+		'❌': 'heroicons-outline:x-circle',
+		'➕': 'heroicons-outline:plus-circle',
+		'➖': 'heroicons-outline:minus-circle',
+		'✔️': 'heroicons-outline:check-circle',
+		'❎': 'heroicons-outline:x-circle',
+		'🔍': 'heroicons-outline:magnifying-glass',
+		'🔎': 'heroicons-outline:magnifying-glass-plus',
+		'🔒': 'heroicons-outline:lock-closed',
+		'🔓': 'heroicons-outline:lock-open',
+		'🔑': 'heroicons-outline:key',
+		'⚙️': 'heroicons-outline:cog-6-tooth',
+		'🛠️': 'heroicons-outline:wrench-screwdriver',
+		'🔧': 'heroicons-outline:wrench',
+		'✏️': 'heroicons-outline:pencil',
+		'🗑️': 'heroicons-outline:trash',
+		'🚪': 'heroicons-outline:arrow-right-on-rectangle',
+		'🎛️': 'heroicons-outline:funnel',
+		'📤': 'heroicons-outline:arrow-up-tray',
+		'👤': 'heroicons-outline:user',
+		'👥': 'heroicons-outline:users',
+		'📎': 'heroicons-outline:paper-clip',
+		'📥': 'heroicons-outline:arrow-down-tray',
+
+		// User Roles & People
+		'🧑‍💻': 'heroicons-outline:code-bracket',
+		'🧑‍🏫': 'heroicons-outline:academic-cap',
+		'🧑‍🎓': 'heroicons-outline:user-circle',
+		'🧑‍🎨': 'heroicons-outline:paint-brush',
 
 		// Communication
 		'📧': 'heroicons-outline:envelope',
@@ -47,73 +78,64 @@
 		'🗨️': 'heroicons-outline:chat-bubble-left-ellipsis',
 		'📢': 'heroicons-outline:megaphone',
 		'📣': 'heroicons-outline:speaker-wave',
-		'📲': 'heroicons-outline:device-phone-mobile',
-		'☎️': 'heroicons-outline:phone',
+		'📠': 'material-symbols:fax',
+		'🤝': 'material-symbols:handshake',
 
-		// UI Controls
-		'✅': 'heroicons-outline:check',
-		'❌': 'heroicons-outline:x-mark',
-		'❎': 'heroicons-outline:x-circle',
-		'✔️': 'heroicons-outline:check-circle',
-		'⭐': 'heroicons-outline:star',
-		'🔍': 'heroicons-outline:magnifying-glass',
-		'🔎': 'heroicons-outline:magnifying-glass-plus',
-		'🔒': 'heroicons-outline:lock-closed',
-		'🔓': 'heroicons-outline:lock-open',
-		'🔑': 'heroicons-outline:key',
-		'⚙️': 'heroicons-outline:cog-6-tooth',
-		'🛠️': 'heroicons-outline:wrench-screwdriver',
-		'🔧': 'heroicons-outline:wrench',
-		'⛔': 'heroicons-outline:no-symbol',
-		'🚫': 'heroicons-outline:no-symbol',
-		'❗': 'heroicons-outline:exclamation-circle',
-		'⚠️': 'heroicons-outline:exclamation-triangle',
-		'ℹ️': 'heroicons-outline:information-circle',
-		'❓': 'heroicons-outline:question-mark-circle',
-		'➕': 'heroicons-outline:plus',
-		'➖': 'heroicons-outline:minus',
-		'✖️': 'heroicons-outline:x-mark',
-
-		// Files & Documents
+		// Files, Documents & Office
 		'📁': 'heroicons-outline:folder',
 		'📂': 'heroicons-outline:folder-open',
 		'📄': 'heroicons-outline:document',
 		'📃': 'heroicons-outline:document-text',
 		'📋': 'heroicons-outline:clipboard',
 		'📊': 'heroicons-outline:chart-bar',
-		'📈': 'heroicons-outline:chart-bar',
+		'📈': 'heroicons-outline:arrow-trending-up',
 		'📉': 'heroicons-outline:presentation-chart-line',
-		'🗂️': 'heroicons-outline:folder',
+		'🗂️': 'heroicons-outline:folder-plus',
 		'🗃️': 'heroicons-outline:archive-box',
-		'🗄️': 'heroicons-outline:archive-box',
 		'📑': 'heroicons-outline:document-duplicate',
-		'📜': 'heroicons-outline:document',
+		'📜': 'heroicons-outline:document-text',
 		'📰': 'heroicons-outline:newspaper',
 		'📓': 'heroicons-outline:book-open',
-		'📔': 'heroicons-outline:book-open',
-		'📕': 'heroicons-outline:book-open',
-		'📗': 'heroicons-outline:book-open',
-		'📘': 'heroicons-outline:book-open',
-		'📙': 'heroicons-outline:book-open',
-		'📚': 'heroicons-outline:book-open',
-
-		// Office & Business
+		'📚': 'heroicons-outline:queue-list',
 		'💼': 'heroicons-outline:briefcase',
 		'🏢': 'heroicons-outline:building-office',
 		'🏪': 'heroicons-outline:building-storefront',
 		'🏦': 'heroicons-outline:building-library',
-		'💻': 'heroicons-outline:computer-desktop',
-		'🖥️': 'heroicons-outline:computer-desktop',
 		'🖨️': 'heroicons-outline:printer',
+		'💾': 'material-symbols:save',
+		'🗳️': 'material-symbols:how-to-vote',
+		'🔖': 'heroicons-outline:bookmark',
+		'🗓️': 'heroicons-outline:calendar',
+		'📅': 'heroicons-outline:calendar-days',
+
+		// Money & Finance
 		'💳': 'heroicons-outline:credit-card',
 		'💰': 'heroicons-outline:banknotes',
 		'💵': 'heroicons-outline:currency-dollar',
 		'💴': 'heroicons-outline:currency-yen',
 		'💶': 'heroicons-outline:currency-euro',
 		'💷': 'heroicons-outline:currency-pound',
-		'🗓️': 'heroicons-outline:calendar',
-		'📅': 'heroicons-outline:calendar-days',
-		'📆': 'heroicons-outline:calendar-days',
+		'🪙': 'heroicons-outline:currency-dollar',
+
+		// Technology & Devices
+		'💻': 'heroicons-outline:computer-desktop',
+		'⌨️': 'material-symbols:keyboard',
+		'🖱️': 'material-symbols:mouse',
+		'💿': 'material-symbols:album',
+		'🔌': 'material-symbols:power',
+		'🔋': 'heroicons-outline:battery-100',
+		'📡': 'material-symbols:signal-cellular-alt',
+
+		// Space & Sci-Fi
+		'🧑‍🚀': 'mdi:astronaut', // Reworked
+		'🤖': 'mdi:robot-outline',
+		'🧠': 'mdi:brain',
+		'🚀': 'mdi:rocket-launch-outline',
+		'🛰️': 'mdi:satellite-outline',
+		'🪐': 'hugeicons:saturn', // Corrected with user-provided icon
+		'🌌': 'mdi:galaxy',
+		'🛸': 'mdi:ufo-outline',
+		'🌐': 'mdi:web',
 
 		// Media & Entertainment
 		'▶️': 'heroicons-outline:play',
@@ -128,139 +150,8 @@
 		'🎥': 'heroicons-outline:video-camera',
 		'🎬': 'heroicons-outline:film',
 		'🎵': 'heroicons-outline:musical-note',
-		'🎶': 'heroicons-outline:musical-note',
 		'📺': 'heroicons-outline:tv',
 		'📻': 'heroicons-outline:radio',
-
-		// Technology & Computing
-		'⌨️': 'material-symbols:keyboard',
-		'🖱️': 'material-symbols:mouse',
-		'💾': 'material-symbols:save',
-		'💿': 'material-symbols:album',
-		'📀': 'material-symbols:album',
-		'💽': 'material-symbols:album',
-		'🔌': 'material-symbols:power',
-		'🔋': 'heroicons-outline:battery-100',
-		'📠': 'material-symbols:fax',
-
-		// Transportation
-		'🚗': 'heroicons-outline:truck',
-		'🚕': 'heroicons-outline:truck',
-		'🚙': 'heroicons-outline:truck',
-		'🚌': 'heroicons-outline:truck',
-		'🚎': 'heroicons-outline:truck',
-		'🏎️': 'heroicons-outline:truck',
-		'🚓': 'heroicons-outline:truck',
-		'🚑': 'heroicons-outline:truck',
-		'🚒': 'heroicons-outline:truck',
-		'🚐': 'heroicons-outline:truck',
-		'🛻': 'heroicons-outline:truck',
-		'🚚': 'heroicons-outline:truck',
-		'🚛': 'heroicons-outline:truck',
-		'🚜': 'heroicons-outline:truck',
-		'🛴': 'material-symbols:directions-bike',
-		'🚲': 'material-symbols:directions-bike',
-		'🛵': 'material-symbols:two-wheeler',
-		'🏍️': 'material-symbols:two-wheeler',
-		'✈️': 'material-symbols:flight',
-		'🛩️': 'material-symbols:flight',
-		'🛫': 'material-symbols:flight-takeoff',
-		'🛬': 'material-symbols:flight-land',
-		'🚁': 'material-symbols:helicopter',
-		'🚂': 'material-symbols:train',
-		'🚆': 'material-symbols:train',
-		'🚄': 'material-symbols:train',
-		'🚅': 'material-symbols:train',
-		'🚈': 'material-symbols:train',
-		'🚝': 'material-symbols:train',
-		'🚞': 'material-symbols:train',
-		'🚋': 'material-symbols:tram',
-		'🚃': 'material-symbols:train',
-		'🚟': 'material-symbols:train',
-		'🚠': 'material-symbols:cable-car',
-		'🚡': 'material-symbols:cable-car',
-		'⛵': 'material-symbols:sailing',
-		'🛶': 'material-symbols:kayaking',
-		'🚤': 'material-symbols:directions-boat',
-		'🛥️': 'material-symbols:directions-boat',
-		'🚢': 'material-symbols:directions-boat',
-
-		// Science & Nature
-		'🔬': 'material-symbols:science',
-		'🧪': 'material-symbols:science',
-		'🧬': 'material-symbols:biotech',
-		'💉': 'material-symbols:vaccines',
-		'💊': 'material-symbols:medication',
-		'🩺': 'heroicons-outline:heart',
-		'🌡️': 'heroicons-outline:fire',
-		'🔭': 'material-symbols:telescope',
-		'🗿': 'material-symbols:landscape',
-		'⚗️': 'material-symbols:science',
-		'🧫': 'material-symbols:science',
-		'🧲': 'material-symbols:magnet-on',
-
-		// Weather & Nature
-		'☀️': 'heroicons-outline:sun',
-		'🌤️': 'material-symbols:partly-cloudy-day',
-		'⛅': 'material-symbols:cloud',
-		'🌥️': 'material-symbols:cloud',
-		'☁️': 'heroicons-outline:cloud',
-		'🌦️': 'material-symbols:rainy',
-		'🌧️': 'material-symbols:rainy',
-		'⛈️': 'material-symbols:thunderstorm',
-		'🌩️': 'material-symbols:thunderstorm',
-		'🌨️': 'material-symbols:weather-snowy',
-		'❄️': 'material-symbols:ac-unit',
-		'☃️': 'material-symbols:ac-unit',
-		'⛄': 'material-symbols:ac-unit',
-		'🌬️': 'material-symbols:air',
-		'💨': 'material-symbols:air',
-		'🌪️': 'material-symbols:tornado',
-		'🌫️': 'material-symbols:foggy',
-		'🌊': 'heroicons-outline:lifebuoy',
-		'💧': 'material-symbols:water-drop',
-		'💦': 'material-symbols:water-drop',
-
-		// Sports & Activities
-		'⚽': 'material-symbols:sports-soccer',
-		'🏀': 'material-symbols:sports-basketball',
-		'🏈': 'material-symbols:sports-football',
-		'⚾': 'material-symbols:sports-baseball',
-		'🎾': 'material-symbols:sports-tennis',
-		'🏐': 'material-symbols:sports-volleyball',
-		'🏉': 'material-symbols:sports-rugby',
-		'🥎': 'material-symbols:sports-baseball',
-		'🏓': 'material-symbols:sports-tennis',
-		'🏸': 'material-symbols:sports-tennis',
-		'🥅': 'material-symbols:sports-soccer',
-		'🏑': 'material-symbols:sports-hockey',
-		'🏒': 'material-symbols:sports-hockey',
-		'🥍': 'material-symbols:sports-tennis',
-		'🏏': 'heroicons-outline:trophy',
-		'🎱': 'material-symbols:sports-esports',
-		'🏆': 'heroicons-outline:trophy',
-		'🥇': 'heroicons-outline:trophy',
-		'🥈': 'heroicons-outline:trophy',
-		'🥉': 'heroicons-outline:trophy',
-		'🎖️': 'heroicons-outline:trophy',
-		'🏅': 'heroicons-outline:trophy',
-		'🎗️': 'heroicons-outline:trophy',
-
-		// Time & Calendar
-		'⏰': 'heroicons-outline:clock',
-		'⏲️': 'heroicons-outline:clock',
-		'⏱️': 'heroicons-outline:clock',
-		'⏳': 'heroicons-outline:clock',
-		'⌛': 'heroicons-outline:clock',
-
-		// Additional unique emojis
-		'🎯': 'material-symbols:gps-fixed',
-		'🎲': 'material-symbols:casino',
-		'🃏': 'material-symbols:casino',
-		'🀄': 'material-symbols:casino',
-		'🎴': 'material-symbols:casino',
-		'🎭': 'material-symbols:theater-comedy',
-		'🎪': 'material-symbols:festival',
 		'🎧': 'material-symbols:headphones',
 		'🎼': 'heroicons-outline:musical-note',
 		'🎹': 'material-symbols:piano',
@@ -270,180 +161,166 @@
 		'🎸': 'material-symbols:music-note',
 		'🪕': 'material-symbols:music-note',
 		'🎻': 'material-symbols:music-note',
+		'🎭': 'material-symbols:theater-comedy',
+		'🎪': 'material-symbols:festival',
+
+		// Transportation
+		'🚗': 'material-symbols:directions-car',
+		'🚕': 'material-symbols:local-taxi',
+		'🚙': 'material-symbols:time-to-leave',
+		'🚌': 'material-symbols:directions-bus',
+		'🚓': 'material-symbols:local-police',
+		'🚑': 'material-symbols:ambulance',
+		'🚒': 'material-symbols:fire-truck',
+		'🚚': 'material-symbols:local-shipping',
+		'🚜': 'material-symbols:tractor',
+		'🚲': 'material-symbols:directions-bike',
+		'🛵': 'material-symbols:two-wheeler',
+		'✈️': 'material-symbols:flight',
+		'🛫': 'material-symbols:flight-takeoff',
+		'🛬': 'material-symbols:flight-land',
+		'🚁': 'material-symbols:helicopter',
+		'🚂': 'material-symbols:train',
+		'🚋': 'material-symbols:tram',
+		'🚠': 'material-symbols:cable-car',
+		'⛵': 'material-symbols:sailing',
+		'🛶': 'material-symbols:kayaking',
+		'🚤': 'material-symbols:directions-boat',
+		'🚢': 'material-symbols:directions-boat',
+		'📍': 'heroicons-outline:map-pin',
+		'🧑‍✈️': 'material-symbols:flight',
+
+		// Science & Health
+		'🔬': 'material-symbols:science',
+		'🧪': 'material-symbols:science',
+		'🧬': 'material-symbols:biotech',
+		'💉': 'material-symbols:vaccines',
+		'💊': 'material-symbols:medication',
+		'🩺': 'material-symbols:stethoscope',
+		'🔭': 'material-symbols:telescope',
+		'🧲': 'material-symbols:magnet-on',
+		'🧑‍🔬': 'material-symbols:science',
+		'🧻': 'material-symbols:inventory',
+		'🧼': 'material-symbols:cleaning-services',
+		'❤️': 'heroicons-outline:heart',
+
+		// Nature & Weather
+		'☀️': 'heroicons-outline:sun',
+		'🌤️': 'material-symbols:partly-cloudy-day',
+		'⛅': 'material-symbols:cloud',
+		'☁️': 'heroicons-outline:cloud',
+		'🌦️': 'material-symbols:rainy',
+		'🌧️': 'material-symbols:rainy',
+		'⛈️': 'material-symbols:thunderstorm',
+		'🌨️': 'material-symbols:weather-snowy',
+		'❄️': 'material-symbols:ac-unit',
+		'🌬️': 'material-symbols:air',
+		'🌪️': 'material-symbols:tornado',
+		'🌫️': 'material-symbols:foggy',
+		'🌊': 'heroicons-outline:lifebuoy',
+		'💧': 'material-symbols:water-drop',
+		'🌡️': 'material-symbols:thermometer',
 		'🌍': 'heroicons-outline:globe-europe-africa',
 		'🌎': 'heroicons-outline:globe-americas',
 		'🌏': 'heroicons-outline:globe-asia-australia',
-		'⛅️': 'material-symbols:cloud',
-
-		// Additional emojis found in story data
-		'🆘': 'material-symbols:warning-outline-rounded',
-		'🗳️': 'material-symbols:how-to-vote',
 		'🕊️': 'material-symbols:eco',
+		'🌈': 'material-symbols:rainbow',
+		'🗻': 'material-symbols:landscape',
+		'🗿': 'material-symbols:landscape',
+		'🦚': 'material-symbols:emoji-nature',
+		'🦒': 'material-symbols:emoji-nature',
+		'🐓': 'material-symbols:pets',
+
+		// Sports & Activities
+		'⚽': 'material-symbols:sports-soccer',
+		'🏀': 'material-symbols:sports-basketball',
+		'🏈': 'material-symbols:sports-football',
+		'⚾': 'material-symbols:sports-baseball',
+		'🎾': 'material-symbols:sports-tennis',
+		'🏐': 'material-symbols:sports-volleyball',
+		'🏉': 'material-symbols:sports-rugby',
+		'🏓': 'material-symbols:sports-tennis',
+		'🏸': 'material-symbols:sports-tennis',
+		'🥅': 'material-symbols:sports-soccer',
+		'🏑': 'material-symbols:sports-hockey',
+		'🏏': 'material-symbols:sports-cricket',
+		'🎱': 'material-symbols:sports-esports',
+		'🏆': 'heroicons-outline:trophy',
+
+		// Food & Drink
+		'🥨': 'material-symbols:restaurant',
+		'🧋': 'material-symbols:local-drink',
+
+		// Shopping
+		'🛒': 'heroicons-outline:shopping-cart',
+		'🛍️': 'heroicons-outline:shopping-bag',
+		'🏷️': 'heroicons-outline:tag',
+
+		// Symbols & Miscellaneous
+		'⭐': 'heroicons-outline:star',
+		'⛔': 'heroicons-outline:no-symbol',
+		'❗': 'heroicons-outline:exclamation-circle',
+		'⚠️': 'heroicons-outline:exclamation-triangle',
+		'ℹ️': 'heroicons-outline:information-circle',
+		'❓': 'heroicons-outline:question-mark-circle',
+		'⏰': 'heroicons-outline:clock',
+		'⏳': 'heroicons-outline:hourglass',
+		'🎯': 'material-symbols:gps-fixed',
+		'🎲': 'material-symbols:casino',
+		'🃏': 'material-symbols:casino',
+		'🆘': 'material-symbols:warning-outline-rounded',
 		'💥': 'heroicons-outline:bolt',
-		'🤝': 'material-symbols:handshake',
 		'🪖': 'material-symbols:security',
-		'🚪': 'heroicons-outline:arrow-right-on-rectangle',
-
-		// Recently found unmapped emojis
-		'🌐': 'heroicons-outline:globe-alt',
-		'🕵️‍♂️': 'heroicons-outline:eye',
-		'🕵‍♂': 'heroicons-outline:eye',
-		'🏛️': 'heroicons-outline:building-library',
-		'🏛': 'heroicons-outline:building-library',
-		'🎤': 'material-symbols:mic',
-		'🌾': 'material-symbols:agriculture',
-		'🛄': 'material-symbols:luggage',
-		'🛃': 'material-symbols:security',
-		'📶': 'material-symbols:signal-cellular-alt',
-		'🛒': 'material-symbols:shopping-cart',
-		'🛡️': 'heroicons-outline:shield-check',
-		'🛡': 'heroicons-outline:shield-check',
-		'🔐': 'heroicons-outline:lock-closed',
-		'🤖': 'material-symbols:smart-toy',
-		'🕳️': 'material-symbols:radio-button-unchecked',
-		'🕳': 'material-symbols:radio-button-unchecked',
-		'✨': 'material-symbols:tank',
-		'🪐': 'material-symbols:public',
-		'🦎': 'material-symbols:pets',
-		'🧠': 'material-symbols:psychology',
-		'⛳': 'material-symbols:golf-course',
-		'🕹️': 'material-symbols:sports-esports',
-		'🕹': 'material-symbols:sports-esports',
-		'🍌': 'material-symbols:eco',
-		'🎮': 'material-symbols:sports-esports',
-		'🛸': 'material-symbols:flight',
-
-		// More unmapped emojis from console warnings
-		'🪧': 'heroicons-outline:megaphone',
-		'🗺️': 'heroicons-outline:map',
-		'🗺': 'heroicons-outline:map',
-		'🦋': 'heroicons-outline:sparkles',
-		'🚀': 'heroicons-outline:rocket-launch',
-		'🔥': 'heroicons-outline:fire',
-		'🕯️': 'material-symbols:candle',
-		'🕯': 'material-symbols:candle',
-		'🚔': 'heroicons-outline:shield-check',
-		'🛑': 'heroicons-outline:stop-circle',
-		'🍏': 'material-symbols:eco',
-		'🍎': 'material-symbols:eco',
-		'🔮': 'material-symbols:auto-awesome',
-		'🐧': 'material-symbols:pets',
-		'🦊': 'material-symbols:pets',
-		'🪟': 'material-symbols:window',
-		'🛍️': 'material-symbols:shopping-bag',
-		'🛍': 'material-symbols:shopping-bag',
-		'📦': 'material-symbols:inventory',
-		'🖼️': 'heroicons-outline:photo',
-		'🖼': 'heroicons-outline:photo',
-		'⚖️': 'heroicons-outline:scale',
-		'⚖': 'heroicons-outline:scale',
-		'🌱': 'material-symbols:eco',
-		'🎣': 'material-symbols:sports',
-		'🏔️': 'material-symbols:landscape',
-		'🏔': 'material-symbols:landscape',
-		'🪙': 'heroicons-outline:currency-dollar',
-		'🏊‍♂️': 'material-symbols:pool',
-		'🏊‍♂': 'material-symbols:pool',
-		'🏧': 'material-symbols:atm',
-		'🍽️': 'material-symbols:restaurant',
-		'🍽': 'material-symbols:restaurant',
-		'🏥': 'heroicons-outline:heart',
-		'🏘️': 'heroicons-outline:home-modern',
-		'🏘': 'heroicons-outline:home-modern',
-		'⚡': 'heroicons-outline:bolt',
-		'🚍': 'heroicons-outline:truck',
-		'🎉': 'material-symbols:celebration',
-		'😔': 'material-symbols:sentiment-dissatisfied',
-		'🌲': 'material-symbols:park',
-		'🎓': 'heroicons-outline:academic-cap',
-		'🚧': 'material-symbols:construction',
-		'🐬': 'material-symbols:pets',
-		'💱': 'heroicons-outline:currency-dollar',
-		'✉️': 'heroicons-outline:envelope',
-		'✉': 'heroicons-outline:envelope',
-		'🛢️': 'material-symbols:oil-barrel',
-		'🛢': 'material-symbols:oil-barrel',
-		'🦠': 'material-symbols:coronavirus',
-		'👶': 'material-symbols:child-care',
-		'🏃‍♂️': 'material-symbols:directions-run',
-		'🏃‍♂': 'material-symbols:directions-run',
-		'⛽': 'material-symbols:local-gas-station',
-		'🇧🇷': 'heroicons-outline:flag',
-		'📝': 'heroicons-outline:pencil-square',
-		'🚶‍♀️': 'material-symbols:directions-walk',
-		'🚶‍♀': 'material-symbols:directions-walk',
-		'🐊': 'material-symbols:pets',
-		'🌞': 'heroicons-outline:sun',
-		'🏗️': 'material-symbols:construction',
-		'🏗': 'material-symbols:construction',
-		'🛟': 'material-symbols:life-ring',
-		'🚴‍♂️': 'material-symbols:directions-bike',
-		'🚴‍♂': 'material-symbols:directions-bike',
-		'🚇': 'material-symbols:train',
-		'🏫': 'heroicons-outline:building-office-2',
-		'🥐': 'material-symbols:bakery-dining',
-		'☔': 'material-symbols:umbrella',
-		'🧭': 'material-symbols:explore',
-		'🐦': 'material-symbols:pets',
-		'☕': 'material-symbols:local-cafe',
-		'🚻': 'material-symbols:wc',
-		'🪂': 'material-symbols:paragliding',
-		'🥊': 'material-symbols:sports-mma',
-		'🛂': 'material-symbols:security',
-		'⛏️': 'material-symbols:construction',
-		'⛏': 'material-symbols:construction',
-		'🛣️': 'material-symbols:route',
-		'🛣': 'material-symbols:route',
-		'⚔️': 'heroicons-outline:sword',
-		'⚔': 'heroicons-outline:sword',
-		'🍲': 'material-symbols:restaurant',
-		'💣': 'heroicons-outline:fire',
-		'🧨': 'heroicons-outline:fire',
-		'🍇': 'material-symbols:eco',
-		'🚦': 'material-symbols:traffic',
-		'🛕': 'material-symbols:temple-hindu',
-		'🔫': 'material-symbols:gavel',
-		'💝': 'heroicons-outline:gift',
-		'🧳': 'material-symbols:luggage',
-		'🕵️‍♀️': 'heroicons-outline:eye',
-		'🕵‍♀': 'heroicons-outline:eye',
-		'📬': 'heroicons-outline:inbox',
-		'🧑‍⚖️': 'heroicons-outline:scale',
-		'🧑‍⚖': 'heroicons-outline:scale',
-		'🇮🇳': 'heroicons-outline:flag',
-		'✊': 'material-symbols:front-hand',
-		'🚨': 'heroicons-outline:exclamation-triangle',
-		'🧐': 'heroicons-outline:magnifying-glass',
-		'🌄': 'material-symbols:landscape',
-		'🦟': 'material-symbols:pest-control',
-		'☢️': 'material-symbols:nuclear',
-		'☢': 'material-symbols:nuclear',
-		'🏙️': 'heroicons-outline:building-office',
-		'🏙': 'heroicons-outline:building-office',
-		'🥚': 'material-symbols:egg',
-		'🎨': 'material-symbols:palette',
-		'🏁': 'material-symbols:flag',
-		'🏃‍♀️': 'material-symbols:directions-run',
-		'🏃‍♀': 'material-symbols:directions-run'
+		'🪄': 'material-symbols:auto-awesome',
+		'☮️': 'material-symbols:emoji-flags',
+		'♻️': 'material-symbols:recycling',
+		'🔗': 'heroicons-outline:link'
 	};
 
-	// Simple function to get icon name
+	// Track all unmapped emojis during a session (dev utility)
+	const missingIcons = new Set<string>();
+
+	// Expose the set globally in dev for easy inspection
+	if (typeof window !== 'undefined') {
+		(window as any).__missingIcons = missingIcons;
+		(window as any).logMissingIcons = () => {
+			console.info('🔍 All missing icons:', Array.from(missingIcons).join(' '));
+		};
+	}
+
+	/**
+	 * Converts a single character (like an emoji) into its corresponding Iconify icon name.
+	 * Handles normalization, aliases, and programmatic mappings (e.g., for flags).
+	 * @param emoji The emoji or character to map.
+	 * @returns The full Iconify icon name (e.g., `heroicons-outline:home`) or `null`.
+	 */
 	function getIconName(emoji: string): string | null {
 		if (!emoji) return null;
 
-		// Trim whitespace and remove variation selectors
+		// 1. Normalize the input emoji
 		const trimmed = emoji.trim();
-		const normalized = trimmed.replace(/[\uFE0E\uFE0F]/g, '');
+		const normalized = trimmed.replace(/[\uFE0E\uFE0F]/g, ''); // Remove variation selectors
 
-		// Try mapping the raw trimmed emoji, then normalized version
-		const mapped = EMOJI_TO_ICONIFY[trimmed] || EMOJI_TO_ICONIFY[normalized] || null;
+		// 2. Check for a direct mapping
+		let mapped = EMOJI_TO_ICONIFY[trimmed] || EMOJI_TO_ICONIFY[normalized] || null;
+		if (mapped) return mapped;
 
-		// Log unmapped emojis for debugging
-		if (!mapped) {
-			console.warn(`🚫 Unmapped emoji: "${emoji}" (trimmed: "${trimmed}", normalized: "${normalized}")`);
+		// 3. Programmatic mapping for flags
+		// Check if the emoji is a Regional Indicator Symbol pair (a flag)
+		if (/^[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]$/.test(normalized)) {
+			const countryCode = [...normalized]
+				.map((char) => String.fromCodePoint(char.codePointAt(0)! - 0x1f1e6 + 0x61))
+				.join('');
+			return `circle-flags:${countryCode}`;
 		}
 
-		return mapped;
+		// 4. Log unmapped emojis for debugging
+		if (!missingIcons.has(normalized)) {
+			missingIcons.add(normalized);
+			console.warn(`🚫 Unmapped emoji: "${emoji}" (normalized: "${normalized}")`);
+		}
+
+		return null;
 	}
 
 	const iconName = $derived(getIconName(emoji || ''));
@@ -452,12 +329,14 @@
 	$effect(() => {
 		if (!iconName) {
 			iconData = null;
+			loadingState = 'idle';
 			return;
 		}
 
 		// Use cached data if available
 		if (iconCache.has(iconName)) {
 			iconData = iconCache.get(iconName);
+			loadingState = 'success';
 			return;
 		}
 
@@ -465,12 +344,14 @@
 		const parts = iconName.split(':');
 		if (parts.length !== 2) {
 			iconData = null;
+			loadingState = 'error'; // Invalid icon name format
 			return;
 		}
 		const [prefix, name] = parts;
 
 		let isCancelled = false;
 		iconData = null; // Reset state while fetching
+		loadingState = 'loading';
 
 		// Fetch icon data from the public Iconify API
 		fetch(`https://api.iconify.design/${prefix}.json?icons=${name}`)
@@ -479,7 +360,10 @@
 				return response.json();
 			})
 			.then((data) => {
-				if (isCancelled || !data?.icons?.[name]) return;
+				if (isCancelled || !data?.icons?.[name]) {
+					if (!isCancelled) loadingState = 'error';
+					return;
+				}
 
 				// Extract the core properties for the icon
 				const iconProps = data.icons[name];
@@ -494,11 +378,13 @@
 				// Cache and set the data
 				iconCache.set(iconName, fullIconData);
 				iconData = fullIconData;
+				loadingState = 'success';
 			})
 			.catch((err) => {
 				console.error(`Failed to fetch icon: ${iconName}`, err);
 				if (!isCancelled) {
 					iconData = null; // Clear on error
+					loadingState = 'error';
 				}
 			});
 
@@ -509,7 +395,7 @@
 	});
 </script>
 
-{#if iconData}
+{#if loadingState === 'success' && iconData}
 	<!-- Render the icon as an inline SVG with a dynamic viewBox -->
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
@@ -521,10 +407,13 @@
 	>
 		{@html iconData.body}
 	</svg>
-{:else if iconName}
-	<!-- Optional: show a placeholder for a moment while the icon is loading -->
-	<span class="{className} inline-block"></span>
-{:else if emoji}
-	<!-- Fallback to rendering the emoji character if no icon is mapped -->
-	<span class={className}>{emoji}</span>
+{:else if forceEmoji && emoji}
+	<!-- Fallback to rendering the emoji character if no icon is mapped or fetch failed -->
+	<span
+		class={className + ' inline-flex items-center justify-center overflow-hidden'}
+		style="font-size:1em; line-height:1;"
+	>{emoji}</span>
+{:else if (loadingState === 'error' || !iconName) && emoji}
+	<!-- Placeholder while icon data is loading -->
+	<span class={className + ' inline-block'} style="line-height:1;"></span>
 {/if}

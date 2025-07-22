@@ -2,7 +2,7 @@
 import { browser } from '$app/environment';
 import { page } from '$app/state';
 import { goto, replaceState as skReplaceState } from '$app/navigation';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
+import { language } from '$lib/stores/language.svelte.js';
 import { UrlNavigationService, type NavigationParams } from '$lib/services/urlNavigationService';
 
 interface Props {
@@ -32,7 +32,7 @@ function buildUrl(params?: Partial<NavigationParams>): string {
 		slug: params?.slug,
 	};
 	
-	return UrlNavigationService.buildUrl(navigationParams, dataLanguage.current);
+	return UrlNavigationService.buildUrl(navigationParams, language.data);
 }
 
 // Update URL without triggering navigation

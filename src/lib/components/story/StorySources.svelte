@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { dataService } from '$lib/services/dataService';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte';
+import { language } from '$lib/stores/language.svelte.js';
 import type { MediaInfo } from '$lib/types';
 import { getTimeAgo, getMostRecentArticleDate } from '$lib/utils/getTimeAgo';
 
@@ -47,7 +47,7 @@ async function handleSourceClick(domain: any) {
 	// Fetch media info for this specific domain
 	if (domain?.name) {
 		try {
-			const mediaInfo = await dataService.loadMediaDataForHost(domain.name, dataLanguage.current);
+			const mediaInfo = await dataService.loadMediaDataForHost(domain.name, language.data);
 			currentMediaInfo = mediaInfo;
 		} catch (error) {
 			console.error('Failed to load media info for domain:', domain.name, error);

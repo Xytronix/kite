@@ -2,8 +2,6 @@
 import { s } from '$lib/client/localization.svelte';
 import { theme, type ThemeOption } from '$lib/stores/theme.svelte.js';
 import { language, type SupportedLanguage } from '$lib/stores/language.svelte.js';
-import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
-import { storyCount } from '$lib/stores/storyCount.svelte.js';
 import { settings, type FontSize } from '$lib/stores/settings.svelte.js';
 import { SUPPORTED_LANGUAGES } from '$lib/constants/languages.js';
 import { dataReloadService } from '$lib/services/dataService.js';
@@ -50,34 +48,34 @@ const fontSizeOptions = $derived([
 	{ value: 'xl', label: s('settings.fontSize.xl') || 'Extra Large' }
 ]);
 
-// Local state that syncs with stores
-let currentTheme = $state(theme.current as string);
-let currentLanguage = $state(language.current as string);
-let currentDataLanguage = $state(dataLanguage.current as string);
-let currentFontSize = $state(settings.fontSize as string);
-let currentCategoryHeaderPosition = $state(settings.categoryHeaderPosition as string);
+// Local state for UI
+let currentTheme = $state<string>(theme.current);
+let currentLanguage = $state<string>(language.ui);
+let currentDataLanguage = $state<string>(language.data);
+let currentFontSize = $state<string>(settings.fontSize);
+let currentCategoryHeaderPosition = $state<string>(settings.categoryHeaderPosition);
 let isLanguageLoading = $state(false);
 let isDataLanguageLoading = $state(false);
 
 // Sync local state with stores
 $effect(() => {
-	currentTheme = theme.current as string;
+	currentTheme = theme.current;
 });
 
 $effect(() => {
-	currentLanguage = language.current as string;
+	currentLanguage = language.ui;
 });
 
 $effect(() => {
-	currentDataLanguage = dataLanguage.current as string;
+	currentDataLanguage = language.data;
 });
 
 $effect(() => {
-	currentFontSize = settings.fontSize as string;
+	currentFontSize = settings.fontSize;
 });
 
 $effect(() => {
-	currentCategoryHeaderPosition = settings.categoryHeaderPosition as string;
+	currentCategoryHeaderPosition = settings.categoryHeaderPosition;
 });
 
 // Theme change handler
@@ -86,9 +84,9 @@ function handleThemeChange(newTheme: string) {
 	currentTheme = newTheme;
 }
 
-// UI Language change handler  
+// UI Language change handler
 async function handleLanguageChange(newLanguage: string) {
-	language.set(newLanguage as SupportedLanguage);
+	language.setUI(newLanguage as SupportedLanguage);
 	currentLanguage = newLanguage;
 	isLanguageLoading = true;
 	
@@ -102,7 +100,7 @@ async function handleLanguageChange(newLanguage: string) {
 
 // Data Language change handler
 async function handleDataLanguageChange(newLanguage: string) {
-	dataLanguage.set(newLanguage as SupportedLanguage);
+	language.setData(newLanguage as SupportedLanguage);
 	currentDataLanguage = newLanguage;
 	isDataLanguageLoading = true;
 	
@@ -122,7 +120,7 @@ function handleFontSizeChange(newSize: string) {
 
 // Story count change handler
 function handleStoryCountChange(count: number) {
-	storyCount.set(count);
+	settings.setStoryCount(count);
 }
 
 // Category header position change handler
@@ -141,7 +139,7 @@ function showAbout() {
 	<!-- Theme Setting -->
 	<div class="flex flex-col space-y-2">
 		<Select
-			bind:value={currentTheme}
+			value={currentTheme}
 			options={themeOptions}
 			label={s('settings.theme.label') || 'Theme'}
 			onChange={handleThemeChange}
@@ -163,7 +161,7 @@ function showAbout() {
 		<div class="relative">
 			<Select
 				id="ui-language-select"
-				bind:value={currentLanguage}
+				value={currentLanguage}
 				options={uiLanguageOptions}
 				hideLabel={true}
 				label={s('settings.uiLanguage.label') || 'Interface Language'}
@@ -192,7 +190,7 @@ function showAbout() {
 		<div class="relative">
 			<Select
 				id="data-language-select"
-				bind:value={currentDataLanguage}
+				value={currentDataLanguage}
 				options={dataLanguageOptions}
 				hideLabel={true}
 				label={s('settings.dataLanguage.label') || 'Content Language'}
@@ -219,7 +217,7 @@ function showAbout() {
 	<!-- Mobile-only category header position setting -->
 	<div class="flex flex-col space-y-2 md:hidden">
 		<Select
-			bind:value={currentCategoryHeaderPosition}
+			value={currentCategoryHeaderPosition}
 			options={[
 				{ value: 'bottom', label: s('settings.categoryHeaderPosition.bottom') || 'Bottom' },
 				{ value: 'top', label: s('settings.categoryHeaderPosition.top') || 'Top' }
@@ -235,7 +233,7 @@ function showAbout() {
 	<!-- Font Size Setting -->
 	<div class="flex flex-col space-y-2">
 		<Select
-			bind:value={currentFontSize}
+			value={currentFontSize}
 			options={fontSizeOptions}
 			label={s('settings.fontSize.label') || 'Text Size'}
 			onChange={handleFontSizeChange}
@@ -245,14 +243,14 @@ function showAbout() {
 	<!-- Story Count Setting -->
 	<div class="flex flex-col space-y-2">
 		<label for="story-count-range" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-			{s('settings.storyCount.label') || 'Stories per category'}: {storyCount.current}
+			{s('settings.storyCount.label') || 'Stories per category'}: {settings.storyCount}
 		</label>
 		<input
 			id="story-count-range"
 			type="range"
 			min="3"
 			max="12"
-			value={storyCount.current}
+			value={settings.storyCount}
 			oninput={(e) => {
 				const target = e.target as HTMLInputElement;
 				if (target) handleStoryCountChange(parseInt(target.value));

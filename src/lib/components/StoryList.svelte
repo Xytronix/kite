@@ -2,7 +2,7 @@
 import { s } from '$lib/client/localization.svelte';
 import StoryCard from './story/StoryCard.svelte';
 import type { Story } from '$lib/types';
-import { storyCount } from '$lib/stores/storyCount.svelte.js';
+import { settings } from '$lib/stores/settings.svelte.js';
 import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
 import { feedDate } from '$lib/stores/feedDate.svelte';
 import { onDestroy } from 'svelte';
@@ -89,7 +89,7 @@ const _localFilterService = new SmartFilterService();
 
 const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
     // First apply story count limit
-    const limitedStories = stories.slice(0, storyCount.current);
+    const limitedStories = stories.slice(0, settings.storyCount);
     const storyOnly = limitedStories.filter((it): it is Story => !(it as any).__dateDivider);
 
     // Apply smart content filtering using a local service to keep the callback side-effect free

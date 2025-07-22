@@ -46,8 +46,16 @@ function getTopicColorClass(category: string): string {
 }
 
 // Get emoji from story data when experimental settings are enabled
-const categoryEmoji = $derived(experimental.showCategoryIcons ? story.emoji : '');
-const articleEmoji = $derived(experimental.showArticleIcons ? story.emoji : '');
+const categoryEmoji = $derived.by(()=>{
+    if (experimental.useCategoryEmojis) return story.emoji;
+    if (experimental.showCategoryIcons) return story.emoji;
+    return '';
+});
+const articleEmoji = $derived.by(()=>{
+    if (experimental.useArticleEmojis) return story.emoji;
+    if (experimental.showArticleIcons) return story.emoji;
+    return '';
+});
 
 
 
@@ -62,7 +70,7 @@ const displayTitle = $derived.by(() => {
 <header class="mb-1 flex items-center justify-between">
 	<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300">
 		{#if categoryEmoji}
-			<IconDisplay emoji={categoryEmoji} className="icon-sm" />
+			<IconDisplay emoji={categoryEmoji} className="icon-sm" forceEmoji={experimental.useCategoryEmojis} />
 		{/if}
 		<span class={getTopicColorClass(story.category)}>
 			{story.category}
@@ -82,7 +90,7 @@ const displayTitle = $derived.by(() => {
 			aria-label="Expand story: {story.title}"
 		>
 			{#if articleEmoji}
-				<IconDisplay emoji={articleEmoji} className="icon-lg" />
+				<IconDisplay emoji={articleEmoji} className="icon-lg" forceEmoji={experimental.useArticleEmojis} />
 			{/if}
 			<span class="flex-grow"><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
 		</button>
