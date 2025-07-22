@@ -3,9 +3,8 @@ import { s } from '$lib/client/localization.svelte';
 import { theme, type ThemeOption } from '$lib/stores/theme.svelte.js';
 import { language, type SupportedLanguage } from '$lib/stores/language.svelte.js';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
-import { fontSize, type FontSize } from '$lib/stores/fontSize.svelte.js';
 import { storyCount } from '$lib/stores/storyCount.svelte.js';
-import { settings } from '$lib/stores/settings.svelte.js';
+import { settings, type FontSize } from '$lib/stores/settings.svelte.js';
 import { SUPPORTED_LANGUAGES } from '$lib/constants/languages.js';
 import { dataReloadService } from '$lib/services/dataService.js';
 import Select from '$lib/components/Select.svelte';
@@ -55,7 +54,7 @@ const fontSizeOptions = $derived([
 let currentTheme = $state(theme.current as string);
 let currentLanguage = $state(language.current as string);
 let currentDataLanguage = $state(dataLanguage.current as string);
-let currentFontSize = $state(fontSize.current as string);
+let currentFontSize = $state(settings.fontSize as string);
 let currentCategoryHeaderPosition = $state(settings.categoryHeaderPosition as string);
 let isLanguageLoading = $state(false);
 let isDataLanguageLoading = $state(false);
@@ -74,7 +73,7 @@ $effect(() => {
 });
 
 $effect(() => {
-	currentFontSize = fontSize.current as string;
+	currentFontSize = settings.fontSize as string;
 });
 
 $effect(() => {
@@ -117,7 +116,7 @@ async function handleDataLanguageChange(newLanguage: string) {
 
 // Font size change handler
 function handleFontSizeChange(newSize: string) {
-	fontSize.set(newSize as FontSize);
+	settings.setFontSize(newSize as FontSize);
 	currentFontSize = newSize;
 }
 

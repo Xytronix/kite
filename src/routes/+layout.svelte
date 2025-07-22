@@ -8,7 +8,6 @@ import MaintenanceScreen from '$lib/components/MaintenanceScreen.svelte';
 import { page } from '$app/stores';
 import { language } from '$lib/stores/language.svelte.js';
 import { dataLanguage } from '$lib/stores/dataLanguage.svelte.js';
-import { fontSize } from '$lib/stores/fontSize.svelte.js';
 import { categories } from '$lib/stores/categories.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
 import { storyCount } from '$lib/stores/storyCount.svelte.js';
@@ -196,7 +195,6 @@ onMount(async () => {
 	language.init();
 	language.initStrings(data.strings); // Initialize with page data
 	dataLanguage.init();
-	fontSize.init();
 	categories.init();
 	settings.init();
 	storyCount.init();
