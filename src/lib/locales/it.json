@@ -1,1362 +1,1362 @@
 {
-    "about.approach.description1": {
-        "text": "Il mondo non vive in camere di risonanza. La realtà emerge dalla collisione di diversi punti di vista e prospettive: è così che separiamo il segnale dal rumore.",
-        "translationContext": "First paragraph of the approach section"
-    },
-    "about.approach.description2": {
-        "text": "Ci impegniamo per la diversità e la trasparenza delle risorse e accogliamo con favore i vostri <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://github.com/kagisearch/kite-public\">contributi</a> per ampliare le prospettive. Questo approccio multi-sorgente aiuta a rivelare il quadro completo al di là di ogni singola visione.",
-        "translationContext": "Second paragraph of the approach section with GitHub link"
-    },
-    "about.approach.description3": {
-        "text": "Kite legge i feed RSS pubblici di migliaia di fonti di notizie (curate dalla comunità) di tutto il mondo e li distilla in un'unica perfetta sintesi quotidiana. Ottieni ogni prospettiva e cronologia critica in soli 5 minuti. Questo è tutto. Niente scorrimento infinito. Nessun sequestro dell'attenzione. Perché ci meritiamo di meglio.",
-        "translationContext": "Third paragraph of the approach section"
-    },
-    "about.approach.title": {
-        "text": "Comprendere il nostro approccio",
-        "translationContext": "Title of the approach section"
-    },
-    "about.contact.description": {
-        "text": "Per feedback, si prega di usare <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://kagifeedback.org\">Kagi Feedback</a>. Per supporto, <a href=\"mailto:support@kagi.com\" class=\"text-blue-600 hover:underline dark:text-blue-400\">support@kagi.com</a>.",
-        "translationContext": "Contact information with links"
-    },
-    "about.contact.title": {
-        "text": "Contatto",
-        "translationContext": "Title of the contact section"
-    },
-    "about.customization.description": {
-        "text": "Personalizza il tuo feed riordinando e attivando le categorie nelle impostazioni. Vuoi contribuire? La maggior parte di Kite è <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://github.com/kagisearch/kite-public\">open source</a>, incluse la nostra applicazione web e i feed curati dalla community.",
-        "translationContext": "Description of customization options with GitHub link"
-    },
-    "about.customization.title": {
-        "text": "Personalizzazione",
-        "translationContext": "Title of the customization section"
-    },
-    "about.principles.item1": {
-        "text": "Un aggiornamento quotidiano (mezzogiorno UTC), che crea un punto finale naturale per il consumo delle tue notizie",
-        "translationContext": "First core principle about daily updates"
-    },
-    "about.principles.item2": {
-        "text": "Concentrarsi sui fatti e sulle prospettive piuttosto che sulle opinioni",
-        "translationContext": "Second core principle about facts vs opinions"
-    },
-    "about.principles.item3": {
-        "text": "Nessun compromesso sulla privacy: le tue abitudini di lettura sono solo tue",
-        "translationContext": "Third core principle about privacy"
-    },
-    "about.principles.item4": {
-        "text": "Qualità e profondità prima della quantità",
-        "translationContext": "Fourth core principle about quality"
-    },
-    "about.principles.item5": {
-        "text": "Notizie complete in 5 minuti",
-        "translationContext": "Fifth core principle about time efficiency"
-    },
-    "about.principles.item6": {
-        "text": "Liberazione dall'economia dell'attenzione: vivi il momento, non uno scroll infinito",
-        "translationContext": "Sixth core principle about attention economy"
-    },
-    "about.principles.title": {
-        "text": "Principi fondamentali",
-        "translationContext": "Title of the core principles section"
-    },
-    "about.subtitle": {
-        "text": "App di notizie di Kagi",
-        "translationContext": "Kagi is a company, should not be translated"
-    },
-    "about.understand.button": {
-        "text": "Capisco",
-        "translationContext": "Text for the I understand button"
-    },
-    "about.why.description": {
-        "text": "Spinta da un'implacabile monetizzazione tramite annunci, la notizia è <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://gwern.net/doc/culture/2010-dobelli.pdf\">diventata</a> cibo spazzatura mentale - un flusso infinito di clickbait che distrugge la nostra capacità di pensare in modo profondo e chiaro. Possiamo fare di meglio, e creare ciò che le notizie avrebbero dovuto essere fin dall'inizio - informazioni pure ed essenziali che rispettino la tua intelligenza e il tuo tempo.",
-        "translationContext": "Description of why Kite exists, including HTML link"
-    },
-    "about.why.title": {
-        "text": "Perché Kite? Perché le notizie sono rotte.",
-        "translationContext": "Title of the Why Kite section"
-    },
-    "app.beta": {
-        "text": "BETA",
-        "translationContext": "Beta label shown next to the app title"
-    },
-    "app.disclaimerAutoGenerated": {
-        "text": "I riassunti potrebbero contenere errori.",
-        "translationContext": "Disclaimer about AI-generated content"
-    },
-    "app.disclaimerVerify": {
-        "text": "Verificare le informazioni importanti.",
-        "translationContext": "Reminder to verify information, goes after 'Summaries are AI/LLM-generated and Kite can make mistakes.'"
-    },
-    "app.logo.alt": {
-        "text": "Logo Kite",
-        "translationContext": "Alt text for the Kite logo image, Kite should not be translated as it's a brand name"
-    },
-    "app.logo.iconAlt": {
-        "text": "Icona Kite",
-        "translationContext": "Alt text for the Kite icon image, Kite should not be translated as it's a brand name"
-    },
-    "app.logo.newsAlt": {
-        "text": "Logo di Kite News",
-        "translationContext": "Alt text for the Kite News logo image in header, Kite should not be translated as it's a brand name"
-    },
-    "app.migrationNotice": {
-        "text": "A causa della recente migrazione a Svelte 5, le storie sono temporaneamente disponibili solo nella lingua predefinita. Il supporto multilingue completo verrà ripristinato entro 24 ore. Grazie per la pazienza!",
-        "translationContext": "Notice about temporary language limitation during Svelte 5 migration"
-    },
-    "app.motto": {
-        "text": "Notizie. Elevate.",
-        "translationContext": "Motto of the app, should be translated in a natural way"
-    },
-    "app.temporaryCategoryNotice": {
-        "text": "Visualizzazione temporanea di questa categoria dal link condiviso",
-        "translationContext": "Notice shown when a user accesses a shared link for a category they haven't enabled."
-    },
-    "app.title": {
-        "text": "Kite",
-        "translationContext": "Title of the app, should not be translated"
-    },
-    "article.closeStory": {
-        "text": "Chiudi",
-        "translationContext": "Button text to close a story"
-    },
-    "article.didYouKnow": {
-        "text": "Lo sapevi?",
-        "translationContext": "Title for the Did You Know section"
-    },
-    "article.location": {
-        "text": "Apri la posizione nelle mappe",
-        "translationContext": "Title/tooltip for the location link"
-    },
-    "article.markAllAsRead": {
-        "text": "Segna tutti come letti",
-        "translationContext": "Button text to mark all stories as read"
-    },
-    "article.readStatus": {
-        "text": "Clicca per cambiare lo stato di lettura",
-        "translationContext": "Title/tooltip for the read status toggle button"
-    },
-    "article.shareCopied": {
-        "text": "Copiato!",
-        "translationContext": "Success message shown when URL is copied to clipboard"
-    },
-    "article.shareStory": {
-        "text": "Condividi",
-        "translationContext": "Tooltip text for the share button"
-    },
-    "category.ai": {
-        "text": "IA",
-        "translationContext": "Display name for the AI news category"
-    },
-    "category.apple": {
-        "text": "Apple",
-        "translationContext": "Display name for the Apple news category"
-    },
-    "category.australia": {
-        "text": "Australia",
-        "translationContext": "Display name for the Australia news category"
-    },
-    "category.bayArea": {
-        "text": "USA SF",
-        "translationContext": "Display name for the Bay Area news category"
-    },
-    "category.belgium": {
-        "text": "Belgio",
-        "translationContext": "Display name for the Belgium news category"
-    },
-    "category.brazil": {
-        "text": "Brasile",
-        "translationContext": "Display name for the Brazil news category"
-    },
-    "category.business": {
-        "text": "Economia",
-        "translationContext": "Display name for the Business news category"
-    },
-    "category.canada": {
-        "text": "Canada",
-        "translationContext": "Display name for the Canada news category"
-    },
-    "category.costaRica": {
-        "text": "Costa Rica",
-        "translationContext": "Display name for the Costa Rica news category"
-    },
-    "category.cryptocurrency": {
-        "text": "Criptovaluta",
-        "translationContext": "Display name for the Cryptocurrency news category"
-    },
-    "category.cybersecurity": {
-        "text": "Sicurezza informatica",
-        "translationContext": "Display name for the Cybersecurity news category"
-    },
-    "category.economy": {
-        "text": "Economia",
-        "translationContext": "Display name for the Economy news category"
-    },
-    "category.entertainment": {
-        "text": "Intrattenimento",
-        "translationContext": "Display name for the Entertainment news category"
-    },
-    "category.estonia": {
-        "text": "Estonia",
-        "translationContext": "Display name for the Estonia news category"
-    },
-    "category.europe": {
-        "text": "Europa",
-        "translationContext": "Display name for the Europe news category"
-    },
-    "category.france": {
-        "text": "Francia",
-        "translationContext": "Display name for the France news category"
-    },
-    "category.gaming": {
-        "text": "Gaming",
-        "translationContext": "Display name for the Gaming news category"
-    },
-    "category.germany": {
-        "text": "Germania",
-        "translationContext": "Display name for the Germany news category"
-    },
-    "category.germanyHesse": {
-        "text": "Germania | Assia",
-        "translationContext": "Display name for the Germany Hesse regional news category"
-    },
-    "category.health": {
-        "text": "Salute",
-        "translationContext": "Display name for the Health news category"
-    },
-    "category.india": {
-        "text": "India",
-        "translationContext": "Display name for the India news category"
-    },
-    "category.ireland": {
-        "text": "Irlanda",
-        "translationContext": "Display name for the Ireland news category"
-    },
-    "category.israel": {
-        "text": "Israele",
-        "translationContext": "Display name for the Israel news category"
-    },
-    "category.italy": {
-        "text": "Italia",
-        "translationContext": "Display name for the Italy news category"
-    },
-    "category.japan": {
-        "text": "Giappone",
-        "translationContext": "Display name for the Japan news category"
-    },
-    "category.linuxOss": {
-        "text": "Linux & OSS",
-        "translationContext": "Display name for the Linux & OSS news category"
-    },
-    "category.mexico": {
-        "text": "Messico",
-        "translationContext": "Display name for the Mexico news category"
-    },
-    "category.netherlands": {
-        "text": "Paesi Bassi",
-        "translationContext": "Display name for the Netherlands news category"
-    },
-    "category.newZealand": {
-        "text": "Nuova Zelanda",
-        "translationContext": "Display name for the New Zealand news category"
-    },
-    "category.pakistan": {
-        "text": "Pakistan",
-        "translationContext": "Display name for the Pakistan news category"
-    },
-    "category.poland": {
-        "text": "Polonia",
-        "translationContext": "Display name for the Poland news category"
-    },
-    "category.politics": {
-        "text": "Politica",
-        "translationContext": "Display name for the Politics news category"
-    },
-    "category.portugal": {
-        "text": "Portogallo",
-        "translationContext": "Display name for the Portugal news category"
-    },
-    "category.romania": {
-        "text": "Romania",
-        "translationContext": "Display name for the Romania news category"
-    },
-    "category.science": {
-        "text": "Scienza",
-        "translationContext": "Display name for the Science news category"
-    },
-    "category.serbia": {
-        "text": "Serbia",
-        "translationContext": "Display name for the Serbia news category"
-    },
-    "category.slovenia": {
-        "text": "Slovenia",
-        "translationContext": "Display name for the Slovenia news category"
-    },
-    "category.southKorea": {
-        "text": "Corea del Sud",
-        "translationContext": "Display name for the South Korea news category"
-    },
-    "category.spain": {
-        "text": "Spagna",
-        "translationContext": "Display name for the Spain news category"
-    },
-    "category.sports": {
-        "text": "Sport",
-        "translationContext": "Display name for the Sports news category"
-    },
-    "category.sweden": {
-        "text": "Svezia",
-        "translationContext": "Display name for the Sweden news category"
-    },
-    "category.switzerlandDe": {
-        "text": "Svizzera (DE)",
-        "translationContext": "Display name for the Switzerland (DE) news category"
-    },
-    "category.technology": {
-        "text": "Tecnologia",
-        "translationContext": "Display name for the Technology news category"
-    },
-    "category.thailand": {
-        "text": "Thailandia",
-        "translationContext": "Display name for the Thailand news category"
-    },
-    "category.theNetherlands": {
-        "text": "Paesi Bassi",
-        "translationContext": "Display name for the The Netherlands news category"
-    },
-    "category.todayInHistory": {
-        "text": "Accadde Oggi",
-        "translationContext": "Display name for the OnThisDay category"
-    },
-    "category.uk": {
-        "text": "Regno Unito",
-        "translationContext": "Display name for the United Kingdom news category"
-    },
-    "category.ukraine": {
-        "text": "Ucraina",
-        "translationContext": "Display name for the Ukraine news category"
-    },
-    "category.usa": {
-        "text": "USA",
-        "translationContext": "Display name for the USA news category"
-    },
-    "category.usaVermont": {
-        "text": "USA | Vermont",
-        "translationContext": "Display name for the USA Vermont regional news category"
-    },
-    "category.usaVirginia": {
-        "text": "USA | Virginia",
-        "translationContext": "Display name for the USA Virginia regional news category"
-    },
-    "category.world": {
-        "text": "Mondo",
-        "translationContext": "Display name for the World news category"
-    },
-    "citation.commonKnowledge.description": {
-        "text": "Queste informazioni sono di dominio pubblico e non provengono da una fonte di notizie specifica, ma sono incluse per fornire contesto e completezza alla storia.",
-        "translationContext": "Description explaining what common knowledge citations are"
-    },
-    "citation.commonKnowledge.title": {
-        "text": "Conoscenza comune",
-        "translationContext": "Title for common knowledge citations marked with [*]"
-    },
-    "citation.source": {
-        "text": "Fonte:",
-        "translationContext": "Label shown before a single citation source"
-    },
-    "citation.sources": {
-        "text": "Fonti:",
-        "translationContext": "Label shown before multiple citation sources"
-    },
-    "common.back": {
-        "text": "Indietro",
-        "translationContext": "Back button text"
-    },
-    "common.cancel": {
-        "text": "Annulla",
-        "translationContext": "Cancel button text"
-    },
-    "common.close": {
-        "text": "Chiudi",
-        "translationContext": "Close button text"
-    },
-    "common.reset": {
-        "text": "Reimposta",
-        "translationContext": "Reset button text"
-    },
-    "contentFilter.adjustFilters": {
-        "text": "Regola filtri",
-        "translationContext": "Button to go to settings and adjust content filters"
-    },
-    "contentFilter.allStoriesFiltered": {
-        "text": "Tutte le storie di questa categoria sono state filtrate",
-        "translationContext": "Title when all stories in a category are filtered out"
-    },
-    "contentFilter.allStoriesFilteredDescription": {
-        "text": "I filtri dei contenuti hanno nascosto tutte le storie in questa categoria per oggi.",
-        "translationContext": "Description when all stories are filtered, explaining why"
-    },
-    "contentFilter.clickToReveal": {
-        "text": "Clicca per mostrare la storia",
-        "translationContext": "Instruction to reveal filtered story"
-    },
-    "contentFilter.disableCategory": {
-        "text": "Disabilita categoria",
-        "translationContext": "Button to go to settings and disable this news category"
-    },
-    "contentFilter.filteredBecause": {
-        "text": "Nascosto a causa del filtro:",
-        "translationContext": "Short message explaining why story is filtered"
-    },
-    "contentFilter.hiddenStory": {
-        "text": "Questa storia è stata nascosta perché corrisponde ai tuoi filtri di contenuto:",
-        "translationContext": "Message shown when a story is filtered"
-    },
-    "contentFilter.showStory": {
-        "text": "Mostra storia",
-        "translationContext": "Button to reveal a filtered story"
-    },
-    "contentFilter.storiesFiltered": {
-        "text": "{{count}} storie filtrate",
-        "translationContext": "Message showing multiple stories are filtered"
-    },
-    "contentFilter.storiesHidden": {
-        "text": "{{count}} storie nascoste",
-        "translationContext": "Message showing multiple stories are hidden"
-    },
-    "contentFilter.storyFiltered": {
-        "text": "{{count}} storia filtrata",
-        "translationContext": "Message showing 1 story is filtered"
-    },
-    "contentFilter.storyHidden": {
-        "text": "{{count}} storia nascosta",
-        "translationContext": "Message showing 1 story is hidden"
-    },
-    "date.format": {
-        "text": "{{weekday}}, {{month}} {{day}}",
-        "translationContext": "Format for displaying dates. {{weekday}} will be replaced with the day of the week, {{month}} with the month name, and {{day}} with the day number."
-    },
-    "footer.about": {
-        "text": "Su Kite",
-        "translationContext": "Link text for about page"
-    },
-    "footer.contribute": {
-        "text": "Contribuisci",
-        "translationContext": "Link text for contributing to the project"
-    },
-    "footer.rssFeed": {
-        "text": "Feed RSS",
-        "translationContext": "Link text for RSS feed"
-    },
-    "header.settings": {
-        "text": "Impostazioni",
-        "translationContext": "Title attribute for the settings button"
-    },
-    "header.timeTravel": {
-        "text": "Viaggio nel tempo",
-        "translationContext": "Tooltip for time travel button in header"
-    },
-    "loading.categories": {
-        "text": "Caricamento categorie...",
-        "translationContext": "Loading message shown when fetching news categories"
-    },
-    "loading.chaosIndex": {
-        "text": "Calcolo indice di caos in corso...",
-        "translationContext": "Loading message shown when calculating the world chaos index"
-    },
-    "loading.default": {
-        "text": "Caricamento in corso...",
-        "translationContext": "Default loading message"
-    },
-    "loading.error": {
-        "text": "Errore caricamento dati",
-        "translationContext": "Loading message shown when an error occurs"
-    },
-    "loading.errorFallback": {
-        "text": "Continuando con funzionalità limitate...",
-        "translationContext": "Message shown when there's an error but the app continues with fallback data"
-    },
-    "loading.finishing": {
-        "text": "Completamento in corso...",
-        "translationContext": "Loading message shown when nearly complete"
-    },
-    "loading.images": {
-        "text": "Precaricamento immagini...",
-        "translationContext": "Loading message shown when preloading story images"
-    },
-    "loading.initializing": {
-        "text": "Inizializzazione...",
-        "translationContext": "Loading message shown when the app is starting up"
-    },
-    "loading.ready": {
-        "text": "Pronto!",
-        "translationContext": "Loading message shown when loading is complete"
-    },
-    "loading.stories": {
-        "text": "Caricamento notizie...",
-        "translationContext": "Loading message shown when fetching news stories"
-    },
-    "onthisday.events": {
-        "text": "Eventi",
-        "translationContext": "Title for the events section in Today in History"
-    },
-    "onthisday.people": {
-        "text": "Persone",
-        "translationContext": "Title for the people section in Today in History"
-    },
-    "section.actionItems": {
-        "text": "Elementi d'azione",
-        "translationContext": "Title for the action items section"
-    },
-    "section.businessAngle": {
-        "text": "Angolo commerciale",
-        "translationContext": "Title for the business angle section"
-    },
-    "section.designPrinciples": {
-        "text": "Principi di progettazione",
-        "translationContext": "Title for the design principles section"
-    },
-    "section.didYouKnow": {
-        "text": "Lo sapevi?",
-        "translationContext": "Title for the Did You Know section"
-    },
-    "section.gameplayMechanics": {
-        "text": "Meccaniche di gioco",
-        "translationContext": "Title for the gameplay mechanics section"
-    },
-    "section.highlights": {
-        "text": "Punti salienti",
-        "translationContext": "Title for the highlights section"
-    },
-    "section.historicalBackground": {
-        "text": "Contesto storico",
-        "translationContext": "Title for the historical background section"
-    },
-    "section.humanitarianImpact": {
-        "text": "Impatto umanitario",
-        "translationContext": "Title for the humanitarian impact section"
-    },
-    "section.industryImpact": {
-        "text": "Impatto sul settore",
-        "translationContext": "Title for the industry impact section"
-    },
-    "section.internationalReactions": {
-        "text": "Reazioni internazionali",
-        "translationContext": "Title for the international reactions section"
-    },
-    "section.leagueStandings": {
-        "text": "Classifica di Lega",
-        "translationContext": "Title for the league standings section"
-    },
-    "section.otherDetails": {
-        "text": "Altri dettagli",
-        "translationContext": "Title for the other details section in article settings"
-    },
-    "section.performanceStatistics": {
-        "text": "Statistiche delle prestazioni",
-        "translationContext": "Title for the performance statistics section"
-    },
-    "section.perspectives": {
-        "text": "Prospettive",
-        "translationContext": "Title for the perspectives section"
-    },
-    "section.primaryImage": {
-        "text": "Immagine principale",
-        "translationContext": "Title for the primary image section in article settings"
-    },
-    "section.quotes": {
-        "text": "Citazioni",
-        "translationContext": "Title for the quotes section in article settings"
-    },
-    "section.scientificSignificance": {
-        "text": "Significato scientifico",
-        "translationContext": "Title for the scientific significance section"
-    },
-    "section.secondaryImage": {
-        "text": "Immagine secondaria",
-        "translationContext": "Title for the secondary image section in article settings"
-    },
-    "section.sources": {
-        "text": "Fonti",
-        "translationContext": "Title for the sources section"
-    },
-    "section.suggestedQnA": {
-        "text": "Domande rapide",
-        "translationContext": "Title for the suggested Q&A section"
-    },
-    "section.summary": {
-        "text": "Riepilogo",
-        "translationContext": "Title for the summary section in article settings"
-    },
-    "section.technicalDetails": {
-        "text": "Dettagli tecnici",
-        "translationContext": "Title for the technical details section"
-    },
-    "section.technicalSpecifications": {
-        "text": "Specifiche tecniche",
-        "translationContext": "Title for the technical specifications section"
-    },
-    "section.timeline": {
-        "text": "Cronologia degli eventi",
-        "translationContext": "Title for the timeline section"
-    },
-    "section.travelAdvisory": {
-        "text": "Avviso di viaggio",
-        "translationContext": "Title for the travel advisory section"
-    },
-    "section.userExperienceImpact": {
-        "text": "Impatto sull'esperienza utente",
-        "translationContext": "Title for the user experience impact section"
-    },
-    "settings.aboutKite.button": {
-        "text": "Informazioni su Kite",
-        "translationContext": "Text for the About Kite button"
-    },
-    "settings.categories.contribute": {
-        "text": "+ Contribuisci con le categorie",
-        "translationContext": "Link text for contributing categories"
-    },
-    "settings.categories.disabled": {
-        "text": "Categorie disabilitate",
-        "translationContext": "Title for the disabled (hidden) categories section"
-    },
-    "settings.categories.enabled": {
-        "text": "Categorie Abilitate",
-        "translationContext": "Title for the enabled categories section"
-    },
-    "settings.categories.filterByType": {
-        "text": "Filtra per tipo...",
-        "translationContext": "Placeholder text for category type filter dropdown"
-    },
-    "settings.categories.instructions": {
-        "text": "Trascina per riordinare o clicca per attivare/disattivare. Trascina tra le sezioni per spostare le categorie.",
-        "translationContext": "Instructions for managing categories"
-    },
-    "settings.categories.lastCategory": {
-        "text": "Impossibile disabilitare l'ultima categoria",
-        "translationContext": "Tooltip shown when trying to disable the last enabled category"
-    },
-    "settings.categories.noDisabled": {
-        "text": "Tutte le categorie abilitate",
-        "translationContext": "Shows when no categories are disabled"
-    },
-    "settings.categories.types.all": {
-        "text": "Tutti i tipi",
-        "translationContext": "Option to show all category types in filter"
-    },
-    "settings.categories.types.city": {
-        "text": "Città",
-        "translationContext": "Label for city category type"
-    },
-    "settings.categories.types.core": {
-        "text": "Principale",
-        "translationContext": "Label for core category type (main news categories)"
-    },
-    "settings.categories.types.country": {
-        "text": "Paesi",
-        "translationContext": "Label for country category type"
-    },
-    "settings.categories.types.other": {
-        "text": "Altro",
-        "translationContext": "Label for categories without a specific type"
-    },
-    "settings.categories.types.region": {
-        "text": "Regioni",
-        "translationContext": "Label for region category type"
-    },
-    "settings.categories.types.topic": {
-        "text": "Argomenti",
-        "translationContext": "Label for topic category type"
-    },
-    "settings.categoryHeaderPosition.bottom": {
-        "text": "Basso",
-        "translationContext": "Option for bottom position"
-    },
-    "settings.categoryHeaderPosition.description": {
-        "text": "Scegli dove visualizzare la barra di navigazione delle categorie sui dispositivi mobili.",
-        "translationContext": "Description for category header position setting"
-    },
-    "settings.categoryHeaderPosition.label": {
-        "text": "Posizione dell'intestazione della categoria",
-        "translationContext": "Label for category header position setting"
-    },
-    "settings.categoryHeaderPosition.top": {
-        "text": "Superiore",
-        "translationContext": "Option for top position"
-    },
-    "settings.contentFilter.activeFilters": {
-        "text": "Filtri attivi",
-        "translationContext": "Label for current active filters list"
-    },
-    "settings.contentFilter.clearAll": {
-        "text": "Cancella tutti i filtri",
-        "translationContext": "Button to clear all filters"
-    },
-    "settings.contentFilter.contribute": {
-        "text": "Aggiungi altri filtri",
-        "translationContext": "Link to contribute new filter presets on GitHub"
-    },
-    "settings.contentFilter.customKeywords": {
-        "text": "Personalizzato",
-        "translationContext": "Label for custom keywords that are not from presets"
-    },
-    "settings.contentFilter.export": {
-        "text": "Esporta impostazioni",
-        "translationContext": "Button to export filter settings to a file"
-    },
-    "settings.contentFilter.exportImport.description": {
-        "text": "Esporta le impostazioni del filtro su un file o importale da un backup precedente",
-        "translationContext": "Description of export/import functionality"
-    },
-    "settings.contentFilter.exportImport.title": {
-        "text": "Backup e ripristino",
-        "translationContext": "Section title for export/import functionality"
-    },
-    "settings.contentFilter.import": {
-        "text": "Importa impostazioni",
-        "translationContext": "Button to import filter settings from a file"
-    },
-    "settings.contentFilter.importConfirm.action": {
-        "text": "Importa",
-        "translationContext": "Button to confirm import action"
-    },
-    "settings.contentFilter.importConfirm.backup": {
-        "text": "Suggerimento: esporta prima le impostazioni attuali per creare un backup.",
-        "translationContext": "Tip about creating a backup before importing"
-    },
-    "settings.contentFilter.importConfirm.title": {
-        "text": "Importa impostazioni?",
-        "translationContext": "Title of import confirmation dialog"
-    },
-    "settings.contentFilter.importConfirm.versionNewer": {
-        "text": "Questa configurazione proviene da una versione più recente. Alcune impostazioni potrebbero non funzionare correttamente.",
-        "translationContext": "Warning when importing from a newer version"
-    },
-    "settings.contentFilter.importConfirm.versionOlder": {
-        "text": "Questa configurazione proviene da una versione precedente. Alcune funzionalità potrebbero mancare.",
-        "translationContext": "Warning when importing from an older version"
-    },
-    "settings.contentFilter.importConfirm.warning": {
-        "text": "Questo sostituirà tutte le impostazioni del filtro attuali.",
-        "translationContext": "Warning message about overwriting current settings"
-    },
-    "settings.contentFilter.importError.invalidFormat": {
-        "text": "Formato configurazione non valido",
-        "translationContext": "Error when import file is not valid JSON"
-    },
-    "settings.contentFilter.importError.parseFailed": {
-        "text": "Impossibile analizzare il file di configurazione",
-        "translationContext": "Error when import file cannot be parsed"
-    },
-    "settings.contentFilter.keywords.description": {
-        "text": "Aggiungi le tue parole chiave per filtrare, separate da virgole",
-        "translationContext": "Description for keywords input"
-    },
-    "settings.contentFilter.keywords.label": {
-        "text": "Parole chiave personalizzate",
-        "translationContext": "Label for keywords input"
-    },
-    "settings.contentFilter.keywords.placeholder": {
-        "text": "ad es. nome celebrità, argomento",
-        "translationContext": "Placeholder for keywords input"
-    },
-    "settings.contentFilter.mode.blur": {
-        "text": "Sfoca con avviso",
-        "translationContext": "Option to blur filtered content"
-    },
-    "settings.contentFilter.mode.blurDescription": {
-        "text": "Le storie sono sfocate e possono essere rivelate al clic",
-        "translationContext": "Description for blur mode"
-    },
-    "settings.contentFilter.mode.description": {
-        "text": "Scegli come gestire i contenuti filtrati",
-        "translationContext": "Description for filter mode selection"
-    },
-    "settings.contentFilter.mode.hide": {
-        "text": "Nascondi completamente",
-        "translationContext": "Option to hide filtered content completely"
-    },
-    "settings.contentFilter.mode.hideDescription": {
-        "text": "Le storie filtrate vengono rimosse dalla vista",
-        "translationContext": "Description for hide mode"
-    },
-    "settings.contentFilter.mode.label": {
-        "text": "Modalità filtro",
-        "translationContext": "Label for filter mode selection"
-    },
-    "settings.contentFilter.preset.ai.tooltip": {
-        "text": "Filtra l'hype dell'IA, le notizie sui modelli linguistici di grandi dimensioni e gli annunci di scoperte tecnologiche",
-        "translationContext": "Tooltip description for AI preset"
-    },
-    "settings.contentFilter.preset.celebrities": {
-        "text": "Notizie sulle celebrità",
-        "translationContext": "Name of celebrities preset filter"
-    },
-    "settings.contentFilter.preset.celebrities.tooltip": {
-        "text": "Filtra gossip sulle celebrità, notizie di intrattenimento e contenuti scandalistici",
-        "translationContext": "Tooltip description for celebrities preset"
-    },
-    "settings.contentFilter.preset.climate.tooltip": {
-        "text": "Filtra notizie su cambiamento climatico e crisi ambientale",
-        "translationContext": "Tooltip description for climate preset"
-    },
-    "settings.contentFilter.preset.conflicts": {
-        "text": "Conflitti",
-        "translationContext": "Name of conflicts preset filter"
-    },
-    "settings.contentFilter.preset.conflicts.tooltip": {
-        "text": "Filtra guerre, conflitti militari e violenze correlate da varie regioni",
-        "translationContext": "Tooltip description for conflicts preset"
-    },
-    "settings.contentFilter.preset.crypto": {
-        "text": "Criptovaluta",
-        "translationContext": "Name of cryptocurrency preset filter"
-    },
-    "settings.contentFilter.preset.crypto.tooltip": {
-        "text": "Filtra contenuti relativi a criptovalute, blockchain e Web3",
-        "translationContext": "Tooltip description for crypto preset"
-    },
-    "settings.contentFilter.preset.health": {
-        "text": "Crisi sanitarie",
-        "translationContext": "Name of health crises preset filter"
-    },
-    "settings.contentFilter.preset.health.tooltip": {
-        "text": "Filtra notizie su pandemie, focolai virali e contenuti correlati a emergenze sanitarie",
-        "translationContext": "Tooltip description for health preset"
-    },
-    "settings.contentFilter.preset.politics": {
-        "text": "Politica",
-        "translationContext": "Name of politics preset filter"
-    },
-    "settings.contentFilter.preset.politics.tooltip": {
-        "text": "Filtra contenuti politici inclusi elezioni, partiti politici e funzionari governativi",
-        "translationContext": "Tooltip description for politics preset"
-    },
-    "settings.contentFilter.preset.sports": {
-        "text": "Sport",
-        "translationContext": "Name of sports preset filter"
-    },
-    "settings.contentFilter.preset.sports.tooltip": {
-        "text": "Filtra notizie sportive, risultati e copertura di competizioni atletiche",
-        "translationContext": "Tooltip description for sports preset"
-    },
-    "settings.contentFilter.preset.tabloid": {
-        "text": "Fonti di tabloid",
-        "translationContext": "Name of tabloid sources preset filter"
-    },
-    "settings.contentFilter.preset.tabloid.tooltip": {
-        "text": "Filtra storie da fonti di notizie note come tabloid e sensazionalistiche",
-        "translationContext": "Tooltip description for tabloid preset"
-    },
-    "settings.contentFilter.preset.violence": {
-        "text": "Violenza",
-        "translationContext": "Name of violence preset filter"
-    },
-    "settings.contentFilter.preset.violence.tooltip": {
-        "text": "Filtra violenza grafica, sparatorie e contenuti legati alla morte",
-        "translationContext": "Tooltip description for violence preset"
-    },
-    "settings.contentFilter.presets.description": {
-        "text": "Seleziona uno o più filtri preimpostati per nascondere rapidamente argomenti comuni.",
-        "translationContext": "Description for filter presets section"
-    },
-    "settings.contentFilter.presets.label": {
-        "text": "Preimpostazioni filtro",
-        "translationContext": "Label for filter presets section"
-    },
-    "settings.contentFilter.reset": {
-        "text": "Ripristina predefinite",
-        "translationContext": "Button to reset content filter to defaults"
-    },
-    "settings.contentFilter.resetModal.description": {
-        "text": "Verranno rimossi tutti i filtri e le impostazioni verranno ripristinate ai valori predefiniti.",
-        "translationContext": "Description for reset confirmation modal"
-    },
-    "settings.contentFilter.resetModal.title": {
-        "text": "Reimpostare i filtri dei contenuti?",
-        "translationContext": "Title for reset confirmation modal"
-    },
-    "settings.contentFilter.scope.all": {
-        "text": "Tutti i contenuti",
-        "translationContext": "Option to filter by all content"
-    },
-    "settings.contentFilter.scope.description": {
-        "text": "Scegli quali parti delle storie controllare per parole chiave",
-        "translationContext": "Description for filter scope selection"
-    },
-    "settings.contentFilter.scope.label": {
-        "text": "Ambito filtro",
-        "translationContext": "Label for filter scope selection"
-    },
-    "settings.contentFilter.scope.summary": {
-        "text": "Titolo e riepilogo",
-        "translationContext": "Option to filter by title and summary"
-    },
-    "settings.contentFilter.scope.title": {
-        "text": "Solo titolo",
-        "translationContext": "Option to filter by title only"
-    },
-    "settings.contentFilter.showCount.description": {
-        "text": "Mostra numero storie filtrate per categoria",
-        "translationContext": "Description for show filtered count toggle"
-    },
-    "settings.contentFilter.showCount.label": {
-        "text": "Mostra numero risultati filtrati",
-        "translationContext": "Label for show filtered count toggle"
-    },
-    "settings.contentFilter.tab.description": {
-        "text": "Personalizza il tuo feed di notizie filtrando gli argomenti che preferisci non vedere. Usa i preset per i filtri comuni o crea le tue parole chiave personalizzate.",
-        "translationContext": "Description shown at the top of content filter settings tab"
-    },
-    "settings.dataLanguage.label": {
-        "text": "Lingua dei contenuti",
-        "translationContext": "Label for the data/content language setting"
-    },
-    "settings.dataLanguage.tooltip": {
-        "text": "Le notizie sono generate nella lingua originale e poi tradotte. \"Predefinito\" mostra le notizie nelle loro lingue originali senza traduzione.",
-        "translationContext": "Tooltip explaining how data language translation works"
-    },
-    "settings.experimental.articleIcons.description": {
-        "text": "Quando abilitate, delle piccole icone verranno mostrate accanto agli articoli per fornire un contesto visivo.",
-        "translationContext": "Description for article icons setting"
-    },
-    "settings.experimental.articleIcons.label": {
-        "text": "Mostra icone accanto agli articoli",
-        "translationContext": "Label for article icons setting"
-    },
-    "settings.experimental.categoryIcons.description": {
-        "text": "Quando abilitate, delle piccole icone verranno mostrate accanto alle etichette delle categorie per fornire un contesto visivo.\n</translates_start>",
-        "translationContext": "Description for category icons setting"
-    },
-    "settings.experimental.categoryIcons.label": {
-        "text": "Mostra icone nelle etichette delle categorie",
-        "translationContext": "Label for category icons setting"
-    },
-    "settings.experimental.chaosIndex.description": {
-        "text": "Visualizza una lettura della temperatura globale della stabilità mondiale basata sugli eventi attuali.",
-        "translationContext": "Description for chaos index setting"
-    },
-    "settings.experimental.chaosIndex.label": {
-        "text": "Mostra Indice Tensione Mondiale",
-        "translationContext": "Label for chaos index setting"
-    },
-    "settings.experimental.citations.description": {
-        "text": "Visualizza citazioni in linea che mostrano quali fonti di notizie hanno riportato informazioni specifiche.",
-        "translationContext": "Description for citations setting"
-    },
-    "settings.experimental.citations.label": {
-        "text": "Mostra citazioni della fonte",
-        "translationContext": "Label for citations setting"
-    },
-    "settings.experimental.disableCategorySwipe.description": {
-        "text": "Se abilitata, lo scorrimento orizzontale per cambiare categoria sui dispositivi mobili verrà disabilitato.",
-        "translationContext": "Description for disable category swipe setting"
-    },
-    "settings.experimental.disableCategorySwipe.label": {
-        "text": "Disabilita scorrimento orizzontale categorie",
-        "translationContext": "Label for disable category swipe setting"
-    },
-    "settings.experimental.warning": {
-        "text": "Queste sono funzionalità sperimentali che possono essere modificate o rimosse in qualsiasi momento.",
-        "translationContext": "Warning text for experimental features"
-    },
-    "settings.fontSize.label": {
-        "text": "Dimensione carattere",
-        "translationContext": "Label for the font size setting"
-    },
-    "settings.fontSize.large": {
-        "text": "Grande",
-        "translationContext": "Option for large font size"
-    },
-    "settings.fontSize.normal": {
-        "text": "Normale",
-        "translationContext": "Option for normal font size"
-    },
-    "settings.fontSize.small": {
-        "text": "Piccolo",
-        "translationContext": "Option for small font size"
-    },
-    "settings.fontSize.xl": {
-        "text": "Molto grande",
-        "translationContext": "Option for extra large font size"
-    },
-    "settings.fontSize.xs": {
-        "text": "Molto piccolo",
-        "translationContext": "Option for extra small font size"
-    },
-    "settings.language.default": {
-        "text": "Predefinito",
-        "translationContext": "Option for default language"
-    },
-    "settings.language.label": {
-        "text": "Lingua",
-        "translationContext": "Label for the language setting"
-    },
-    "settings.language.poweredBy": {
-        "text": "Tradotto con Kagi Translate",
-        "translationContext": "Text for the Kagi Translate powered by link"
-    },
-    "settings.sections.instructions": {
-        "text": "Trascina per riordinare le sezioni. Usa l'interruttore per abilitare/disabilitare.",
-        "translationContext": "Instructions for managing article sections"
-    },
-    "settings.sections.resetOrder": {
-        "text": "Reimposta ordine predefinito",
-        "translationContext": "Button text to reset section order to defaults"
-    },
-    "settings.sections.switch": {
-        "text": "Abilita/disabilita",
-        "translationContext": "Aria label for the enable/disable switch for sections"
-    },
-    "settings.sections.title": {
-        "text": "Sezioni Articolo",
-        "translationContext": "Title for the article sections settings"
-    },
-    "settings.shareLanguage.message": {
-        "text": "Dai un'occhiata a Kite News in italiano: salterà l'introduzione e si caricherà direttamente nella tua lingua!",
-        "translationContext": "Message to share with others, {{language}} will be replaced with the language name"
-    },
-    "settings.shareLanguage.success": {
-        "text": "Link copiato!",
-        "translationContext": "Success message when link is copied"
-    },
-    "settings.storyCount.label": {
-        "text": "Numero di storie mostrate:",
-        "translationContext": "Label for the story count setting"
-    },
-    "settings.tabs.categories": {
-        "text": "Categorie",
-        "translationContext": "Title for the categories settings tab"
-    },
-    "settings.tabs.contentFilter": {
-        "text": "Filtro Contenuti",
-        "translationContext": "Title for the content filter settings tab"
-    },
-    "settings.tabs.experimental": {
-        "text": "Sperimentale",
-        "translationContext": "Title for the experimental settings tab"
-    },
-    "settings.tabs.general": {
-        "text": "Generali",
-        "translationContext": "Title for the general settings tab"
-    },
-    "settings.tabs.sections": {
-        "text": "Sezioni",
-        "translationContext": "Title for the sections settings tab"
-    },
-    "settings.theme.dark": {
-        "text": "Scuro",
-        "translationContext": "Option for dark theme"
-    },
-    "settings.theme.label": {
-        "text": "Tema",
-        "translationContext": "Label for the theme setting"
-    },
-    "settings.theme.light": {
-        "text": "Luce",
-        "translationContext": "Option for light theme"
-    },
-    "settings.theme.system": {
-        "text": "Sistema",
-        "translationContext": "Option for system theme"
-    },
-    "settings.uiLanguage.label": {
-        "text": "Lingua interfaccia",
-        "translationContext": "Label for the UI language setting"
-    },
-    "settings.uiLanguage.tooltip": {
-        "text": "Controlla la lingua di pulsanti, menu e testo dell'interfaccia. \"Predefinito\" usa la lingua del browser.",
-        "translationContext": "Tooltip explaining how UI language works"
-    },
-    "source.contribute.button": {
-        "text": "Contribuisci con informazioni",
-        "translationContext": "Button text for contributing source information"
-    },
-    "source.contribute.description": {
-        "text": "Non abbiamo ancora informazioni dettagliate su questa fonte di notizie. Il tuo contributo può aiutare gli altri a rimanere informati sulla proprietà e i pregiudizi dei media.",
-        "translationContext": "Description for source contribution section"
-    },
-    "source.contribute.title": {
-        "text": "Aiutaci a migliorare il nostro database",
-        "translationContext": "Title for source contribution section"
-    },
-    "source.info.country": {
-        "text": "Paese",
-        "translationContext": "Label for source country"
-    },
-    "source.info.description": {
-        "text": "Descrizione",
-        "translationContext": "Label for source description"
-    },
-    "source.info.loading": {
-        "text": "Caricamento delle informazioni di origine...",
-        "translationContext": "Loading message shown while fetching source information"
-    },
-    "source.info.mediaClassification": {
-        "text": "Classificazione media",
-        "translationContext": "Label for source media classification"
-    },
-    "source.info.notSpecified": {
-        "text": "Non specificato",
-        "translationContext": "Text shown when information is not available"
-    },
-    "source.info.organization": {
-        "text": "Organizzazione",
-        "translationContext": "Label for source organization"
-    },
-    "source.info.owner": {
-        "text": "Proprietario",
-        "translationContext": "Label for source owner"
-    },
-    "source.info.title": {
-        "text": "Informazioni sulla fonte",
-        "translationContext": "Title for source information section"
-    },
-    "sources.article": {
-        "text": "{{count}} articolo",
-        "translationContext": "Shows singular article count from a source, {{count}} will be replaced with a number"
-    },
-    "sources.articles": {
-        "text": "{{count}} articoli",
-        "translationContext": "Shows the count of articles from a source, {{count}} will be replaced with a number"
-    },
-    "sources.showArticlesFrom": {
-        "text": "Mostra articoli da {{source}}",
-        "translationContext": "Title/aria-label for the source button, {{source}} will be replaced with the source name"
-    },
-    "stats.newsToday": {
-        "text": "{{count}} notizie oggi",
-        "translationContext": "Shows the count of news items today, {{count}} will be replaced with a number"
-    },
-    "stats.storiesRead": {
-        "text": "Hai letto {{count}} storie",
-        "translationContext": "Shows how many stories the user has read, {{count}} will be replaced with a number"
-    },
-    "stats.weekDay": {
-        "text": "Settimana {{{week}}}, Giorno {{{day}}}",
-        "translationContext": "Shows the current week and day of the year, {{week}} and {{day}} will be replaced with numbers"
-    },
-    "stories.noStories": {
-        "text": "Qualcosa è andato storto, non ci sono storie qui!",
-        "translationContext": "Message shown when no stories are found"
-    },
-    "time.updated.days": {
-        "text": "Aggiornato {{count}} giorni fa",
-        "translationContext": "Shown when content was updated multiple days ago, {{count}} will be replaced with the number of days"
-    },
-    "time.updated.hours": {
-        "text": "Aggiornato {{count}} ore fa",
-        "translationContext": "Shown when content was updated multiple hours ago, {{count}} will be replaced with the number of hours"
-    },
-    "time.updated.justNow": {
-        "text": "Aggiornato proprio ora",
-        "translationContext": "Shown when content was updated very recently"
-    },
-    "time.updated.minutes": {
-        "text": "Aggiornato {{count}} minuti fa",
-        "translationContext": "Shown when content was updated multiple minutes ago, {{count}} will be replaced with the number of minutes"
-    },
-    "time.updated.oneDay": {
-        "text": "Aggiornato 1 giorno fa",
-        "translationContext": "Shown when content was updated exactly 1 day ago"
-    },
-    "time.updated.oneHour": {
-        "text": "Aggiornato 1 ora fa",
-        "translationContext": "Shown when content was updated exactly 1 hour ago"
-    },
-    "time.updated.oneMinute": {
-        "text": "Aggiornato 1 minuto fa",
-        "translationContext": "Shown when content was updated exactly 1 minute ago"
-    },
-    "time.updated.seconds": {
-        "text": "Aggiornato {{count}} secondi fa",
-        "translationContext": "Shown when content was updated seconds ago, {{count}} will be replaced with the number of seconds"
-    },
-    "timeTravel.latest": {
-        "text": "Ultimo",
-        "translationContext": "Label for the most recent batch of the day"
-    },
-    "timeTravel.loadingData": {
-        "text": "Caricamento dati storici...",
-        "translationContext": "Loading message when fetching historical data"
-    },
-    "timeTravel.nextMonth": {
-        "text": "Mese successivo",
-        "translationContext": "Aria label for next month button"
-    },
-    "timeTravel.previousMonth": {
-        "text": "Mese precedente",
-        "translationContext": "Aria label for previous month button"
-    },
-    "timeTravel.returningToLive": {
-        "text": "Ritorno alla diretta...",
-        "translationContext": "Loading message when exiting time travel mode"
-    },
-    "timeTravel.selectBatch": {
-        "text": "Seleziona un aggiornamento sulle notizie",
-        "translationContext": "Title when selecting from multiple batches"
-    },
-    "timeTravel.selectDate": {
-        "text": "Seleziona una data per visualizzare le notizie del giorno",
-        "translationContext": "Help text shown below calendar"
-    },
-    "timeTravel.stories": {
-        "text": "storie",
-        "translationContext": "Label for story count in batch selector"
-    },
-    "timeTravel.title": {
-        "text": "Viaggio nel tempo",
-        "translationContext": "Title of the time travel modal"
-    },
-    "timeTravel.today": {
-        "text": "Oggi",
-        "translationContext": "Button to navigate to today"
-    },
-    "turbulence.title": {
-        "text": "Misuratore di turbolenza mondiale",
-        "translationContext": "Title for the world turbulence meter popup"
-    },
-    "turbulence.tooltip": {
-        "text": "Misuratore di turbolenza",
-        "translationContext": "Tooltip text for the turbulence meter button"
-    },
-    "ui.close": {
-        "text": "Chiudi",
-        "translationContext": "Text for close buttons"
-    },
-    "view.list": {
-        "text": "Visualizzazione elenco",
-        "translationContext": "Title/aria-label for the list view button"
-    },
-    "view.map": {
-        "text": "Vista mappa",
-        "translationContext": "Title/aria-label for the map view button"
-    },
-    "wikipedia.readMore": {
-        "text": "Leggi di più su Wikipedia",
-        "translationContext": "Text for the link to read more on Wikipedia"
-    },
-    "worldTension.aboutTitle": {
-        "text": "Tensione mondiale",
-        "translationContext": "Title for the world tension explanation"
-    },
-    "worldTension.backToIndex": {
-        "text": "← Torna all'indice",
-        "translationContext": "Button text to return from explanation to main view"
-    },
-    "worldTension.burning": {
-        "text": "Incandescente",
-        "translationContext": "Temperature description for extreme world tension (81-100%)"
-    },
-    "worldTension.chaosIndex": {
-        "text": "Indice di Caos",
-        "translationContext": "Label for the chaos index chart"
-    },
-    "worldTension.cool": {
-        "text": "Calmo",
-        "translationContext": "Temperature description for low world tension (0-20%)"
-    },
-    "worldTension.critical": {
-        "text": "Critico",
-        "translationContext": "Status label for 61-80% range (deprecated, use hot)"
-    },
-    "worldTension.elevated": {
-        "text": "Lieve",
-        "translationContext": "Status label for 21-40% range (deprecated, use mild)"
-    },
-    "worldTension.explanation1": {
-        "text": "L'indice di Tensione Mondiale fornisce una lettura della stabilità globale basata sugli eventi attuali.",
-        "translationContext": "First paragraph of world tension explanation"
-    },
-    "worldTension.explanation2": {
-        "text": "Analizzando i titoli di tutto il mondo, tracciamo schemi di conflitto, crisi e instabilità per creare una metrica semplice che mostra quanto siano \"accese\" leP questioni globali in un dato momento.",
-        "translationContext": "Second paragraph of world tension explanation"
-    },
-    "worldTension.explanation3": {
-        "text": "Immaginatelo come un termometro globale: quando le tensioni aumentano a causa di conflitti, disastri o disordini politici, la temperatura sale. Durante i periodi più calmi di stabilità e cooperazione, si raffredda.",
-        "translationContext": "Third paragraph of world tension explanation"
-    },
-    "worldTension.extreme": {
-        "text": "Estremo",
-        "translationContext": "Status label for 81-100% range (deprecated, use burning)"
-    },
-    "worldTension.high": {
-        "text": "Alto",
-        "translationContext": "Status label for 41-60% range (deprecated, use warm)"
-    },
-    "worldTension.hot": {
-        "text": "Calda",
-        "translationContext": "Temperature description for moderate world tension (41-60%)"
-    },
-    "worldTension.mild": {
-        "text": "Lieve",
-        "translationContext": "Temperature description for normal world tension (21-40%)"
-    },
-    "worldTension.onFire": {
-        "text": "Rogo",
-        "translationContext": "Temperature description for extreme world tension (81-100%)"
-    },
-    "worldTension.scale.burning": {
-        "text": "81-100° Ustionante - Crisi estrema (rara)",
-        "translationContext": "Scale description for 81-100% tension"
-    },
-    "worldTension.scale.cool": {
-        "text": "Freddo - Relativamente stabile",
-        "translationContext": "Scale description for 0-20% tension"
-    },
-    "worldTension.scale.hot": {
-        "text": "Caldo - Conflitti notevoli",
-        "translationContext": "Scale description for 41-60% tension"
-    },
-    "worldTension.scale.mild": {
-        "text": "21-40° Lieve - Tensioni globali normali",
-        "translationContext": "Scale description for 21-40% tension"
-    },
-    "worldTension.scale.onFire": {
-        "text": "In fiamme - Emergenza globale",
-        "translationContext": "Scale description for 81-100% tension"
-    },
-    "worldTension.scale.veryHot": {
-        "text": "Molto caldo - Crisi gravi",
-        "translationContext": "Scale description for 61-80% tension"
-    },
-    "worldTension.scale.warm": {
-        "text": "41-60° Caldo - Preoccupazioni elevate",
-        "translationContext": "Scale description for 41-60% tension"
-    },
-    "worldTension.scale.warming": {
-        "text": "Riscaldamento - Tensioni minori",
-        "translationContext": "Scale description for 21-40% tension"
-    },
-    "worldTension.stable": {
-        "text": "Stabile",
-        "translationContext": "Status label for 0-20% range (deprecated, use cool)"
-    },
-    "worldTension.title": {
-        "text": "Tensione mondiale",
-        "translationContext": "Title for the world tension modal"
-    },
-    "worldTension.trendTitle": {
-        "text": "Andamento a 30 giorni",
-        "translationContext": "Title for the historical trend chart"
-    },
-    "worldTension.updated": {
-        "text": "Aggiornato",
-        "translationContext": "Prefix for last update time"
-    },
-    "worldTension.veryHot": {
-        "text": "Molto Caldo",
-        "translationContext": "Temperature description for high world tension (61-80%)"
-    },
-    "worldTension.warm": {
-        "text": "Tiepido",
-        "translationContext": "Temperature description for elevated world tension (41-60%)"
-    },
-    "worldTension.warming": {
-        "text": "Riscaldamento",
-        "translationContext": "Temperature description for mild world tension (21-40%)"
-    },
-    "worldTension.whatIsThis": {
-        "text": "Che cos'è questo?\n</transl'l_start>",
-        "translationContext": "Button text to show explanation of world tension"
-    }
+  "about.approach.description1": {
+    "text": "Il mondo non vive in camere di risonanza. La realtà emerge dalla collisione di diversi punti di vista e prospettive: è così che separiamo il segnale dal rumore.",
+    "translationContext": "First paragraph of the approach section"
+  },
+  "about.approach.description2": {
+    "text": "Ci impegniamo per la diversità e la trasparenza delle risorse e accogliamo con favore i vostri <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://github.com/kagisearch/kite-public\">contributi</a> per ampliare le prospettive. Questo approccio multi-sorgente aiuta a rivelare il quadro completo al di là di ogni singola visione.",
+    "translationContext": "Second paragraph of the approach section with GitHub link"
+  },
+  "about.approach.description3": {
+    "text": "Kite legge i feed RSS pubblici di migliaia di fonti di notizie (curate dalla comunità) di tutto il mondo e li distilla in un'unica perfetta sintesi quotidiana. Ottieni ogni prospettiva e cronologia critica in soli 5 minuti. Questo è tutto. Niente scorrimento infinito. Nessun sequestro dell'attenzione. Perché ci meritiamo di meglio.",
+    "translationContext": "Third paragraph of the approach section"
+  },
+  "about.approach.title": {
+    "text": "Comprendere il nostro approccio",
+    "translationContext": "Title of the approach section"
+  },
+  "about.contact.description": {
+    "text": "Per feedback, si prega di usare <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://kagifeedback.org\">Kagi Feedback</a>. Per supporto, <a href=\"mailto:support@kagi.com\" class=\"text-blue-600 hover:underline dark:text-blue-400\">support@kagi.com</a>.",
+    "translationContext": "Contact information with links"
+  },
+  "about.contact.title": {
+    "text": "Contatto",
+    "translationContext": "Title of the contact section"
+  },
+  "about.customization.description": {
+    "text": "Personalizza il tuo feed riordinando e attivando le categorie nelle impostazioni. Vuoi contribuire? La maggior parte di Kite è <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://github.com/kagisearch/kite-public\">open source</a>, incluse la nostra applicazione web e i feed curati dalla community.",
+    "translationContext": "Description of customization options with GitHub link"
+  },
+  "about.customization.title": {
+    "text": "Personalizzazione",
+    "translationContext": "Title of the customization section"
+  },
+  "about.principles.item1": {
+    "text": "Un aggiornamento quotidiano (mezzogiorno UTC), che crea un punto finale naturale per il consumo delle tue notizie",
+    "translationContext": "First core principle about daily updates"
+  },
+  "about.principles.item2": {
+    "text": "Concentrarsi sui fatti e sulle prospettive piuttosto che sulle opinioni",
+    "translationContext": "Second core principle about facts vs opinions"
+  },
+  "about.principles.item3": {
+    "text": "Nessun compromesso sulla privacy: le tue abitudini di lettura sono solo tue",
+    "translationContext": "Third core principle about privacy"
+  },
+  "about.principles.item4": {
+    "text": "Qualità e profondità prima della quantità",
+    "translationContext": "Fourth core principle about quality"
+  },
+  "about.principles.item5": {
+    "text": "Notizie complete in 5 minuti",
+    "translationContext": "Fifth core principle about time efficiency"
+  },
+  "about.principles.item6": {
+    "text": "Liberazione dall'economia dell'attenzione: vivi il momento, non uno scroll infinito",
+    "translationContext": "Sixth core principle about attention economy"
+  },
+  "about.principles.title": {
+    "text": "Principi fondamentali",
+    "translationContext": "Title of the core principles section"
+  },
+  "about.subtitle": {
+    "text": "App di notizie di Kagi",
+    "translationContext": "Kagi is a company, should not be translated"
+  },
+  "about.understand.button": {
+    "text": "Capisco",
+    "translationContext": "Text for the I understand button"
+  },
+  "about.why.description": {
+    "text": "Spinta da un'implacabile monetizzazione tramite annunci, la notizia è <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://gwern.net/doc/culture/2010-dobelli.pdf\">diventata</a> cibo spazzatura mentale - un flusso infinito di clickbait che distrugge la nostra capacità di pensare in modo profondo e chiaro. Possiamo fare di meglio, e creare ciò che le notizie avrebbero dovuto essere fin dall'inizio - informazioni pure ed essenziali che rispettino la tua intelligenza e il tuo tempo.",
+    "translationContext": "Description of why Kite exists, including HTML link"
+  },
+  "about.why.title": {
+    "text": "Perché Kite? Perché le notizie sono rotte.",
+    "translationContext": "Title of the Why Kite section"
+  },
+  "app.beta": {
+    "text": "BETA",
+    "translationContext": "Beta label shown next to the app title"
+  },
+  "app.disclaimerAutoGenerated": {
+    "text": "I riassunti potrebbero contenere errori.",
+    "translationContext": "Disclaimer about AI-generated content"
+  },
+  "app.disclaimerVerify": {
+    "text": "Verificare le informazioni importanti.",
+    "translationContext": "Reminder to verify information, goes after 'Summaries are AI/LLM-generated and Kite can make mistakes.'"
+  },
+  "app.logo.alt": {
+    "text": "Logo Kite",
+    "translationContext": "Alt text for the Kite logo image, Kite should not be translated as it's a brand name"
+  },
+  "app.logo.iconAlt": {
+    "text": "Icona Kite",
+    "translationContext": "Alt text for the Kite icon image, Kite should not be translated as it's a brand name"
+  },
+  "app.logo.newsAlt": {
+    "text": "Logo di Kite News",
+    "translationContext": "Alt text for the Kite News logo image in header, Kite should not be translated as it's a brand name"
+  },
+  "app.migrationNotice": {
+    "text": "A causa della recente migrazione a Svelte 5, le storie sono temporaneamente disponibili solo nella lingua predefinita. Il supporto multilingue completo verrà ripristinato entro 24 ore. Grazie per la pazienza!",
+    "translationContext": "Notice about temporary language limitation during Svelte 5 migration"
+  },
+  "app.motto": {
+    "text": "Notizie. Elevate.",
+    "translationContext": "Motto of the app, should be translated in a natural way"
+  },
+  "app.temporaryCategoryNotice": {
+    "text": "Visualizzazione temporanea di questa categoria dal link condiviso",
+    "translationContext": "Notice shown when a user accesses a shared link for a category they haven't enabled."
+  },
+  "app.title": {
+    "text": "Kite",
+    "translationContext": "Title of the app, should not be translated"
+  },
+  "article.closeStory": {
+    "text": "Chiudi",
+    "translationContext": "Button text to close a story"
+  },
+  "article.didYouKnow": {
+    "text": "Lo sapevi?",
+    "translationContext": "Title for the Did You Know section"
+  },
+  "article.location": {
+    "text": "Apri la posizione nelle mappe",
+    "translationContext": "Title/tooltip for the location link"
+  },
+  "article.markAllAsRead": {
+    "text": "Segna tutti come letti",
+    "translationContext": "Button text to mark all stories as read"
+  },
+  "article.readStatus": {
+    "text": "Clicca per cambiare lo stato di lettura",
+    "translationContext": "Title/tooltip for the read status toggle button"
+  },
+  "article.shareCopied": {
+    "text": "Copiato!",
+    "translationContext": "Success message shown when URL is copied to clipboard"
+  },
+  "article.shareStory": {
+    "text": "Condividi",
+    "translationContext": "Tooltip text for the share button"
+  },
+  "category.ai": {
+    "text": "IA",
+    "translationContext": "Display name for the AI news category"
+  },
+  "category.apple": {
+    "text": "Apple",
+    "translationContext": "Display name for the Apple news category"
+  },
+  "category.australia": {
+    "text": "Australia",
+    "translationContext": "Display name for the Australia news category"
+  },
+  "category.bayArea": {
+    "text": "USA SF",
+    "translationContext": "Display name for the Bay Area news category"
+  },
+  "category.belgium": {
+    "text": "Belgio",
+    "translationContext": "Display name for the Belgium news category"
+  },
+  "category.brazil": {
+    "text": "Brasile",
+    "translationContext": "Display name for the Brazil news category"
+  },
+  "category.business": {
+    "text": "Economia",
+    "translationContext": "Display name for the Business news category"
+  },
+  "category.canada": {
+    "text": "Canada",
+    "translationContext": "Display name for the Canada news category"
+  },
+  "category.costaRica": {
+    "text": "Costa Rica",
+    "translationContext": "Display name for the Costa Rica news category"
+  },
+  "category.cryptocurrency": {
+    "text": "Criptovaluta",
+    "translationContext": "Display name for the Cryptocurrency news category"
+  },
+  "category.cybersecurity": {
+    "text": "Sicurezza informatica",
+    "translationContext": "Display name for the Cybersecurity news category"
+  },
+  "category.economy": {
+    "text": "Economia",
+    "translationContext": "Display name for the Economy news category"
+  },
+  "category.entertainment": {
+    "text": "Intrattenimento",
+    "translationContext": "Display name for the Entertainment news category"
+  },
+  "category.estonia": {
+    "text": "Estonia",
+    "translationContext": "Display name for the Estonia news category"
+  },
+  "category.europe": {
+    "text": "Europa",
+    "translationContext": "Display name for the Europe news category"
+  },
+  "category.france": {
+    "text": "Francia",
+    "translationContext": "Display name for the France news category"
+  },
+  "category.gaming": {
+    "text": "Gaming",
+    "translationContext": "Display name for the Gaming news category"
+  },
+  "category.germany": {
+    "text": "Germania",
+    "translationContext": "Display name for the Germany news category"
+  },
+  "category.germanyHesse": {
+    "text": "Germania | Assia",
+    "translationContext": "Display name for the Germany Hesse regional news category"
+  },
+  "category.health": {
+    "text": "Salute",
+    "translationContext": "Display name for the Health news category"
+  },
+  "category.india": {
+    "text": "India",
+    "translationContext": "Display name for the India news category"
+  },
+  "category.ireland": {
+    "text": "Irlanda",
+    "translationContext": "Display name for the Ireland news category"
+  },
+  "category.israel": {
+    "text": "Israele",
+    "translationContext": "Display name for the Israel news category"
+  },
+  "category.italy": {
+    "text": "Italia",
+    "translationContext": "Display name for the Italy news category"
+  },
+  "category.japan": {
+    "text": "Giappone",
+    "translationContext": "Display name for the Japan news category"
+  },
+  "category.linuxOss": {
+    "text": "Linux & OSS",
+    "translationContext": "Display name for the Linux & OSS news category"
+  },
+  "category.mexico": {
+    "text": "Messico",
+    "translationContext": "Display name for the Mexico news category"
+  },
+  "category.netherlands": {
+    "text": "Paesi Bassi",
+    "translationContext": "Display name for the Netherlands news category"
+  },
+  "category.newZealand": {
+    "text": "Nuova Zelanda",
+    "translationContext": "Display name for the New Zealand news category"
+  },
+  "category.pakistan": {
+    "text": "Pakistan",
+    "translationContext": "Display name for the Pakistan news category"
+  },
+  "category.poland": {
+    "text": "Polonia",
+    "translationContext": "Display name for the Poland news category"
+  },
+  "category.politics": {
+    "text": "Politica",
+    "translationContext": "Display name for the Politics news category"
+  },
+  "category.portugal": {
+    "text": "Portogallo",
+    "translationContext": "Display name for the Portugal news category"
+  },
+  "category.romania": {
+    "text": "Romania",
+    "translationContext": "Display name for the Romania news category"
+  },
+  "category.science": {
+    "text": "Scienza",
+    "translationContext": "Display name for the Science news category"
+  },
+  "category.serbia": {
+    "text": "Serbia",
+    "translationContext": "Display name for the Serbia news category"
+  },
+  "category.slovenia": {
+    "text": "Slovenia",
+    "translationContext": "Display name for the Slovenia news category"
+  },
+  "category.southKorea": {
+    "text": "Corea del Sud",
+    "translationContext": "Display name for the South Korea news category"
+  },
+  "category.spain": {
+    "text": "Spagna",
+    "translationContext": "Display name for the Spain news category"
+  },
+  "category.sports": {
+    "text": "Sport",
+    "translationContext": "Display name for the Sports news category"
+  },
+  "category.sweden": {
+    "text": "Svezia",
+    "translationContext": "Display name for the Sweden news category"
+  },
+  "category.switzerlandDe": {
+    "text": "Svizzera (DE)",
+    "translationContext": "Display name for the Switzerland (DE) news category"
+  },
+  "category.technology": {
+    "text": "Tecnologia",
+    "translationContext": "Display name for the Technology news category"
+  },
+  "category.thailand": {
+    "text": "Thailandia",
+    "translationContext": "Display name for the Thailand news category"
+  },
+  "category.theNetherlands": {
+    "text": "Paesi Bassi",
+    "translationContext": "Display name for the The Netherlands news category"
+  },
+  "category.todayInHistory": {
+    "text": "Accadde Oggi",
+    "translationContext": "Display name for the OnThisDay category"
+  },
+  "category.uk": {
+    "text": "Regno Unito",
+    "translationContext": "Display name for the United Kingdom news category"
+  },
+  "category.ukraine": {
+    "text": "Ucraina",
+    "translationContext": "Display name for the Ukraine news category"
+  },
+  "category.usa": {
+    "text": "USA",
+    "translationContext": "Display name for the USA news category"
+  },
+  "category.usaVermont": {
+    "text": "USA | Vermont",
+    "translationContext": "Display name for the USA Vermont regional news category"
+  },
+  "category.usaVirginia": {
+    "text": "USA | Virginia",
+    "translationContext": "Display name for the USA Virginia regional news category"
+  },
+  "category.world": {
+    "text": "Mondo",
+    "translationContext": "Display name for the World news category"
+  },
+  "citation.commonKnowledge.description": {
+    "text": "Queste informazioni sono di dominio pubblico e non provengono da una fonte di notizie specifica, ma sono incluse per fornire contesto e completezza alla storia.",
+    "translationContext": "Description explaining what common knowledge citations are"
+  },
+  "citation.commonKnowledge.title": {
+    "text": "Conoscenza comune",
+    "translationContext": "Title for common knowledge citations marked with [*]"
+  },
+  "citation.source": {
+    "text": "Fonte:",
+    "translationContext": "Label shown before a single citation source"
+  },
+  "citation.sources": {
+    "text": "Fonti:",
+    "translationContext": "Label shown before multiple citation sources"
+  },
+  "common.back": {
+    "text": "Indietro",
+    "translationContext": "Back button text"
+  },
+  "common.cancel": {
+    "text": "Annulla",
+    "translationContext": "Cancel button text"
+  },
+  "common.close": {
+    "text": "Chiudi",
+    "translationContext": "Close button text"
+  },
+  "common.reset": {
+    "text": "Reimposta",
+    "translationContext": "Reset button text"
+  },
+  "contentFilter.adjustFilters": {
+    "text": "Regola filtri",
+    "translationContext": "Button to go to settings and adjust content filters"
+  },
+  "contentFilter.allStoriesFiltered": {
+    "text": "Tutte le storie di questa categoria sono state filtrate",
+    "translationContext": "Title when all stories in a category are filtered out"
+  },
+  "contentFilter.allStoriesFilteredDescription": {
+    "text": "I filtri dei contenuti hanno nascosto tutte le storie in questa categoria per oggi.",
+    "translationContext": "Description when all stories are filtered, explaining why"
+  },
+  "contentFilter.clickToReveal": {
+    "text": "Clicca per mostrare la storia",
+    "translationContext": "Instruction to reveal filtered story"
+  },
+  "contentFilter.disableCategory": {
+    "text": "Disabilita categoria",
+    "translationContext": "Button to go to settings and disable this news category"
+  },
+  "contentFilter.filteredBecause": {
+    "text": "Nascosto a causa del filtro:",
+    "translationContext": "Short message explaining why story is filtered"
+  },
+  "contentFilter.hiddenStory": {
+    "text": "Questa storia è stata nascosta perché corrisponde ai tuoi filtri di contenuto:",
+    "translationContext": "Message shown when a story is filtered"
+  },
+  "contentFilter.showStory": {
+    "text": "Mostra storia",
+    "translationContext": "Button to reveal a filtered story"
+  },
+  "contentFilter.storiesFiltered": {
+    "text": "{{count}} storie filtrate",
+    "translationContext": "Message showing multiple stories are filtered"
+  },
+  "contentFilter.storiesHidden": {
+    "text": "{{count}} storie nascoste",
+    "translationContext": "Message showing multiple stories are hidden"
+  },
+  "contentFilter.storyFiltered": {
+    "text": "{{count}} storia filtrata",
+    "translationContext": "Message showing 1 story is filtered"
+  },
+  "contentFilter.storyHidden": {
+    "text": "{{count}} storia nascosta",
+    "translationContext": "Message showing 1 story is hidden"
+  },
+  "date.format": {
+    "text": "{{weekday}}, {{month}} {{day}}",
+    "translationContext": "Format for displaying dates. {{weekday}} will be replaced with the day of the week, {{month}} with the month name, and {{day}} with the day number."
+  },
+  "footer.about": {
+    "text": "Su Kite",
+    "translationContext": "Link text for about page"
+  },
+  "footer.contribute": {
+    "text": "Contribuisci",
+    "translationContext": "Link text for contributing to the project"
+  },
+  "footer.rssFeed": {
+    "text": "Feed RSS",
+    "translationContext": "Link text for RSS feed"
+  },
+  "header.settings": {
+    "text": "Impostazioni",
+    "translationContext": "Title attribute for the settings button"
+  },
+  "header.timeTravel": {
+    "text": "Viaggio nel tempo",
+    "translationContext": "Tooltip for time travel button in header"
+  },
+  "loading.categories": {
+    "text": "Caricamento categorie...",
+    "translationContext": "Loading message shown when fetching news categories"
+  },
+  "loading.chaosIndex": {
+    "text": "Calcolo indice di caos in corso...",
+    "translationContext": "Loading message shown when calculating the world chaos index"
+  },
+  "loading.default": {
+    "text": "Caricamento in corso...",
+    "translationContext": "Default loading message"
+  },
+  "loading.error": {
+    "text": "Errore caricamento dati",
+    "translationContext": "Loading message shown when an error occurs"
+  },
+  "loading.errorFallback": {
+    "text": "Continuando con funzionalità limitate...",
+    "translationContext": "Message shown when there's an error but the app continues with fallback data"
+  },
+  "loading.finishing": {
+    "text": "Completamento in corso...",
+    "translationContext": "Loading message shown when nearly complete"
+  },
+  "loading.images": {
+    "text": "Precaricamento immagini...",
+    "translationContext": "Loading message shown when preloading story images"
+  },
+  "loading.initializing": {
+    "text": "Inizializzazione...",
+    "translationContext": "Loading message shown when the app is starting up"
+  },
+  "loading.ready": {
+    "text": "Pronto!",
+    "translationContext": "Loading message shown when loading is complete"
+  },
+  "loading.stories": {
+    "text": "Caricamento notizie...",
+    "translationContext": "Loading message shown when fetching news stories"
+  },
+  "onthisday.events": {
+    "text": "Eventi",
+    "translationContext": "Title for the events section in Today in History"
+  },
+  "onthisday.people": {
+    "text": "Persone",
+    "translationContext": "Title for the people section in Today in History"
+  },
+  "section.actionItems": {
+    "text": "Elementi d'azione",
+    "translationContext": "Title for the action items section"
+  },
+  "section.businessAngle": {
+    "text": "Angolo commerciale",
+    "translationContext": "Title for the business angle section"
+  },
+  "section.designPrinciples": {
+    "text": "Principi di progettazione",
+    "translationContext": "Title for the design principles section"
+  },
+  "section.didYouKnow": {
+    "text": "Lo sapevi?",
+    "translationContext": "Title for the Did You Know section"
+  },
+  "section.gameplayMechanics": {
+    "text": "Meccaniche di gioco",
+    "translationContext": "Title for the gameplay mechanics section"
+  },
+  "section.highlights": {
+    "text": "Punti salienti",
+    "translationContext": "Title for the highlights section"
+  },
+  "section.historicalBackground": {
+    "text": "Contesto storico",
+    "translationContext": "Title for the historical background section"
+  },
+  "section.humanitarianImpact": {
+    "text": "Impatto umanitario",
+    "translationContext": "Title for the humanitarian impact section"
+  },
+  "section.industryImpact": {
+    "text": "Impatto sul settore",
+    "translationContext": "Title for the industry impact section"
+  },
+  "section.internationalReactions": {
+    "text": "Reazioni internazionali",
+    "translationContext": "Title for the international reactions section"
+  },
+  "section.leagueStandings": {
+    "text": "Classifica di Lega",
+    "translationContext": "Title for the league standings section"
+  },
+  "section.otherDetails": {
+    "text": "Altri dettagli",
+    "translationContext": "Title for the other details section in article settings"
+  },
+  "section.performanceStatistics": {
+    "text": "Statistiche delle prestazioni",
+    "translationContext": "Title for the performance statistics section"
+  },
+  "section.perspectives": {
+    "text": "Prospettive",
+    "translationContext": "Title for the perspectives section"
+  },
+  "section.primaryImage": {
+    "text": "Immagine principale",
+    "translationContext": "Title for the primary image section in article settings"
+  },
+  "section.quotes": {
+    "text": "Citazioni",
+    "translationContext": "Title for the quotes section in article settings"
+  },
+  "section.scientificSignificance": {
+    "text": "Significato scientifico",
+    "translationContext": "Title for the scientific significance section"
+  },
+  "section.secondaryImage": {
+    "text": "Immagine secondaria",
+    "translationContext": "Title for the secondary image section in article settings"
+  },
+  "section.sources": {
+    "text": "Fonti",
+    "translationContext": "Title for the sources section"
+  },
+  "section.suggestedQnA": {
+    "text": "Domande rapide",
+    "translationContext": "Title for the suggested Q&A section"
+  },
+  "section.summary": {
+    "text": "Riepilogo",
+    "translationContext": "Title for the summary section in article settings"
+  },
+  "section.technicalDetails": {
+    "text": "Dettagli tecnici",
+    "translationContext": "Title for the technical details section"
+  },
+  "section.technicalSpecifications": {
+    "text": "Specifiche tecniche",
+    "translationContext": "Title for the technical specifications section"
+  },
+  "section.timeline": {
+    "text": "Cronologia degli eventi",
+    "translationContext": "Title for the timeline section"
+  },
+  "section.travelAdvisory": {
+    "text": "Avviso di viaggio",
+    "translationContext": "Title for the travel advisory section"
+  },
+  "section.userExperienceImpact": {
+    "text": "Impatto sull'esperienza utente",
+    "translationContext": "Title for the user experience impact section"
+  },
+  "settings.aboutKite.button": {
+    "text": "Informazioni su Kite",
+    "translationContext": "Text for the About Kite button"
+  },
+  "settings.categories.contribute": {
+    "text": "+ Contribuisci con le categorie",
+    "translationContext": "Link text for contributing categories"
+  },
+  "settings.categories.disabled": {
+    "text": "Categorie disabilitate",
+    "translationContext": "Title for the disabled (hidden) categories section"
+  },
+  "settings.categories.enabled": {
+    "text": "Categorie Abilitate",
+    "translationContext": "Title for the enabled categories section"
+  },
+  "settings.categories.filterByType": {
+    "text": "Filtra per tipo...",
+    "translationContext": "Placeholder text for category type filter dropdown"
+  },
+  "settings.categories.instructions": {
+    "text": "Trascina per riordinare o clicca per attivare/disattivare. Trascina tra le sezioni per spostare le categorie.",
+    "translationContext": "Instructions for managing categories"
+  },
+  "settings.categories.lastCategory": {
+    "text": "Impossibile disabilitare l'ultima categoria",
+    "translationContext": "Tooltip shown when trying to disable the last enabled category"
+  },
+  "settings.categories.noDisabled": {
+    "text": "Tutte le categorie abilitate",
+    "translationContext": "Shows when no categories are disabled"
+  },
+  "settings.categories.types.all": {
+    "text": "Tutti i tipi",
+    "translationContext": "Option to show all category types in filter"
+  },
+  "settings.categories.types.city": {
+    "text": "Città",
+    "translationContext": "Label for city category type"
+  },
+  "settings.categories.types.core": {
+    "text": "Principale",
+    "translationContext": "Label for core category type (main news categories)"
+  },
+  "settings.categories.types.country": {
+    "text": "Paesi",
+    "translationContext": "Label for country category type"
+  },
+  "settings.categories.types.other": {
+    "text": "Altro",
+    "translationContext": "Label for categories without a specific type"
+  },
+  "settings.categories.types.region": {
+    "text": "Regioni",
+    "translationContext": "Label for region category type"
+  },
+  "settings.categories.types.topic": {
+    "text": "Argomenti",
+    "translationContext": "Label for topic category type"
+  },
+  "settings.categoryHeaderPosition.bottom": {
+    "text": "Basso",
+    "translationContext": "Option for bottom position"
+  },
+  "settings.categoryHeaderPosition.description": {
+    "text": "Scegli dove visualizzare la barra di navigazione delle categorie sui dispositivi mobili.",
+    "translationContext": "Description for category header position setting"
+  },
+  "settings.categoryHeaderPosition.label": {
+    "text": "Posizione dell'intestazione della categoria",
+    "translationContext": "Label for category header position setting"
+  },
+  "settings.categoryHeaderPosition.top": {
+    "text": "Superiore",
+    "translationContext": "Option for top position"
+  },
+  "settings.contentFilter.activeFilters": {
+    "text": "Filtri attivi",
+    "translationContext": "Label for current active filters list"
+  },
+  "settings.contentFilter.clearAll": {
+    "text": "Cancella tutti i filtri",
+    "translationContext": "Button to clear all filters"
+  },
+  "settings.contentFilter.contribute": {
+    "text": "Aggiungi altri filtri",
+    "translationContext": "Link to contribute new filter presets on GitHub"
+  },
+  "settings.contentFilter.customKeywords": {
+    "text": "Personalizzato",
+    "translationContext": "Label for custom keywords that are not from presets"
+  },
+  "settings.contentFilter.export": {
+    "text": "Esporta impostazioni",
+    "translationContext": "Button to export filter settings to a file"
+  },
+  "settings.contentFilter.exportImport.description": {
+    "text": "Esporta le impostazioni del filtro su un file o importale da un backup precedente",
+    "translationContext": "Description of export/import functionality"
+  },
+  "settings.contentFilter.exportImport.title": {
+    "text": "Backup e ripristino",
+    "translationContext": "Section title for export/import functionality"
+  },
+  "settings.contentFilter.import": {
+    "text": "Importa impostazioni",
+    "translationContext": "Button to import filter settings from a file"
+  },
+  "settings.contentFilter.importConfirm.action": {
+    "text": "Importa",
+    "translationContext": "Button to confirm import action"
+  },
+  "settings.contentFilter.importConfirm.backup": {
+    "text": "Suggerimento: esporta prima le impostazioni attuali per creare un backup.",
+    "translationContext": "Tip about creating a backup before importing"
+  },
+  "settings.contentFilter.importConfirm.title": {
+    "text": "Importa impostazioni?",
+    "translationContext": "Title of import confirmation dialog"
+  },
+  "settings.contentFilter.importConfirm.versionNewer": {
+    "text": "Questa configurazione proviene da una versione più recente. Alcune impostazioni potrebbero non funzionare correttamente.",
+    "translationContext": "Warning when importing from a newer version"
+  },
+  "settings.contentFilter.importConfirm.versionOlder": {
+    "text": "Questa configurazione proviene da una versione precedente. Alcune funzionalità potrebbero mancare.",
+    "translationContext": "Warning when importing from an older version"
+  },
+  "settings.contentFilter.importConfirm.warning": {
+    "text": "Questo sostituirà tutte le impostazioni del filtro attuali.",
+    "translationContext": "Warning message about overwriting current settings"
+  },
+  "settings.contentFilter.importError.invalidFormat": {
+    "text": "Formato configurazione non valido",
+    "translationContext": "Error when import file is not valid JSON"
+  },
+  "settings.contentFilter.importError.parseFailed": {
+    "text": "Impossibile analizzare il file di configurazione",
+    "translationContext": "Error when import file cannot be parsed"
+  },
+  "settings.contentFilter.keywords.description": {
+    "text": "Aggiungi le tue parole chiave per filtrare, separate da virgole",
+    "translationContext": "Description for keywords input"
+  },
+  "settings.contentFilter.keywords.label": {
+    "text": "Parole chiave personalizzate",
+    "translationContext": "Label for keywords input"
+  },
+  "settings.contentFilter.keywords.placeholder": {
+    "text": "ad es. nome celebrità, argomento",
+    "translationContext": "Placeholder for keywords input"
+  },
+  "settings.contentFilter.mode.blur": {
+    "text": "Sfoca con avviso",
+    "translationContext": "Option to blur filtered content"
+  },
+  "settings.contentFilter.mode.blurDescription": {
+    "text": "Le storie sono sfocate e possono essere rivelate al clic",
+    "translationContext": "Description for blur mode"
+  },
+  "settings.contentFilter.mode.description": {
+    "text": "Scegli come gestire i contenuti filtrati",
+    "translationContext": "Description for filter mode selection"
+  },
+  "settings.contentFilter.mode.hide": {
+    "text": "Nascondi completamente",
+    "translationContext": "Option to hide filtered content completely"
+  },
+  "settings.contentFilter.mode.hideDescription": {
+    "text": "Le storie filtrate vengono rimosse dalla vista",
+    "translationContext": "Description for hide mode"
+  },
+  "settings.contentFilter.mode.label": {
+    "text": "Modalità filtro",
+    "translationContext": "Label for filter mode selection"
+  },
+  "settings.contentFilter.preset.ai.tooltip": {
+    "text": "Filtra l'hype dell'IA, le notizie sui modelli linguistici di grandi dimensioni e gli annunci di scoperte tecnologiche",
+    "translationContext": "Tooltip description for AI preset"
+  },
+  "settings.contentFilter.preset.celebrities": {
+    "text": "Notizie sulle celebrità",
+    "translationContext": "Name of celebrities preset filter"
+  },
+  "settings.contentFilter.preset.celebrities.tooltip": {
+    "text": "Filtra gossip sulle celebrità, notizie di intrattenimento e contenuti scandalistici",
+    "translationContext": "Tooltip description for celebrities preset"
+  },
+  "settings.contentFilter.preset.climate.tooltip": {
+    "text": "Filtra notizie su cambiamento climatico e crisi ambientale",
+    "translationContext": "Tooltip description for climate preset"
+  },
+  "settings.contentFilter.preset.conflicts": {
+    "text": "Conflitti",
+    "translationContext": "Name of conflicts preset filter"
+  },
+  "settings.contentFilter.preset.conflicts.tooltip": {
+    "text": "Filtra guerre, conflitti militari e violenze correlate da varie regioni",
+    "translationContext": "Tooltip description for conflicts preset"
+  },
+  "settings.contentFilter.preset.crypto": {
+    "text": "Criptovaluta",
+    "translationContext": "Name of cryptocurrency preset filter"
+  },
+  "settings.contentFilter.preset.crypto.tooltip": {
+    "text": "Filtra contenuti relativi a criptovalute, blockchain e Web3",
+    "translationContext": "Tooltip description for crypto preset"
+  },
+  "settings.contentFilter.preset.health": {
+    "text": "Crisi sanitarie",
+    "translationContext": "Name of health crises preset filter"
+  },
+  "settings.contentFilter.preset.health.tooltip": {
+    "text": "Filtra notizie su pandemie, focolai virali e contenuti correlati a emergenze sanitarie",
+    "translationContext": "Tooltip description for health preset"
+  },
+  "settings.contentFilter.preset.politics": {
+    "text": "Politica",
+    "translationContext": "Name of politics preset filter"
+  },
+  "settings.contentFilter.preset.politics.tooltip": {
+    "text": "Filtra contenuti politici inclusi elezioni, partiti politici e funzionari governativi",
+    "translationContext": "Tooltip description for politics preset"
+  },
+  "settings.contentFilter.preset.sports": {
+    "text": "Sport",
+    "translationContext": "Name of sports preset filter"
+  },
+  "settings.contentFilter.preset.sports.tooltip": {
+    "text": "Filtra notizie sportive, risultati e copertura di competizioni atletiche",
+    "translationContext": "Tooltip description for sports preset"
+  },
+  "settings.contentFilter.preset.tabloid": {
+    "text": "Fonti di tabloid",
+    "translationContext": "Name of tabloid sources preset filter"
+  },
+  "settings.contentFilter.preset.tabloid.tooltip": {
+    "text": "Filtra storie da fonti di notizie note come tabloid e sensazionalistiche",
+    "translationContext": "Tooltip description for tabloid preset"
+  },
+  "settings.contentFilter.preset.violence": {
+    "text": "Violenza",
+    "translationContext": "Name of violence preset filter"
+  },
+  "settings.contentFilter.preset.violence.tooltip": {
+    "text": "Filtra violenza grafica, sparatorie e contenuti legati alla morte",
+    "translationContext": "Tooltip description for violence preset"
+  },
+  "settings.contentFilter.presets.description": {
+    "text": "Seleziona uno o più filtri preimpostati per nascondere rapidamente argomenti comuni.",
+    "translationContext": "Description for filter presets section"
+  },
+  "settings.contentFilter.presets.label": {
+    "text": "Preimpostazioni filtro",
+    "translationContext": "Label for filter presets section"
+  },
+  "settings.contentFilter.reset": {
+    "text": "Ripristina predefinite",
+    "translationContext": "Button to reset content filter to defaults"
+  },
+  "settings.contentFilter.resetModal.description": {
+    "text": "Verranno rimossi tutti i filtri e le impostazioni verranno ripristinate ai valori predefiniti.",
+    "translationContext": "Description for reset confirmation modal"
+  },
+  "settings.contentFilter.resetModal.title": {
+    "text": "Reimpostare i filtri dei contenuti?",
+    "translationContext": "Title for reset confirmation modal"
+  },
+  "settings.contentFilter.scope.all": {
+    "text": "Tutti i contenuti",
+    "translationContext": "Option to filter by all content"
+  },
+  "settings.contentFilter.scope.description": {
+    "text": "Scegli quali parti delle storie controllare per parole chiave",
+    "translationContext": "Description for filter scope selection"
+  },
+  "settings.contentFilter.scope.label": {
+    "text": "Ambito filtro",
+    "translationContext": "Label for filter scope selection"
+  },
+  "settings.contentFilter.scope.summary": {
+    "text": "Titolo e riepilogo",
+    "translationContext": "Option to filter by title and summary"
+  },
+  "settings.contentFilter.scope.title": {
+    "text": "Solo titolo",
+    "translationContext": "Option to filter by title only"
+  },
+  "settings.contentFilter.showCount.description": {
+    "text": "Mostra numero storie filtrate per categoria",
+    "translationContext": "Description for show filtered count toggle"
+  },
+  "settings.contentFilter.showCount.label": {
+    "text": "Mostra numero risultati filtrati",
+    "translationContext": "Label for show filtered count toggle"
+  },
+  "settings.contentFilter.tab.description": {
+    "text": "Personalizza il tuo feed di notizie filtrando gli argomenti che preferisci non vedere. Usa i preset per i filtri comuni o crea le tue parole chiave personalizzate.",
+    "translationContext": "Description shown at the top of content filter settings tab"
+  },
+  "settings.dataLanguage.label": {
+    "text": "Lingua dei contenuti",
+    "translationContext": "Label for the data/content language setting"
+  },
+  "settings.dataLanguage.tooltip": {
+    "text": "Le notizie sono generate nella lingua originale e poi tradotte. \"Predefinito\" mostra le notizie nelle loro lingue originali senza traduzione.",
+    "translationContext": "Tooltip explaining how data language translation works"
+  },
+  "settings.experimental.articleIcons.description": {
+    "text": "Quando abilitate, delle piccole icone verranno mostrate accanto agli articoli per fornire un contesto visivo.",
+    "translationContext": "Description for article icons setting"
+  },
+  "settings.experimental.articleIcons.label": {
+    "text": "Mostra icone accanto agli articoli",
+    "translationContext": "Label for article icons setting"
+  },
+  "settings.experimental.categoryIcons.description": {
+    "text": "Quando abilitate, delle piccole icone verranno mostrate accanto alle etichette delle categorie per fornire un contesto visivo.\n</translates_start>",
+    "translationContext": "Description for category icons setting"
+  },
+  "settings.experimental.categoryIcons.label": {
+    "text": "Mostra icone nelle etichette delle categorie",
+    "translationContext": "Label for category icons setting"
+  },
+  "settings.experimental.chaosIndex.description": {
+    "text": "Visualizza una lettura della temperatura globale della stabilità mondiale basata sugli eventi attuali.",
+    "translationContext": "Description for chaos index setting"
+  },
+  "settings.experimental.chaosIndex.label": {
+    "text": "Mostra Indice Tensione Mondiale",
+    "translationContext": "Label for chaos index setting"
+  },
+  "settings.experimental.citations.description": {
+    "text": "Visualizza citazioni in linea che mostrano quali fonti di notizie hanno riportato informazioni specifiche.",
+    "translationContext": "Description for citations setting"
+  },
+  "settings.experimental.citations.label": {
+    "text": "Mostra citazioni della fonte",
+    "translationContext": "Label for citations setting"
+  },
+  "settings.experimental.disableCategorySwipe.description": {
+    "text": "Se abilitata, lo scorrimento orizzontale per cambiare categoria sui dispositivi mobili verrà disabilitato.",
+    "translationContext": "Description for disable category swipe setting"
+  },
+  "settings.experimental.disableCategorySwipe.label": {
+    "text": "Disabilita scorrimento orizzontale categorie",
+    "translationContext": "Label for disable category swipe setting"
+  },
+  "settings.experimental.warning": {
+    "text": "Queste sono funzionalità sperimentali che possono essere modificate o rimosse in qualsiasi momento.",
+    "translationContext": "Warning text for experimental features"
+  },
+  "settings.fontSize.label": {
+    "text": "Dimensione carattere",
+    "translationContext": "Label for the font size setting"
+  },
+  "settings.fontSize.large": {
+    "text": "Grande",
+    "translationContext": "Option for large font size"
+  },
+  "settings.fontSize.normal": {
+    "text": "Normale",
+    "translationContext": "Option for normal font size"
+  },
+  "settings.fontSize.small": {
+    "text": "Piccolo",
+    "translationContext": "Option for small font size"
+  },
+  "settings.fontSize.xl": {
+    "text": "Molto grande",
+    "translationContext": "Option for extra large font size"
+  },
+  "settings.fontSize.xs": {
+    "text": "Molto piccolo",
+    "translationContext": "Option for extra small font size"
+  },
+  "settings.language.default": {
+    "text": "Predefinito",
+    "translationContext": "Option for default language"
+  },
+  "settings.language.label": {
+    "text": "Lingua",
+    "translationContext": "Label for the language setting"
+  },
+  "settings.language.poweredBy": {
+    "text": "Tradotto con Kagi Translate",
+    "translationContext": "Text for the Kagi Translate powered by link"
+  },
+  "settings.sections.instructions": {
+    "text": "Trascina per riordinare le sezioni. Usa l'interruttore per abilitare/disabilitare.",
+    "translationContext": "Instructions for managing article sections"
+  },
+  "settings.sections.resetOrder": {
+    "text": "Reimposta ordine predefinito",
+    "translationContext": "Button text to reset section order to defaults"
+  },
+  "settings.sections.switch": {
+    "text": "Abilita/disabilita",
+    "translationContext": "Aria label for the enable/disable switch for sections"
+  },
+  "settings.sections.title": {
+    "text": "Sezioni Articolo",
+    "translationContext": "Title for the article sections settings"
+  },
+  "settings.shareLanguage.message": {
+    "text": "Dai un'occhiata a Kite News in italiano: salterà l'introduzione e si caricherà direttamente nella tua lingua!",
+    "translationContext": "Message to share with others, {{language}} will be replaced with the language name"
+  },
+  "settings.shareLanguage.success": {
+    "text": "Link copiato!",
+    "translationContext": "Success message when link is copied"
+  },
+  "settings.storyCount.label": {
+    "text": "Numero di storie mostrate:",
+    "translationContext": "Label for the story count setting"
+  },
+  "settings.tabs.categories": {
+    "text": "Categorie",
+    "translationContext": "Title for the categories settings tab"
+  },
+  "settings.tabs.contentFilter": {
+    "text": "Filtro Contenuti",
+    "translationContext": "Title for the content filter settings tab"
+  },
+  "settings.tabs.experimental": {
+    "text": "Sperimentale",
+    "translationContext": "Title for the experimental settings tab"
+  },
+  "settings.tabs.general": {
+    "text": "Generali",
+    "translationContext": "Title for the general settings tab"
+  },
+  "settings.tabs.sections": {
+    "text": "Sezioni",
+    "translationContext": "Title for the sections settings tab"
+  },
+  "settings.theme.dark": {
+    "text": "Scuro",
+    "translationContext": "Option for dark theme"
+  },
+  "settings.theme.label": {
+    "text": "Tema",
+    "translationContext": "Label for the theme setting"
+  },
+  "settings.theme.light": {
+    "text": "Luce",
+    "translationContext": "Option for light theme"
+  },
+  "settings.theme.system": {
+    "text": "Sistema",
+    "translationContext": "Option for system theme"
+  },
+  "settings.uiLanguage.label": {
+    "text": "Lingua interfaccia",
+    "translationContext": "Label for the UI language setting"
+  },
+  "settings.uiLanguage.tooltip": {
+    "text": "Controlla la lingua di pulsanti, menu e testo dell'interfaccia. \"Predefinito\" usa la lingua del browser.",
+    "translationContext": "Tooltip explaining how UI language works"
+  },
+  "source.contribute.button": {
+    "text": "Contribuisci con informazioni",
+    "translationContext": "Button text for contributing source information"
+  },
+  "source.contribute.description": {
+    "text": "Non abbiamo ancora informazioni dettagliate su questa fonte di notizie. Il tuo contributo può aiutare gli altri a rimanere informati sulla proprietà e i pregiudizi dei media.",
+    "translationContext": "Description for source contribution section"
+  },
+  "source.contribute.title": {
+    "text": "Aiutaci a migliorare il nostro database",
+    "translationContext": "Title for source contribution section"
+  },
+  "source.info.country": {
+    "text": "Paese",
+    "translationContext": "Label for source country"
+  },
+  "source.info.description": {
+    "text": "Descrizione",
+    "translationContext": "Label for source description"
+  },
+  "source.info.loading": {
+    "text": "Caricamento delle informazioni di origine...",
+    "translationContext": "Loading message shown while fetching source information"
+  },
+  "source.info.mediaClassification": {
+    "text": "Classificazione media",
+    "translationContext": "Label for source media classification"
+  },
+  "source.info.notSpecified": {
+    "text": "Non specificato",
+    "translationContext": "Text shown when information is not available"
+  },
+  "source.info.organization": {
+    "text": "Organizzazione",
+    "translationContext": "Label for source organization"
+  },
+  "source.info.owner": {
+    "text": "Proprietario",
+    "translationContext": "Label for source owner"
+  },
+  "source.info.title": {
+    "text": "Informazioni sulla fonte",
+    "translationContext": "Title for source information section"
+  },
+  "sources.article": {
+    "text": "{{count}} articolo",
+    "translationContext": "Shows singular article count from a source, {{count}} will be replaced with a number"
+  },
+  "sources.articles": {
+    "text": "{{count}} articoli",
+    "translationContext": "Shows the count of articles from a source, {{count}} will be replaced with a number"
+  },
+  "sources.showArticlesFrom": {
+    "text": "Mostra articoli da {{source}}",
+    "translationContext": "Title/aria-label for the source button, {{source}} will be replaced with the source name"
+  },
+  "stats.newsToday": {
+    "text": "{{count}} notizie oggi",
+    "translationContext": "Shows the count of news items today, {{count}} will be replaced with a number"
+  },
+  "stats.storiesRead": {
+    "text": "Hai letto {{count}} storie",
+    "translationContext": "Shows how many stories the user has read, {{count}} will be replaced with a number"
+  },
+  "stats.weekDay": {
+    "text": "Settimana {{{week}}}, Giorno {{{day}}}",
+    "translationContext": "Shows the current week and day of the year, {{week}} and {{day}} will be replaced with numbers"
+  },
+  "stories.noStories": {
+    "text": "Qualcosa è andato storto, non ci sono storie qui!",
+    "translationContext": "Message shown when no stories are found"
+  },
+  "time.updated.days": {
+    "text": "Aggiornato {{count}} giorni fa",
+    "translationContext": "Shown when content was updated multiple days ago, {{count}} will be replaced with the number of days"
+  },
+  "time.updated.hours": {
+    "text": "Aggiornato {{count}} ore fa",
+    "translationContext": "Shown when content was updated multiple hours ago, {{count}} will be replaced with the number of hours"
+  },
+  "time.updated.justNow": {
+    "text": "Aggiornato proprio ora",
+    "translationContext": "Shown when content was updated very recently"
+  },
+  "time.updated.minutes": {
+    "text": "Aggiornato {{count}} minuti fa",
+    "translationContext": "Shown when content was updated multiple minutes ago, {{count}} will be replaced with the number of minutes"
+  },
+  "time.updated.oneDay": {
+    "text": "Aggiornato 1 giorno fa",
+    "translationContext": "Shown when content was updated exactly 1 day ago"
+  },
+  "time.updated.oneHour": {
+    "text": "Aggiornato 1 ora fa",
+    "translationContext": "Shown when content was updated exactly 1 hour ago"
+  },
+  "time.updated.oneMinute": {
+    "text": "Aggiornato 1 minuto fa",
+    "translationContext": "Shown when content was updated exactly 1 minute ago"
+  },
+  "time.updated.seconds": {
+    "text": "Aggiornato {{count}} secondi fa",
+    "translationContext": "Shown when content was updated seconds ago, {{count}} will be replaced with the number of seconds"
+  },
+  "timeTravel.latest": {
+    "text": "Ultimo",
+    "translationContext": "Label for the most recent batch of the day"
+  },
+  "timeTravel.loadingData": {
+    "text": "Caricamento dati storici...",
+    "translationContext": "Loading message when fetching historical data"
+  },
+  "timeTravel.nextMonth": {
+    "text": "Mese successivo",
+    "translationContext": "Aria label for next month button"
+  },
+  "timeTravel.previousMonth": {
+    "text": "Mese precedente",
+    "translationContext": "Aria label for previous month button"
+  },
+  "timeTravel.returningToLive": {
+    "text": "Ritorno alla diretta...",
+    "translationContext": "Loading message when exiting time travel mode"
+  },
+  "timeTravel.selectBatch": {
+    "text": "Seleziona un aggiornamento sulle notizie",
+    "translationContext": "Title when selecting from multiple batches"
+  },
+  "timeTravel.selectDate": {
+    "text": "Seleziona una data per visualizzare le notizie del giorno",
+    "translationContext": "Help text shown below calendar"
+  },
+  "timeTravel.stories": {
+    "text": "storie",
+    "translationContext": "Label for story count in batch selector"
+  },
+  "timeTravel.title": {
+    "text": "Viaggio nel tempo",
+    "translationContext": "Title of the time travel modal"
+  },
+  "timeTravel.today": {
+    "text": "Oggi",
+    "translationContext": "Button to navigate to today"
+  },
+  "turbulence.title": {
+    "text": "Misuratore di turbolenza mondiale",
+    "translationContext": "Title for the world turbulence meter popup"
+  },
+  "turbulence.tooltip": {
+    "text": "Misuratore di turbolenza",
+    "translationContext": "Tooltip text for the turbulence meter button"
+  },
+  "ui.close": {
+    "text": "Chiudi",
+    "translationContext": "Text for close buttons"
+  },
+  "view.list": {
+    "text": "Visualizzazione elenco",
+    "translationContext": "Title/aria-label for the list view button"
+  },
+  "view.map": {
+    "text": "Vista mappa",
+    "translationContext": "Title/aria-label for the map view button"
+  },
+  "wikipedia.readMore": {
+    "text": "Leggi di più su Wikipedia",
+    "translationContext": "Text for the link to read more on Wikipedia"
+  },
+  "worldTension.aboutTitle": {
+    "text": "Tensione mondiale",
+    "translationContext": "Title for the world tension explanation"
+  },
+  "worldTension.backToIndex": {
+    "text": "← Torna all'indice",
+    "translationContext": "Button text to return from explanation to main view"
+  },
+  "worldTension.burning": {
+    "text": "Incandescente",
+    "translationContext": "Temperature description for extreme world tension (81-100%)"
+  },
+  "worldTension.chaosIndex": {
+    "text": "Indice di Caos",
+    "translationContext": "Label for the chaos index chart"
+  },
+  "worldTension.cool": {
+    "text": "Calmo",
+    "translationContext": "Temperature description for low world tension (0-20%)"
+  },
+  "worldTension.critical": {
+    "text": "Critico",
+    "translationContext": "Status label for 61-80% range (deprecated, use hot)"
+  },
+  "worldTension.elevated": {
+    "text": "Lieve",
+    "translationContext": "Status label for 21-40% range (deprecated, use mild)"
+  },
+  "worldTension.explanation1": {
+    "text": "L'indice di Tensione Mondiale fornisce una lettura della stabilità globale basata sugli eventi attuali.",
+    "translationContext": "First paragraph of world tension explanation"
+  },
+  "worldTension.explanation2": {
+    "text": "Analizzando i titoli di tutto il mondo, tracciamo schemi di conflitto, crisi e instabilità per creare una metrica semplice che mostra quanto siano \"accese\" leP questioni globali in un dato momento.",
+    "translationContext": "Second paragraph of world tension explanation"
+  },
+  "worldTension.explanation3": {
+    "text": "Immaginatelo come un termometro globale: quando le tensioni aumentano a causa di conflitti, disastri o disordini politici, la temperatura sale. Durante i periodi più calmi di stabilità e cooperazione, si raffredda.",
+    "translationContext": "Third paragraph of world tension explanation"
+  },
+  "worldTension.extreme": {
+    "text": "Estremo",
+    "translationContext": "Status label for 81-100% range (deprecated, use burning)"
+  },
+  "worldTension.high": {
+    "text": "Alto",
+    "translationContext": "Status label for 41-60% range (deprecated, use warm)"
+  },
+  "worldTension.hot": {
+    "text": "Calda",
+    "translationContext": "Temperature description for moderate world tension (41-60%)"
+  },
+  "worldTension.mild": {
+    "text": "Lieve",
+    "translationContext": "Temperature description for normal world tension (21-40%)"
+  },
+  "worldTension.onFire": {
+    "text": "Rogo",
+    "translationContext": "Temperature description for extreme world tension (81-100%)"
+  },
+  "worldTension.scale.burning": {
+    "text": "81-100° Ustionante - Crisi estrema (rara)",
+    "translationContext": "Scale description for 81-100% tension"
+  },
+  "worldTension.scale.cool": {
+    "text": "Freddo - Relativamente stabile",
+    "translationContext": "Scale description for 0-20% tension"
+  },
+  "worldTension.scale.hot": {
+    "text": "Caldo - Conflitti notevoli",
+    "translationContext": "Scale description for 41-60% tension"
+  },
+  "worldTension.scale.mild": {
+    "text": "21-40° Lieve - Tensioni globali normali",
+    "translationContext": "Scale description for 21-40% tension"
+  },
+  "worldTension.scale.onFire": {
+    "text": "In fiamme - Emergenza globale",
+    "translationContext": "Scale description for 81-100% tension"
+  },
+  "worldTension.scale.veryHot": {
+    "text": "Molto caldo - Crisi gravi",
+    "translationContext": "Scale description for 61-80% tension"
+  },
+  "worldTension.scale.warm": {
+    "text": "41-60° Caldo - Preoccupazioni elevate",
+    "translationContext": "Scale description for 41-60% tension"
+  },
+  "worldTension.scale.warming": {
+    "text": "Riscaldamento - Tensioni minori",
+    "translationContext": "Scale description for 21-40% tension"
+  },
+  "worldTension.stable": {
+    "text": "Stabile",
+    "translationContext": "Status label for 0-20% range (deprecated, use cool)"
+  },
+  "worldTension.title": {
+    "text": "Tensione mondiale",
+    "translationContext": "Title for the world tension modal"
+  },
+  "worldTension.trendTitle": {
+    "text": "Andamento a 30 giorni",
+    "translationContext": "Title for the historical trend chart"
+  },
+  "worldTension.updated": {
+    "text": "Aggiornato",
+    "translationContext": "Prefix for last update time"
+  },
+  "worldTension.veryHot": {
+    "text": "Molto Caldo",
+    "translationContext": "Temperature description for high world tension (61-80%)"
+  },
+  "worldTension.warm": {
+    "text": "Tiepido",
+    "translationContext": "Temperature description for elevated world tension (41-60%)"
+  },
+  "worldTension.warming": {
+    "text": "Riscaldamento",
+    "translationContext": "Temperature description for mild world tension (21-40%)"
+  },
+  "worldTension.whatIsThis": {
+    "text": "Che cos'è questo?\n</transl'l_start>",
+    "translationContext": "Button text to show explanation of world tension"
+  }
 }
