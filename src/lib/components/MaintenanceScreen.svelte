@@ -13,17 +13,29 @@ let isMaintenanceComplete = $state(false);
 let maintenanceStatus = $state<any>(null);
 let showIntroScreen = $state(false);
 
+// Detect offline status (true when navigator reports offline or fetch fails)
+let isOffline = $state(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+
+// Determine if we should display a progress percentage.
+// Show it only when maintenance is scheduled automatically (AUTO=true)
+// or when explicit start/end timestamps are provided.
+const showProgressIndicator = PUBLIC_MAINTENANCE_AUTO === 'true' || (PUBLIC_MAINTENANCE_START && PUBLIC_MAINTENANCE_END);
+
 // Fetch maintenance status from server API (uses server time)
 async function fetchMaintenanceStatus() {
     try {
         const response = await fetch('/api/maintenance/status');
         if (response.ok) {
             const data = await response.json();
+            // We successfully reached the server – reset offline flag if previously set
+            isOffline = false;
             maintenanceStatus = data;
             return data;
         }
     } catch (error) {
         console.warn('Failed to fetch maintenance status:', error);
+        // Treat network errors as offline condition
+        isOffline = true;
     }
     
     // Fallback to client-side calculation if API fails
@@ -110,7 +122,7 @@ async function updateProgress() {
                 startPostMaintenanceSequence();
             } else {
                 progressPercentage = 100;
-                timeRemaining = 'Completed';
+                timeRemaining = 'Finishing...';
             }
         } else {
             const totalDuration = endTime.getTime() - startTime.getTime();
@@ -167,6 +179,14 @@ function startPostMaintenanceSequence() {
 let animationFrame: number;
 
 onMount(() => {
+	// Listen for browser online/offline events
+    const onlineHandler = () => { isOffline = false; };
+    const offlineHandler = () => { isOffline = true; };
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', onlineHandler);
+        window.addEventListener('offline', offlineHandler);
+    }
+
     // Initial update (non-blocking)
     void updateProgress();
     
@@ -206,6 +226,11 @@ onMount(() => {
         clearInterval(interval);
         if (animationFrame) {
             cancelAnimationFrame(animationFrame);
+        }
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('online', onlineHandler);
+            window.removeEventListener('offline', offlineHandler);
         }
     };
 });
@@ -286,10 +311,10 @@ onMount(() => {
 		{#if isMaintenanceComplete}
 			<div class="mt-4 text-center">
 				<p class="text-green-600 dark:text-green-400 font-medium">
-					Maintenance completed
+					Systems are back online
 				</p>
 				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					Systems are back online. Thank you for your patience.
+					Thank you for your patience.
 				</p>
 			</div>
 		{:else}
@@ -304,17 +329,25 @@ onMount(() => {
 		{/if}
 		
 		<div class="mt-4 text-center">
-			<!-- Single unified progress counter -->
-			<p class="text-xl text-gray-600 dark:text-gray-400">
-				{Math.round(displayProgress)}%
-			</p>
+			<!-- Single unified progress counter (hidden for manual maintenance mode) -->
+			{#if showProgressIndicator && !isOffline && displayProgress > 0}
+				<p class="text-xl text-gray-600 dark:text-gray-400">
+					{Math.round(displayProgress)}%
+				</p>
+			{/if}
 			
 			<!-- Dynamic status message -->
 			<p class="min-h-[1.5rem] text-sm text-gray-500 dark:text-gray-400 mt-1">
 				{#if isInPostMaintenance}
 					{currentStage || 'Preparing...'}
 				{:else if isMaintenanceComplete}
-					{PUBLIC_MAINTENANCE_AUTO === 'true' ? 'Maintenance completed' : 'Completed'}
+					Systems are back online.
+				{:else if isOffline}
+					You are offline. Please check your internet connection.
+				{:else if displayProgress <= 0}
+					We’ll bring Kite back online as soon as possible.
+				{:else if displayProgress >= 99}
+					Almost done! Starting back up…
 				{:else}
 					{timeRemaining || ''}
 				{/if}
@@ -323,11 +356,7 @@ onMount(() => {
 		
 		<!-- Disclaimer about maintenance -->
 		<div class="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
-			{#if isMaintenanceComplete && PUBLIC_MAINTENANCE_AUTO !== 'true'}
-				<p>You may refresh the page to continue</p>
-			{:else if !isMaintenanceComplete}
-				<p>Thanks for your patience!</p>
-			{/if}
+			<p>Thanks for your patience!</p>
 		</div>
 		
 		<!-- Disclaimer about auto-generated content -->

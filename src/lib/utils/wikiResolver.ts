@@ -37,7 +37,7 @@ export interface WikiResolveResult {
 }
 
 export async function resolveWikiTitleWithContext(phrase: string, kind: EntityKind = 'generic'): Promise<WikiResolveResult | null> {
-	const uiLang = browser ? language.current : 'en';
+	const uiLang = browser ? language.ui : 'en';
 	const wikiLang = normalizeWikiLang(uiLang);
 	const cacheKey = `${wikiLang}:${kind}:${phrase}`;
 	if (RESOLVE_CACHE.has(cacheKey)) {

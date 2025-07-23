@@ -35,6 +35,68 @@ function toggleDisableWikiHeadlines() {
 	experimental.toggleFeature('disableWikiTooltipsInHeadlines');
 }
 
+// Article/Category display helper functions
+// Unified decoration style and target toggles
+type VisualMode = 'none' | 'icons' | 'emojis';
+
+let styleMode: VisualMode;
+let headlinesOn: boolean;
+let categoriesOn: boolean;
+
+// Derive current state from individual feature flags
+$: styleMode = experimental.showArticleIcons || experimental.showCategoryIcons
+	? 'icons'
+	: experimental.useArticleEmojis || experimental.useCategoryEmojis
+	? 'emojis'
+	: 'none';
+
+$: headlinesOn = experimental.showArticleIcons || experimental.useArticleEmojis;
+$: categoriesOn = experimental.showCategoryIcons || experimental.useCategoryEmojis;
+
+/** Apply current style to headlines/categories depending on toggle state */
+function applyStyleToTargets() {
+	// Headlines (story titles)
+	if (headlinesOn) {
+		experimental.setFeatures(
+			styleMode === 'icons'
+				? { showArticleIcons: true, useArticleEmojis: false }
+				: styleMode === 'emojis'
+				? { showArticleIcons: false, useArticleEmojis: true }
+				: { showArticleIcons: false, useArticleEmojis: false },
+		);
+	} else {
+		experimental.setFeatures({ showArticleIcons: false, useArticleEmojis: false });
+	}
+
+	// Categories (pills)
+	if (categoriesOn) {
+		experimental.setFeatures(
+			styleMode === 'icons'
+				? { showCategoryIcons: true, useCategoryEmojis: false }
+				: styleMode === 'emojis'
+				? { showCategoryIcons: false, useCategoryEmojis: true }
+				: { showCategoryIcons: false, useCategoryEmojis: false },
+		);
+	} else {
+		experimental.setFeatures({ showCategoryIcons: false, useCategoryEmojis: false });
+	}
+}
+
+function setVisualMode(mode: VisualMode) {
+	styleMode = mode;
+	applyStyleToTargets();
+}
+
+function toggleHeadlines() {
+	headlinesOn = !headlinesOn;
+	applyStyleToTargets();
+}
+
+function toggleCategories() {
+	categoriesOn = !categoriesOn;
+	applyStyleToTargets();
+}
+
 </script>
 
 <div class="space-y-6">
@@ -42,124 +104,111 @@ function toggleDisableWikiHeadlines() {
 		⚠️ <span class="ml-1">{s('settings.experimental.warning') || 'These features are experimental and may change or be removed in future versions.'}</span>
 	</p>
 
-	<!-- Article Icons / Emojis -->
+	<!-- Visual Decoration Style -->
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
 		<div class="mb-2 flex items-center justify-between">
-			<label for="show-article-icons" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.articleIcons.label') || 'Show Article Icons'}
-			</label>
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.experimental.visualStyle.label') || 'Decoration Style'}
+			</span>
+		</div>
+		<div class="grid grid-cols-3 gap-2">
 			<button
-				id="show-article-icons"
-				onclick={toggleArticleIcons}
+				onclick={() => setVisualMode('none')}
 				type="button"
-				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={experimental.showArticleIcons}
-				class:bg-gray-200={!experimental.showArticleIcons}
-				class:dark:bg-gray-600={!experimental.showArticleIcons}
+				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class:bg-blue-600={styleMode === 'none'}
+				class:bg-gray-200={styleMode !== 'none'}
+				class:dark:bg-gray-600={styleMode !== 'none'}
 				role="switch"
-				aria-checked={experimental.showArticleIcons}
+				aria-checked={styleMode === 'none'}
 			>
-				<span class="sr-only">{s('settings.experimental.articleIcons.label') || 'Show Article Icons'}</span>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={experimental.showArticleIcons}
-					class:translate-x-1={!experimental.showArticleIcons}
-				></span>
+				<span class="sr-only">Decoration: None</span>
+				<span class="text-lg">None</span>
+			</button>
+			<button
+				onclick={() => setVisualMode('icons')}
+				type="button"
+				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class:bg-blue-600={styleMode === 'icons'}
+				class:bg-gray-200={styleMode !== 'icons'}
+				class:dark:bg-gray-600={styleMode !== 'icons'}
+				role="switch"
+				aria-checked={styleMode === 'icons'}
+			>
+				<span class="sr-only">Decoration: Icons</span>
+				<span class="text-lg">Icons</span>
+			</button>
+			<button
+				onclick={() => setVisualMode('emojis')}
+				type="button"
+				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class:bg-blue-600={styleMode === 'emojis'}
+				class:bg-gray-200={styleMode !== 'emojis'}
+				class:dark:bg-gray-600={styleMode !== 'emojis'}
+				role="switch"
+				aria-checked={styleMode === 'emojis'}
+			>
+				<span class="sr-only">Decoration: Emojis</span>
+				<span class="text-lg">Emojis</span>
 			</button>
 		</div>
 		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.articleIcons.description') || 'Display icons next to article titles to provide visual context.'}
+			{s('settings.experimental.visualStyle.description') || 'Choose how headlines and categories are decorated.'}
 		</p>
 	</div>
 
-	<!-- Article Emojis -->
+	<!-- Apply to Headlines -->
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
 		<div class="mb-2 flex items-center justify-between">
-			<label for="use-article-emojis" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.articleEmojis.label') || 'Use Article Emojis'}
+			<label for="toggle-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.experimental.visualTargets.headlines') || 'Apply to Headlines'}
 			</label>
 			<button
-				id="use-article-emojis"
-				onclick={toggleUseArticleEmojis}
+				id="toggle-headlines"
+				onclick={toggleHeadlines}
 				type="button"
 				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={experimental.useArticleEmojis}
-				class:bg-gray-200={!experimental.useArticleEmojis}
-				class:dark:bg-gray-600={!experimental.useArticleEmojis}
+				class:bg-blue-600={headlinesOn}
+				class:bg-gray-200={!headlinesOn}
+				class:dark:bg-gray-600={!headlinesOn}
 				role="switch"
-				aria-checked={experimental.useArticleEmojis}
+				aria-checked={headlinesOn}
 			>
-				<span class="sr-only">Use Article Emojis</span>
+				<span class="sr-only">Toggle headlines decoration</span>
 				<span
 					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={experimental.useArticleEmojis}
-					class:translate-x-1={!experimental.useArticleEmojis}
+					class:translate-x-6={headlinesOn}
+					class:translate-x-1={!headlinesOn}
 				></span>
 			</button>
 		</div>
-		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.articleEmojis.description') || 'Render raw emojis next to article titles instead of iconified SVGs.'}
-		</p>
 	</div>
 
-	<!-- Category Icons -->
+	<!-- Apply to Categories -->
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
 		<div class="mb-2 flex items-center justify-between">
-			<label for="show-category-icons" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.categoryIcons.label') || 'Show Category Icons'}
+			<label for="toggle-categories" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.experimental.visualTargets.categories') || 'Apply to Categories'}
 			</label>
 			<button
-				id="show-category-icons"
-				onclick={toggleCategoryIcons}
+				id="toggle-categories"
+				onclick={toggleCategories}
 				type="button"
 				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={experimental.showCategoryIcons}
-				class:bg-gray-200={!experimental.showCategoryIcons}
-				class:dark:bg-gray-600={!experimental.showCategoryIcons}
+				class:bg-blue-600={categoriesOn}
+				class:bg-gray-200={!categoriesOn}
+				class:dark:bg-gray-600={!categoriesOn}
 				role="switch"
-				aria-checked={experimental.showCategoryIcons}
+				aria-checked={categoriesOn}
 			>
-				<span class="sr-only">{s('settings.experimental.categoryIcons.label') || 'Show Category Icons'}</span>
+				<span class="sr-only">Toggle categories decoration</span>
 				<span
 					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={experimental.showCategoryIcons}
-					class:translate-x-1={!experimental.showCategoryIcons}
+					class:translate-x-6={categoriesOn}
+					class:translate-x-1={!categoriesOn}
 				></span>
 			</button>
 		</div>
-		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.categoryIcons.description') || 'Display icons next to category labels for better visual identification.'}
-		</p>
-	</div>
-
-	<!-- Category Emojis -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-		<div class="mb-2 flex items-center justify-between">
-			<label for="use-category-emojis" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.categoryEmojis.label') || 'Use Category Emojis'}
-			</label>
-			<button
-				id="use-category-emojis"
-				onclick={toggleUseCategoryEmojis}
-				type="button"
-				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={experimental.useCategoryEmojis}
-				class:bg-gray-200={!experimental.useCategoryEmojis}
-				class:dark:bg-gray-600={!experimental.useCategoryEmojis}
-				role="switch"
-				aria-checked={experimental.useCategoryEmojis}
-			>
-				<span class="sr-only">Use Category Emojis</span>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={experimental.useCategoryEmojis}
-					class:translate-x-1={!experimental.useCategoryEmojis}
-				></span>
-			</button>
-		</div>
-		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.categoryEmojis.description') || 'Render raw emojis next to category labels instead of iconified SVGs.'}
-		</p>
 	</div>
 
 	<!-- Disable Category Swipe (Mobile Only) -->

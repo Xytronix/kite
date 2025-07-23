@@ -17,7 +17,7 @@ export interface WikipediaContent {
  * Supports both regular Wikipedia page IDs and Wikidata Q-IDs
  */
 export async function fetchWikipediaContent(wikiId: string, lang?: string): Promise<WikipediaContent> {
-    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
     const cacheKey = `${wikiLang}:${wikiId}`;
 
@@ -147,7 +147,7 @@ const wikipediaDomainCache = new Map<string, WikipediaContent>();
  * 4. Return the {@link WikipediaContent} for the first result, or null if none found
  */
 export async function fetchWikipediaContentForDomain(domain: string, lang?: string): Promise<WikipediaContent | null> {
-    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
     // Normalise domain (remove protocol, path, port)
     let hostname = domain.trim();
@@ -205,7 +205,7 @@ const wikipediaSearchCache = new Map<string, WikipediaContent>();
  * Returns `null` when nothing relevant is found.
  */
 export async function fetchWikipediaContentBySearch(query: string, lang?: string): Promise<WikipediaContent | null> {
-    const uiLang = (lang || (browser ? language.current : 'en')) || 'en';
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
     const normalized = query.trim().toLowerCase();
     if (!normalized) return null;

@@ -49,7 +49,22 @@ jobs:
         shell: bash
         run: |
           set -e
-          bunx prettier --write './src/**/*.{html,js,ts,svelte,css}'
+          # Collect changed files for the current push or PR
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            base="$GITHUB_BASE_REF"
+            head="$GITHUB_SHA"
+            changed_files=$(git diff --name-only "$base" "$head" -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html')
+          else
+            changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html')
+          fi
+
+          if [ -z "$changed_files" ]; then
+            echo "No files to format with Prettier."
+            exit 0
+          fi
+
+          # Run Prettier on the changed files only
+          echo "$changed_files" | xargs bunx prettier --write
 
       - name: Suggest Prettier fixes
         if: github.event_name == 'pull_request'

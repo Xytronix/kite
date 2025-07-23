@@ -74,7 +74,7 @@ function capitalizeFirst(str: string): string {
 const dateDisplay = $derived.by(() => {
 	// If in time travel mode, show the selected date
 	if (timeTravel.selectedDate) {
-		const dateStr = new Intl.DateTimeFormat(language.current, {
+		const dateStr = new Intl.DateTimeFormat(language.locale, {
 			weekday: 'long',
 			month: 'long',
 			day: 'numeric',
@@ -88,7 +88,7 @@ const dateDisplay = $derived.by(() => {
 		// If user scrolled to an older feed date, show that instead of today
 		if (feedDateValue) {
 			const parsed = new Date(feedDateValue + 'T00:00:00Z');
-			const dateStr = new Intl.DateTimeFormat(language.current, {
+			const dateStr = new Intl.DateTimeFormat(language.locale, {
 				weekday: 'long',
 				month: 'long',
 				day: 'numeric',
@@ -99,7 +99,7 @@ const dateDisplay = $derived.by(() => {
 
 		// Default date format (today)
 		const now = new Date();
-		const dateStr = new Intl.DateTimeFormat(language.current, {
+		const dateStr = new Intl.DateTimeFormat(language.locale, {
 			weekday: 'long',
 			month: 'long',
 			day: 'numeric'

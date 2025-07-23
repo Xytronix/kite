@@ -20,15 +20,15 @@ function handleAboutClick() {
 function getRSSFeedUrl(): string {
 	if (currentCategory === 'OnThisDay') {
 		// For OnThisDay, use the translated RSS feed if available
-		if (language.current !== 'default' && language.current !== 'en') {
-			return `onthisday_${language.current}.xml`;
+		if (language.ui !== 'default' && language.ui !== 'en') {
+			return `onthisday_${language.ui}.xml`;
 		}
 		return 'onthisday.xml';
 	}
 	
 	// For other categories, use translated RSS feeds when available
-	if (language.current !== 'default' && language.current !== 'en') {
-		return `${currentCategory.toLowerCase()}_${language.current}.xml`;
+	if (language.ui !== 'default' && language.ui !== 'en') {
+		return `${currentCategory.toLowerCase()}_${language.ui}.xml`;
 	}
 	
 	return `${currentCategory.toLowerCase()}.xml`;

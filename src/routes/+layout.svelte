@@ -43,7 +43,13 @@ const maintenanceActive = $derived.by(() => {
         const endTime = new Date(maintenanceEnd);
         const hasStarted = now >= startTime;
         const hasEnded = now >= endTime;
-        
+
+        // If the entire window is already in the past, fall back to manual settings
+        if (hasStarted && hasEnded) {
+            const envMaintenance = PUBLIC_MAINTENANCE_MODE === 'true';
+            return serverMaintenance || envMaintenance;
+        }
+
         if (maintenanceAuto) {
             // AUTO=true: Automatically start AND end based on dates
             return hasStarted && !hasEnded;
@@ -54,7 +60,7 @@ const maintenanceActive = $derived.by(() => {
                 // Only manual intervention can end it
                 return true;
             } else {
-                // Before start time - use manual setting
+                // Before start time – use manual setting
                 const envMaintenance = PUBLIC_MAINTENANCE_MODE === 'true';
                 return serverMaintenance || envMaintenance;
             }
@@ -64,7 +70,7 @@ const maintenanceActive = $derived.by(() => {
     // Fallback to manual mode
     const envMaintenance = PUBLIC_MAINTENANCE_MODE === 'true';
     
-    return serverMaintenance;
+    return serverMaintenance || envMaintenance;
 });
 
 // Animated progress for maintenance screen with countdown
@@ -196,6 +202,15 @@ onMount(async () => {
 	categories.init();
 	settings.init();
 	experimental.init();
+
+	// Clear stale local maintenance override if site is no longer in maintenance
+	if (browser) {
+		const localFlag = localStorage.getItem('kite-maintenance');
+		const envMaintenance = PUBLIC_MAINTENANCE_MODE === 'true' || data.maintenanceMode;
+		if (localFlag === 'true' && !envMaintenance) {
+			localStorage.removeItem('kite-maintenance');
+		}
+	}
 	
 	// Initialize OverlayScrollbars on the body element
 	if (browser && document.body) {

@@ -21,8 +21,12 @@ export const load: LayoutServerLoad = async ({ url }) => {
     const endTime = new Date(maintenanceEnd);
     const hasStarted = now >= startTime;
     const hasEnded = now >= endTime;
-    
-    if (maintenanceAuto) {
+
+    // If the entire maintenance window is already in the past, ignore dates entirely
+    if (hasStarted && hasEnded) {
+      // Treat as if no window exists – rely solely on manual toggle
+      finalMaintenanceMode = maintenanceMode;
+    } else if (maintenanceAuto) {
       // AUTO=true: Automatically start AND end based on dates
       finalMaintenanceMode = hasStarted && !hasEnded;
     } else {
@@ -32,7 +36,7 @@ export const load: LayoutServerLoad = async ({ url }) => {
         // Only manual intervention can end it
         finalMaintenanceMode = true;
       } else {
-        // Before start time - use manual setting
+        // Before start time – use manual setting
         finalMaintenanceMode = maintenanceMode;
       }
     }

@@ -25,7 +25,7 @@ export const GET: RequestHandler = async () => {
         } else if (now > endTime) {
             status = 'completed';
             progress = 100;
-            timeRemaining = 'Completed';
+            timeRemaining = 'Finishing...';
         } else {
             status = 'active';
             isActive = true;
