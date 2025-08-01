@@ -5,6 +5,7 @@
 
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { resolveWikiTitleWithContext, type WikiResolveResult } from '$lib/utils/wikiResolver';
+import { validateWikipediaEntry } from '$lib/services/wikipediaService';
 
 const WIKI_CACHE = new Map<string, string>(); // query -> title ("" means rejected)
 
@@ -154,21 +155,25 @@ export async function autoLinkPlaces(root: HTMLElement) {
       if (wordCount === 1 && !COUNTRY_NAMES.has(lcPlace)) continue;
       const index = match.index + (match[0].length - place.length); // start of place within node
 
-      tasks.push(
+              tasks.push(
         (async () => {
           const res: WikiResolveResult | null = await resolveWikiTitleWithContext(place, 'place');
           if (!res) return;
           const title = res.title;
           const qid = res.qid;
 
+          // Validate that this Wikipedia entry exists before creating link
+          const checkWikiId = qid && qid !== '' ? qid : encodeURIComponent(title.replace(/ /g, '_'));
+          const isValid = await validateWikipediaEntry(checkWikiId);
+          if (!isValid) return;
+
           // Ensure still in DOM
           if (!textNode.parentNode) return;
 
           const anchor = document.createElement('a');
           anchor.textContent = place;
-          const wikiId = qid && qid !== '' ? qid : encodeURIComponent(title.replace(/ /g, '_'));
-          anchor.setAttribute('data-wiki-id', wikiId);
-          const wikiUrl = `https://en.wikipedia.org/wiki/${wikiId}`;
+          anchor.setAttribute('data-wiki-id', checkWikiId);
+          const wikiUrl = `https://en.wikipedia.org/wiki/${checkWikiId}`;
           anchor.setAttribute('data-url', wikiUrl);
           anchor.className = 'text-blue-500 hover:underline cursor-pointer';
           anchor.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });

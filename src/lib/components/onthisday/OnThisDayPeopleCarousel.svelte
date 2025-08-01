@@ -34,13 +34,12 @@ async function preloadPeopleImages() {
 	// Skip preloading in time travel mode
 	if (batchService.isTimeTravelMode()) return;
 	
-	console.log('Starting to preload images for', people.length, 'people');
+
 	
 	const imagePromises = people.map(async (person, index) => {
 		// Extract Wikipedia ID from the person's content
 		const linkMatch = person.content.match(/<a[^>]*data-wiki-id="([^"]*)"[^>]*>/);
 		if (!linkMatch) {
-			console.warn(`No wiki-id found for person ${index}:`, person.content);
 			return;
 		}
 		
@@ -52,18 +51,14 @@ async function preloadPeopleImages() {
 			if (data?.thumbnail?.source) {
 				const cacheKey = person.year + person.content;
 				peopleImagesCache.set(cacheKey, data.thumbnail.source);
-				console.log(`✅ Loaded image for ${person.year}:`, data.thumbnail.source);
 				imagesLoaded++; // Trigger reactivity
-			} else {
-				console.warn(`❌ No thumbnail for ${person.year} (${wikiId})`);
 			}
 		} catch (error) {
-			console.error(`Failed to preload image for person ${person.year}:`, error);
+			// Silently handle image loading errors
 		}
 	});
 	
 	await Promise.allSettled(imagePromises);
-	console.log('Finished preloading people images. Total loaded:', imagesLoaded);
 }
 
 // Get cached image for a person (reactive to imagesLoaded)
@@ -72,8 +67,51 @@ function getPersonImage(person: OnThisDayEvent): string {
 	imagesLoaded;
 	const cacheKey = person.year + person.content;
 	const cached = peopleImagesCache.get(cacheKey);
-	console.log(`Getting image for ${person.year}:`, cached ? 'FOUND' : 'NOT FOUND', cached);
-	return cached || '/svg/placeholder.svg';
+	return cached || null;
+}
+
+// Generate initials from person's name for fallback
+function getPersonInitials(person: OnThisDayEvent): string {
+	// Extract name from the content (look for the first link text)
+	const linkMatch = person.content.match(/<a[^>]*>([^<]+)<\/a>/);
+	if (linkMatch) {
+		const name = linkMatch[1];
+		const words = name.split(' ').filter(word => word.length > 0);
+		if (words.length >= 2) {
+			return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+		} else if (words.length === 1) {
+			return words[0].substring(0, 2).toUpperCase();
+		}
+	}
+	return '??';
+}
+
+// Generate a consistent color based on the person's name
+function getPersonColor(person: OnThisDayEvent): string {
+	const linkMatch = person.content.match(/<a[^>]*>([^<]+)<\/a>/);
+	const name = linkMatch ? linkMatch[1] : person.content;
+	
+	// Simple hash function to generate consistent colors
+	let hash = 0;
+	for (let i = 0; i < name.length; i++) {
+		hash = name.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	
+	// Generate pleasant colors (avoiding too dark or too light)
+	const colors = [
+		'#3B82F6', // blue
+		'#10B981', // emerald
+		'#8B5CF6', // violet
+		'#F59E0B', // amber
+		'#EF4444', // red
+		'#06B6D4', // cyan
+		'#84CC16', // lime
+		'#F97316', // orange
+		'#EC4899', // pink
+		'#6366F1', // indigo
+	];
+	
+	return colors[Math.abs(hash) % colors.length];
 }
 
 // Carousel functions
@@ -114,7 +152,6 @@ function handleWheel(event: WheelEvent) {
 // Setup function to run when props change
 function setup(props: Props) {
 	if (browser && props.people.length > 0) {
-		console.log('People data loaded, starting image preload for', props.people.length, 'people');
 		preloadPeopleImages();
 	}
 }
@@ -169,11 +206,34 @@ $effect(() => setup({ people }));
 
 								<!-- Image + Text -->
 								<div class="flex items-start gap-4">
-									<img
-										class="h-10 w-10 flex-shrink-0 rounded-full object-cover"
-										src={getPersonImage(person)}
-										alt="placeholder"
-									/>
+									{#if getPersonImage(person)}
+										<!-- Try to load image first -->
+										<img
+											class="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+											src={getPersonImage(person)}
+											alt="Person"
+											onerror={(e) => {
+												const target = e.target as HTMLImageElement;
+												target.style.display = 'none';
+												(target.nextElementSibling as HTMLElement)!.style.display = 'flex';
+											}}
+										/>
+										<!-- Fallback avatar (hidden by default) -->
+										<div 
+											class="h-10 w-10 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+											style="background-color: {getPersonColor(person)}; display: none;"
+										>
+											{getPersonInitials(person)}
+										</div>
+									{:else}
+										<!-- Initial avatar fallback -->
+										<div 
+											class="h-10 w-10 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+											style="background-color: {getPersonColor(person)}"
+										>
+											{getPersonInitials(person)}
+										</div>
+									{/if}
 									<span class="text-left text-sm text-gray-700 dark:text-gray-300">
 										{@html person.content.replace(/href=/g, 'class="underline text-gray-800 hover:text-gray-600 cursor-pointer transition-colors dark:text-gray-200 dark:hover:text-gray-400" href=')}
 									</span>

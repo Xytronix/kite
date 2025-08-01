@@ -288,6 +288,8 @@
 		};
 	}
 
+
+
 	/**
 	 * Converts a single character (like an emoji) into its corresponding Iconify icon name.
 	 * Handles normalization, aliases, and programmatic mappings (e.g., for flags).
@@ -361,7 +363,10 @@
 			})
 			.then((data) => {
 				if (isCancelled || !data?.icons?.[name]) {
-					if (!isCancelled) loadingState = 'error';
+					if (!isCancelled) {
+						console.error(`❌ Iconify icon not found in API response: ${iconName} (for emoji: ${emoji})`);
+						loadingState = 'error';
+					}
 					return;
 				}
 
@@ -381,7 +386,7 @@
 				loadingState = 'success';
 			})
 			.catch((err) => {
-				console.error(`Failed to fetch icon: ${iconName}`, err);
+				console.error(`❌ Failed to fetch iconify icon: ${iconName} (for emoji: ${emoji})`, err);
 				if (!isCancelled) {
 					iconData = null; // Clear on error
 					loadingState = 'error';

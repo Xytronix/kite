@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 /* Use CSS selector instead of the prefers-color-scheme media query: https://tailwindcss.com/docs/dark-mode */
+/* @custom-variant is a valid Tailwind CSS v4 directive - ignore CSS linter warning */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* OverlayScrollbars theming - Light theme (default) */
@@ -24,6 +25,7 @@
 }
 
 /* Extend default theme */
+/* @theme is a valid Tailwind CSS v4 directive - ignore CSS linter warning */
 @theme {
   /* Dynamic font size variables (can be overridden by JavaScript) */
   --text-xs: var(--text-xs, 0.75rem);
@@ -311,6 +313,7 @@
 /* Focus-visible utilities for consistent accessibility */
 @layer utilities {
   .focus-visible-ring {
+    /* @apply is a valid Tailwind CSS directive - ignore CSS linter warning */
     @apply focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-focus-offset)] focus-visible:outline-none;
   }
 
@@ -343,4 +346,35 @@
     width: var(--icon-xl);
     height: var(--icon-xl);
   }
+}
+
+/* Suppress external font 404 errors from CBS News and other external content */
+@font-face {
+  font-family: 'ProximaNova-Bold';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ProximaNova-Regular';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoHeadline-Bold';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoHeadline-Black';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoText';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
 }

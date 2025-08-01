@@ -3,8 +3,11 @@ import { s } from '$lib/client/localization.svelte';
 import { theme, type ThemeOption } from '$lib/stores/theme.svelte.js';
 import { language, type SupportedLanguage } from '$lib/stores/language.svelte.js';
 import { settings, type FontSize } from '$lib/stores/settings.svelte.js';
+import { categories } from '$lib/stores/categories.svelte.js';
+import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
 import { SUPPORTED_LANGUAGES } from '$lib/constants/languages.js';
 import { dataReloadService } from '$lib/services/dataService.js';
+import { locationService, type LocationInfo } from '$lib/services/locationService';
 import Select from '$lib/components/Select.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
 import Icon from '@iconify/svelte';
@@ -56,6 +59,9 @@ let currentFontSize = $state<string>(settings.fontSize);
 let currentCategoryHeaderPosition = $state<string>(settings.categoryHeaderPosition);
 let isLanguageLoading = $state(false);
 let isDataLanguageLoading = $state(false);
+let locationInfo = $state<LocationInfo | null>(null);
+let isResetConfirming = $state(false);
+let resetTimeout: NodeJS.Timeout | null = null;
 
 // Sync local state with stores
 $effect(() => {
@@ -78,6 +84,30 @@ $effect(() => {
 	currentCategoryHeaderPosition = settings.categoryHeaderPosition;
 });
 
+// Load location info on component mount
+$effect(() => {
+	loadLocationInfo();
+});
+
+// Load location information for language suggestions
+async function loadLocationInfo() {
+	try {
+		locationInfo = await locationService.detectLocation();
+	} catch (error) {
+		console.error('Failed to detect location for language suggestions:', error);
+		locationInfo = null;
+	}
+}
+
+// Cleanup timeout on component destroy
+$effect(() => {
+	return () => {
+		if (resetTimeout) {
+			clearTimeout(resetTimeout);
+		}
+	};
+});
+
 // Theme change handler
 function handleThemeChange(newTheme: string) {
 	theme.set(newTheme as ThemeOption);
@@ -86,13 +116,23 @@ function handleThemeChange(newTheme: string) {
 
 // UI Language change handler
 async function handleLanguageChange(newLanguage: string) {
-	language.setUI(newLanguage as SupportedLanguage);
 	currentLanguage = newLanguage;
 	isLanguageLoading = true;
 	
 	try {
-		// UI language change only requires locale reload
-		await new Promise(resolve => setTimeout(resolve, 500)); // Give time for locale to load
+		// Set UI language first
+		language.setUI(newLanguage as SupportedLanguage);
+		
+		// Wait a brief moment to ensure state is updated
+		await new Promise(resolve => setTimeout(resolve, 50));
+		
+		// Explicitly load new locale strings for UI language
+		const targetLang = newLanguage === 'default' ? navigator.language.split('-')[0] : newLanguage;
+		console.log('Loading locale strings for language change:', targetLang);
+		await language.loadNewStrings(targetLang);
+		console.log('Locale strings loaded successfully for:', targetLang);
+	} catch (error) {
+		console.error('Failed to load locale strings during language change:', error);
 	} finally {
 		isLanguageLoading = false;
 	}
@@ -133,14 +173,116 @@ function handleCategoryHeaderPositionChange(position: string) {
 function showAbout() {
 	if (onShowAbout) onShowAbout();
 }
+
+// Handle reset button click (first click shows confirmation)
+function handleResetClick() {
+	if (isResetConfirming) {
+		// Second click - actually reset
+		resetAllSettings();
+	} else {
+		// First click - show confirmation
+		isResetConfirming = true;
+		// Reset confirmation state after 3 seconds
+		if (resetTimeout) clearTimeout(resetTimeout);
+		resetTimeout = setTimeout(() => {
+			isResetConfirming = false;
+		}, 3000);
+	}
+}
+
+// Reset all settings to defaults
+async function resetAllSettings() {
+	// Clear confirmation state
+	isResetConfirming = false;
+	if (resetTimeout) {
+		clearTimeout(resetTimeout);
+		resetTimeout = null;
+	}
+
+	// Get location-based defaults
+	let locationDefaults;
+	try {
+		locationDefaults = await locationService.detectLocation();
+	} catch (error) {
+		console.warn('Failed to get location for reset, using fallback defaults:', error);
+		locationDefaults = null;
+	}
+
+	// Determine reset values based on location or fallback to defaults
+	const resetUILanguage = locationDefaults?.suggestedUILanguage || 'en';
+	const resetDataLanguage = locationDefaults?.suggestedDataLanguage || 'en';
+
+	// Reset stores with location-aware values
+	theme.reset(); // Always reset to 'system'
+	settings.reset(); // Always reset to defaults
+	smartContentFilter.reset(); // Reset content filtering settings
+
+	// Set languages based on location
+	language.setUI(resetUILanguage as any);
+	language.setData(resetDataLanguage as any);
+
+	// Reset categories to location-based defaults
+	categories.initWithLocationDefaults(locationDefaults?.suggestedCategories);
+
+	// Update local state to reflect the reset values
+	currentTheme = 'system';
+	currentLanguage = resetUILanguage;
+	currentDataLanguage = resetDataLanguage;
+	currentFontSize = 'normal';
+	currentCategoryHeaderPosition = 'bottom';
+
+	// Explicitly load new locale strings for UI language
+	isLanguageLoading = true;
+	try {
+		// Wait a brief moment to ensure language state is updated
+		await new Promise(resolve => setTimeout(resolve, 50));
+		
+		const targetLang = resetUILanguage === 'default' ? navigator.language.split('-')[0] : resetUILanguage;
+		console.log('Loading locale strings for reset:', targetLang);
+		await language.loadNewStrings(targetLang);
+		console.log('Locale strings loaded successfully for reset:', targetLang);
+	} catch (error) {
+		console.error('Failed to load locale strings during reset:', error);
+	} finally {
+		isLanguageLoading = false;
+	}
+
+	// Trigger data reload for language change
+	isDataLanguageLoading = true;
+	try {
+		await dataReloadService.reloadData();
+	} finally {
+		isDataLanguageLoading = false;
+	}
+}
 </script>
 
 <div class="space-y-6">
+	<!-- Location-based settings info -->
+	{#if locationInfo && language.isFirstVisit() && (locationInfo.suggestedUILanguage !== 'en' || locationInfo.suggestedDataLanguage !== 'en')}
+		<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm">
+			<div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+				<Icon icon="tabler:map-pin" class="w-4 h-4" />
+				<span class="font-medium">Location-optimized settings</span>
+			</div>
+			<p class="mt-1 text-blue-600 dark:text-blue-400">
+				{s('settings.location.detected') || 'Settings have been automatically optimized based on your location. You can change them anytime.'}
+			</p>
+		</div>
+	{/if}
+
 	<!-- Theme Setting -->
 	<div class="flex flex-col space-y-2">
+		<div class="flex items-center gap-2 mb-1">
+			<Icon icon="tabler:palette" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.theme.label') || 'Theme'}
+			</span>
+		</div>
 		<Select
 			value={currentTheme}
 			options={themeOptions}
+			hideLabel={true}
 			label={s('settings.theme.label') || 'Theme'}
 			onChange={handleThemeChange}
 		/>
@@ -149,14 +291,21 @@ function showAbout() {
 	<!-- UI Language Setting -->
 	<div class="flex flex-col space-y-2">
 		<div class="flex items-center space-x-1 mb-1">
+			<Icon icon="tabler:language" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
 			<label for="ui-language-select" class="text-sm font-medium text-gray-700 dark:text-gray-300">
 				{s('settings.uiLanguage.label') || 'Interface Language'}
 			</label>
-			<Tooltip text={s('settings.uiLanguage.tooltip') || 'Controls the language of buttons, menus, and interface text. \'Default\' uses your browser\'s language.'} position="bottom">
+			<Tooltip text={s('settings.uiLanguage.tooltip') || 'Controls the language of buttons, menus, and interface text.'} position="bottom">
 				<button type="button" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
 					<Icon icon="tabler:info-circle" width="14" height="14" />
 				</button>
 			</Tooltip>
+			{#if locationInfo && language.isFirstVisit() && locationInfo.suggestedUILanguage && locationInfo.suggestedUILanguage !== 'en'}
+				<div class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+					<Icon icon="tabler:map-pin" class="w-3 h-3" />
+					<span>Auto-detected</span>
+				</div>
+			{/if}
 		</div>
 		<div class="relative">
 			<Select
@@ -178,6 +327,7 @@ function showAbout() {
 	<!-- Data Language Setting -->
 	<div class="flex flex-col space-y-2">
 		<div class="flex items-center space-x-1 mb-1">
+			<Icon icon="tabler:world" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
 			<label for="data-language-select" class="text-sm font-medium text-gray-700 dark:text-gray-300">
 				{s('settings.dataLanguage.label') || 'Content Language'}
 			</label>
@@ -186,6 +336,12 @@ function showAbout() {
 					<Icon icon="tabler:info-circle" width="14" height="14" />
 				</button>
 			</Tooltip>
+			{#if locationInfo && language.isFirstVisit() && locationInfo.suggestedDataLanguage && locationInfo.suggestedDataLanguage !== 'en'}
+				<div class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+					<Icon icon="tabler:map-pin" class="w-3 h-3" />
+					<span>Auto-detected</span>
+				</div>
+			{/if}
 		</div>
 		<div class="relative">
 			<Select
@@ -216,12 +372,19 @@ function showAbout() {
 
 	<!-- Mobile-only category header position setting -->
 	<div class="flex flex-col space-y-2 md:hidden">
+		<div class="flex items-center gap-2 mb-1">
+			<Icon icon="tabler:layout-navbar" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.categoryHeaderPosition.label') || 'Category Header Position'}
+			</span>
+		</div>
 		<Select
 			value={currentCategoryHeaderPosition}
 			options={[
 				{ value: 'bottom', label: s('settings.categoryHeaderPosition.bottom') || 'Bottom' },
 				{ value: 'top', label: s('settings.categoryHeaderPosition.top') || 'Top' }
 			]}
+			hideLabel={true}
 			label={s('settings.categoryHeaderPosition.label') || 'Category Header Position'}
 			onChange={handleCategoryHeaderPositionChange}
 		/>
@@ -232,9 +395,16 @@ function showAbout() {
 
 	<!-- Font Size Setting -->
 	<div class="flex flex-col space-y-2">
+		<div class="flex items-center gap-2 mb-1">
+			<Icon icon="tabler:typography" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.fontSize.label') || 'Text Size'}
+			</span>
+		</div>
 		<Select
 			value={currentFontSize}
 			options={fontSizeOptions}
+			hideLabel={true}
 			label={s('settings.fontSize.label') || 'Text Size'}
 			onChange={handleFontSizeChange}
 		/>
@@ -242,9 +412,12 @@ function showAbout() {
 
 	<!-- Story Count Setting -->
 	<div class="flex flex-col space-y-2">
-		<label for="story-count-range" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-			{s('settings.storyCount.label') || 'Stories per category'}: {settings.storyCount}
-		</label>
+		<div class="flex items-center gap-2 mb-1">
+			<Icon icon="tabler:list-numbers" class="w-4 h-4 text-gray-600 dark:text-gray-400" />
+			<label for="story-count-range" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				{s('settings.storyCount.label') || 'Stories per category'}: {settings.storyCount}
+			</label>
+		</div>
 		<input
 			id="story-count-range"
 			type="range"
@@ -273,5 +446,49 @@ function showAbout() {
 			/>
 			<span>{s('settings.aboutKite.button') || 'About Kite'}</span>
 		</button>
+	</div>
+
+	<!-- Report Issue Button -->
+	<div class="flex flex-col space-y-2">
+		<button
+			type="button"
+			onclick={() => window.open('https://github.com/kagisearch/kite-public/issues', '_blank')}
+			class="flex w-full items-center justify-center space-x-2 rounded-lg bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800 transition-colors duration-200 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+		>
+			<Icon icon="tabler:bug" class="h-4 w-4" />
+			<span>{s('settings.reportIssue.button') || 'Report Issue'}</span>
+		</button>
+	</div>
+
+	<!-- Reset Settings Button -->
+	<div class="flex flex-col space-y-2">
+		<button
+			type="button"
+			onclick={handleResetClick}
+			class={`flex w-full items-center justify-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+				isResetConfirming 
+					? 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+					: 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30'
+			}`}
+		>
+			<Icon icon="tabler:refresh" class="h-4 w-4" />
+			<span>
+				{#if isResetConfirming}
+					{s('settings.resetSettings.confirm') || 'Confirm Reset'}
+				{:else}
+					{s('settings.resetSettings.button') || 'Reset All Settings'}
+				{/if}
+			</span>
+		</button>
+		<p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+			{#if isResetConfirming}
+				{s('settings.resetSettings.confirmDescription') || 'Click again to confirm reset'}
+			{:else}
+				{s('settings.resetSettings.description') || 'This will reset all settings to their default values'}
+			{/if}
+		</p>
+		<p class="text-xs text-gray-400 dark:text-gray-500 text-center">
+			Website icons provided by <a href="https://logo.dev" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">logo.dev</a>
+		</p>
 	</div>
 </div> 

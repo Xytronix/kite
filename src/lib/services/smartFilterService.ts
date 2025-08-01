@@ -1,4 +1,5 @@
 import { SmartContentFilter, type ContentScore } from '$lib/algorithms/contentFilter';
+import { storyStorage } from '$lib/services/storyStorage';
 import type { Story } from '$lib/types';
 
 // Type for stories that have been through the filter
@@ -20,6 +21,45 @@ export interface FilterPreferences {
     filterAnxietyInducing: boolean;
     filterSocialMediaDrama: boolean;
     filterPromotional: boolean;
+    filterBreakingNews: boolean;
+	filterWeather: boolean;
+	filterLocalNews: boolean;
+	filterInternationalNews: boolean;
+	filterEconomicPessimism: boolean;
+	filterRepetitive: boolean;
+	filterContentSimilarity: boolean;
+	contentSimilarityMode: 'today' | 'historical';
+	contentSimilarityExpiry: number; // days
+	contentSimilarityThreshold: number; // 0-100, higher = stricter
+	contentSimilarityScope: 'within-category' | 'across-categories'; // How similarity detection works
+	// Similarity algorithm weightings (must sum to 100)
+	similarityTitleWeight: number; // Default: 40
+	similarityContentWeight: number; // Default: 25  
+	similarityEntityWeight: number; // Default: 35
+	// Filter sensitivity setting
+	filterSensitivity: 'strict' | 'balanced' | 'loose'; // Default: balanced
+	// Optional per-category sensitivity overrides
+	categoryOverrides?: {
+		politics?: 'strict' | 'balanced' | 'loose' | number;
+		celebrity?: 'strict' | 'balanced' | 'loose' | number;
+		sports?: 'strict' | 'balanced' | 'loose' | number;
+		financial?: 'strict' | 'balanced' | 'loose' | number;
+		technology?: 'strict' | 'balanced' | 'loose' | number;
+		entertainment?: 'strict' | 'balanced' | 'loose' | number;
+		socialMediaDrama?: 'strict' | 'balanced' | 'loose' | number;
+	};
+	// Global filtering weights (0-100%)
+	globalTitleImportance: number; // How much to weight title keyword matches
+	globalContentImportance: number; // How much to weight article body content
+	globalContextEvidence: number; // How much to weight surrounding context
+	// Per-category weight overrides
+	categoryWeightOverrides?: {
+		[category: string]: {
+			titleImportance?: number;
+			contentImportance?: number;
+			contextEvidence?: number;
+		};
+	};
     minimumRelevance: number;
     minimumQuality: number;
     minimumSentiment: number;
@@ -31,8 +71,8 @@ export class SmartFilterService {
     private readonly defaultPreferences: FilterPreferences = {
         filterPolitics: false,
         filterNegativeNews: false,
-        filterLowQuality: true,
-        filterViolence: true,
+        filterLowQuality: false,
+        filterViolence: false,
         filterCelebrity: false,
         filterSports: false,
         filterFinancial: false,
@@ -40,11 +80,30 @@ export class SmartFilterService {
         filterTechnology: false,
         filterOpinions: false,
         filterAnxietyInducing: false,
-        filterSocialMediaDrama: true,
-        filterPromotional: true,
+        filterSocialMediaDrama: false,
+        filterPromotional: false,
+        filterBreakingNews: false,
+        filterWeather: false,
+        filterLocalNews: false,
+        filterInternationalNews: false,
+        filterEconomicPessimism: false,
+        filterRepetitive: false,
+        filterContentSimilarity: false,
+        contentSimilarityMode: 'today',
+        contentSimilarityExpiry: 3, // 3 days default
+        contentSimilarityThreshold: 70, // 70% similarity threshold
+        contentSimilarityScope: 'within-category', // Default: within categories only
+        similarityTitleWeight: 40, // 40% weight for title similarity
+        similarityContentWeight: 25, // 25% weight for content similarity
+        similarityEntityWeight: 35, // 35% weight for entity similarity
+        filterSensitivity: 'balanced', // Default filter sensitivity
+        globalTitleImportance: 60, // 60% weight for title matches
+        globalContentImportance: 25, // 25% weight for content body
+        globalContextEvidence: 15, // 15% weight for surrounding context
+        categoryWeightOverrides: undefined,
         minimumRelevance: 0,
-        minimumQuality: 0.2,
-        minimumSentiment: 0.2
+        minimumQuality: 0,
+        minimumSentiment: 0
     };
 
     /**
@@ -68,35 +127,94 @@ export class SmartFilterService {
         for (const story of stories) {
             // Use the correct Story properties
             const sourceUrl = story.articles?.[0]?.link || '';
-            const score = this.filter.scoreContent(
-                story.title || '',
-                story.short_summary || '',
-                sourceUrl
-            );
+            const title = story.title || '';
+            const content = story.short_summary || '';
+            
+            // Get AI-based score
+            const score = this.filter.scoreContent(title, content, sourceUrl);
 
-            // Apply user preferences
-            const finalScore = this.filter.applyUserPreferences(score, {
-                filterPolitics: finalPreferences.filterPolitics,
-                filterNegativeNews: finalPreferences.filterNegativeNews,
-                filterLowQuality: finalPreferences.filterLowQuality,
-                minimumRelevance: finalPreferences.minimumRelevance
-            });
+            // Apply user preferences for content filtering
+            const finalScore = this.filter.applyUserPreferences(score, finalPreferences);
+            
+            // Check pattern-based filters
+            const patternCheck = this.filter.checkContentFilters(title, content, finalPreferences);
+            
+            // Check content similarity if enabled, threshold > 0, and at least one weight > 0
+            let similarityCheck = { isSimilar: false, similarity: 0, reason: undefined as string | undefined };
+            const hasValidWeights = finalPreferences.similarityTitleWeight > 0 || 
+                                  finalPreferences.similarityContentWeight > 0 || 
+                                  finalPreferences.similarityEntityWeight > 0;
+            
+            if (finalPreferences.filterContentSimilarity && 
+                finalPreferences.contentSimilarityThreshold > 0 && 
+                hasValidWeights) {
+                try {
+                    const result = storyStorage.checkSimilarity(
+                        story,
+                        finalPreferences.contentSimilarityMode,
+                        finalPreferences.contentSimilarityExpiry,
+                        finalPreferences.contentSimilarityThreshold,
+                        finalPreferences.contentSimilarityScope,
+                        finalPreferences.similarityTitleWeight,
+                        finalPreferences.similarityContentWeight,
+                        finalPreferences.similarityEntityWeight
+                    );
+                    similarityCheck = {
+                        isSimilar: result.isSimilar,
+                        similarity: result.similarity,
+                        reason: result.reason
+                    };
+                } catch (error) {
+                    console.warn('Similarity check failed, skipping:', error);
+                    // If similarity check fails, don't filter the story
+                    similarityCheck = { isSimilar: false, similarity: 0, reason: undefined };
+                }
+            }
+            
+            // Combine reasons from AI, pattern-based, and similarity filtering
+            const allReasons = [...finalScore.reasons, ...patternCheck.reasons];
+            if (similarityCheck.isSimilar && similarityCheck.reason) {
+                allReasons.push(`Similar content: ${similarityCheck.reason}`);
+            }
+            
+            // Story should be filtered if any method says so
+            const shouldFilterStory = finalScore.shouldFilter || 
+                patternCheck.shouldFilter || 
+                similarityCheck.isSimilar ||
+                this.shouldFilterStory(finalScore, finalPreferences);
 
-            // Additional filtering logic
-            if (this.shouldFilterStory(finalScore, finalPreferences)) {
+            if (shouldFilterStory) {
                 removed.push({
                     story,
-                    reasons: finalScore.reasons
+                    reasons: allReasons
                 });
             } else {
                 filtered.push({
                     ...story,
                     _filterScore: finalScore // Add score for debugging/analytics
                 });
+                
+                // Store story for future similarity checking (only if it passed filtering and similarity is fully enabled)
+                if (finalPreferences.filterContentSimilarity && 
+                    finalPreferences.contentSimilarityThreshold > 0 && 
+                    hasValidWeights) {
+                    storyStorage.storeStory(story);
+                }
             }
 
             // Track category stats
             categoryStats[finalScore.category] = (categoryStats[finalScore.category] || 0) + 1;
+        }
+
+        // Periodically cleanup expired stories (every ~10th call) - only if content similarity is fully enabled
+        const hasValidWeights = finalPreferences.similarityTitleWeight > 0 || 
+                              finalPreferences.similarityContentWeight > 0 || 
+                              finalPreferences.similarityEntityWeight > 0;
+        if (finalPreferences.filterContentSimilarity && 
+            finalPreferences.contentSimilarityThreshold > 0 && 
+            hasValidWeights && 
+            Math.random() < 0.1) {
+            storyStorage.cleanupExpiredStories(30); // Clean up stories older than 30 days
         }
 
         return {

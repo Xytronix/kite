@@ -208,6 +208,35 @@ export const categories = {
       "onthisday",
     ];
 
+    this._initWithCategories(allCategoryIds, defaultEnabledCategories);
+  },
+
+  // Initialize with location-based defaults
+  initWithLocationDefaults(suggestedCategories?: string[]) {
+    if (!browser || categoriesState.allCategories.length === 0) return;
+
+    const allCategoryIds = categoriesState.allCategories.map((cat) => cat.id);
+
+    // Use location-based suggestions if available, otherwise fall back to defaults
+    const defaultEnabledCategories = suggestedCategories && suggestedCategories.length > 0
+      ? suggestedCategories
+      : [
+          "world",
+          "usa", 
+          "business",
+          "tech",
+          "science",
+          "sports",
+          "gaming",
+          "onthisday",
+        ];
+
+    this._initWithCategories(allCategoryIds, defaultEnabledCategories);
+  },
+
+  // Private helper method for initialization logic
+  _initWithCategories(allCategoryIds: string[], defaultEnabledCategories: string[]) {
+
     // If no saved data, use defaults (enable only specific categories)
     if (
       categoriesState.order.length === 0 &&

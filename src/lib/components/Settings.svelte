@@ -1,13 +1,13 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { settings } from '$lib/stores/settings.svelte.js';
-import { scrollLock } from '$lib/utils/scrollLock.js';
+import { scrollLock } from '$lib/utils/scrollLock';
 import SettingsGeneral from './settings/SettingsGeneral.svelte';
 import SettingsCategories from './settings/SettingsCategories.svelte';
 import SettingsSections from './settings/SettingsSections.svelte';
 import SettingsExperimental from './settings/SettingsExperimental.svelte';
 import SettingsImagePreloading from './settings/SettingsImagePreloading.svelte';
-import SettingsSmartFilter from './settings/SettingsSmartFilter.svelte';
+import SettingsContentFilter from './settings/SettingsContentFilter.svelte';
 import type { Category } from '$lib/types';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
@@ -83,8 +83,7 @@ let [initialize, instance] = useOverlayScrollbars({
 	defer: true,
 	options: {
 		scrollbars: {
-			autoHide: 'leave',
-			autoHideDelay: 100
+			visibility: 'hidden'
 		}
 	}
 });
@@ -218,7 +217,7 @@ const tabs = $derived([
 	{ id: 'general', labelKey: 'settings.tabs.general', fallback: 'General' },
 	{ id: 'categories', labelKey: 'settings.tabs.categories', fallback: 'Categories' },
 	{ id: 'sections', labelKey: 'settings.tabs.sections', fallback: 'Sections' },
-			{ id: 'smartFilter', labelKey: 'settings.tabs.smartFilter', fallback: 'Smart Filter' },
+			{ id: 'smartFilter', labelKey: 'settings.tabs.smartFilter', fallback: 'Content Filter' },
 	{ id: 'experimental', labelKey: 'settings.tabs.experimental', fallback: 'Experimental' },
 	...(showPreloadingTab ? [{ id: 'preloading', labelKey: '', fallback: 'Preloading (Debug)' }] : [])
 ]);
@@ -300,7 +299,7 @@ const tabs = $derived([
 			<!-- Tab Content -->
 			<main 
 				bind:this={scrollableElement}
-				class="mt-6 flex-1 overflow-auto p-4 md:p-0 md:pr-2 md:max-h-[60vh]" 
+				class="scrollbar-hide mt-6 flex-1 overflow-auto p-4 md:p-0 md:pr-2 md:max-h-[60vh]" 
 				id="settings-content"
 				aria-labelledby="tab-{activeTab}"
 				data-overlayscrollbars-initialize
@@ -312,7 +311,7 @@ const tabs = $derived([
 				{:else if activeTab === 'sections'}
 					<SettingsSections />
 						{:else if activeTab === 'smartFilter'}
-			<SettingsSmartFilter />
+			<SettingsContentFilter />
 				{:else if activeTab === 'experimental'}
 					<SettingsExperimental />
 				{:else if activeTab === 'preloading'}

@@ -165,8 +165,16 @@ export async function handleWikipediaInteraction(event: Event) {
 				
 				// Update scrollbars after content loads
 				setTimeout(() => {
-					if (tooltipScrollbars?.osInstance) {
-						tooltipScrollbars.osInstance().update(true);
+					try {
+						if (tooltipScrollbars?.osInstance) {
+							const instance = tooltipScrollbars.osInstance();
+							if (instance) {
+								instance.update(true);
+							}
+						}
+					} catch (error) {
+						// Silently handle scrollbar update errors
+						console.debug('Scrollbar update failed:', error);
 					}
 				}, 10);
 			}

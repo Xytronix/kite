@@ -81,18 +81,35 @@ export class NavigationHandlerService {
 				const switchingToLatest = !params.batchId && !state.isLatestBatch;
 				const switchingToSpecific = params.batchId && params.batchId !== state.currentBatchId;
 				
+				console.log('🔄 Batch navigation detected:', {
+					paramsBatchId: params.batchId,
+					currentBatchId: state.currentBatchId,
+					isLatestBatch: state.isLatestBatch,
+					switchingToLatest,
+					switchingToSpecific
+				});
+				
 				if (switchingToLatest) {
 					// Navigate to latest batch
+					console.log('🔄 Switching to latest batch...');
 					updates.isLatestBatch = true;
 					dataService.setTimeTravelBatch(null);
-					await dataReloadService.reloadData();
+					console.log('⚠️ SKIPPING dataReloadService.reloadData() to prevent page refresh during load more');
+					// await dataReloadService.reloadData(); // DISABLED: This causes page refresh
 					return updates; // Let the reload handle everything else
 				} else if (switchingToSpecific) {
 					// We need to check if this is actually a historical batch
 					// For now, we'll rely on the DataLoader's logic which already checked
 					// Don't set time travel mode here - let DataLoader handle it
-					console.log('Batch change detected but not setting time travel mode here');
-					await dataReloadService.reloadData();
+					console.log('🕰️ Switching to historical batch:', params.batchId);
+					console.log('⚠️ SKIPPING dataReloadService.reloadData() to prevent page refresh during load more');
+					// try {
+					// 	await dataReloadService.reloadData(); // DISABLED: This causes page refresh
+					// 	console.log('✅ Historical batch reload completed');
+					// } catch (error) {
+					// 	console.error('❌ Failed to reload data for historical batch:', error);
+					// 	// Continue with category/story navigation even if batch reload failed
+					// }
 					return updates; // Let the reload handle everything else
 				}
 				// If batch hasn't changed, continue to handle category/story changes
@@ -105,12 +122,20 @@ export class NavigationHandlerService {
 				const normalizedTarget = UrlNavigationService.normalizeCategoryId(targetCategory);
 				const normalizedCurrent = UrlNavigationService.normalizeCategoryId(state.currentCategory);
 				
+				console.log('🔍 Category navigation check:', {
+					targetCategory,
+					normalizedTarget,
+					normalizedCurrent,
+					needsChange: normalizedTarget !== normalizedCurrent
+				});
+				
 				if (normalizedTarget !== normalizedCurrent) {
 					// Find the actual category ID from our categories list
 					const actualCategory = state.categories.find(cat => 
 						UrlNavigationService.normalizeCategoryId(cat.id) === normalizedTarget
 					);
 					if (actualCategory) {
+						console.log('🔄 Triggering category change to:', actualCategory.id);
 						callbacks.handleCategoryChange(actualCategory.id, false);
 						// Wait for category change to complete
 						await new Promise(resolve => setTimeout(resolve, 50));
@@ -120,6 +145,8 @@ export class NavigationHandlerService {
 						callbacks.handleCategoryChange(state.categories[0]?.id || 'world', false);
 						await new Promise(resolve => setTimeout(resolve, 50));
 					}
+				} else {
+					console.log('🚫 Skipping category change - already on target category');
 				}
 			}
 			

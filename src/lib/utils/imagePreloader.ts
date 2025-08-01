@@ -90,6 +90,10 @@ async function downloadImageAsDataURL(src: string): Promise<string> {
       if (error instanceof Error && error.name === 'AbortError') {
         reject(new Error(`Image download cancelled: ${src}`));
       } else {
+        // Only log non-server errors to reduce noise
+        if (error instanceof Error && !error.message.includes('500') && !error.message.includes('502')) {
+          console.warn("Image fetch error:", error.message);
+        }
         reject(error);
       }
     }
@@ -146,7 +150,10 @@ export function preloadImage(src: string): Promise<void> {
       // Image is now cached, nothing else to do
     })
     .catch((error) => {
-      console.warn("Failed to preload image:", src, error);
+      // Only log non-server errors to reduce noise
+      if (!error.message.includes('500') && !error.message.includes('502')) {
+        console.warn("Failed to preload image:", src, error);
+      }
       // Don't throw - allow graceful degradation
     });
 }

@@ -2,6 +2,9 @@
 import { theme } from '$lib/stores/theme.svelte.js';
 import { s } from '$lib/client/localization.svelte';
 import { onMount } from 'svelte';
+import { preloadCommonNewsEmojis } from '$lib/utils/iconPreloader';
+import { mediaService } from '$lib/services/mediaService';
+import { language } from '$lib/stores/language.svelte.js';
 
 // Props
 interface Props {
@@ -16,6 +19,7 @@ interface Props {
 	keepColor?: boolean;
 	isMaintenance?: boolean;
 	postMaintenance?: boolean;
+	onRetry?: () => void;
 }
 
 const { 
@@ -29,7 +33,8 @@ const {
 	forceBounce = false,
 	keepColor = false,
 	isMaintenance = false,
-	postMaintenance = false
+	postMaintenance = false,
+	onRetry
 }: Props = $props();
 
 // Smooth animated progress counter
@@ -56,6 +61,16 @@ onMount(() => {
 	
 	// Start animation
 	animate();
+	
+	// Start preloading cached data in the background
+	// This runs independently and doesn't block the splash screen
+	// Note: Favicon preloading happens after story data is loaded
+	Promise.all([
+		preloadCommonNewsEmojis(),
+		mediaService.preloadMediaData(language.data)
+	]).catch(error => {
+		console.warn('Failed to preload cached data:', error);
+	});
 	
 	// Cleanup
 	return () => {
@@ -154,6 +169,14 @@ onMount(() => {
 					<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 						{s('loading.errorFallback') || 'Continuing with limited functionality...'}
 					</p>
+					{#if onRetry}
+						<button
+							onclick={onRetry}
+							class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+						>
+							{s('loading.retryButton') || 'Try Again'}
+						</button>
+					{/if}
 				{/if}
 			</div>
 		{:else if showProgress}

@@ -7,6 +7,24 @@ export default defineConfig({
     sveltekit(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    exclude: [
+      "@iconify/svelte",
+      "svelte-dnd-action",
+      "svelte-portal",
+      "overlayscrollbars-svelte"
+    ],
+    include: [
+      "@iconify/json",
+      "chart.js",
+      "chartjs-adapter-date-fns",
+      "date-fns",
+      "lottie-web",
+      "mustache",
+      "overlayscrollbars",
+      "sortablejs"
+    ]
+  },
   ...(process.env.VITEST && {
     resolve: {
       conditions: ["browser"],

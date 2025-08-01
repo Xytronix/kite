@@ -113,6 +113,13 @@ export const sections = {
     saveSections(sectionsState);
   },
 
+  enableAll() {
+    sectionsState.forEach(section => {
+      section.enabled = true;
+    });
+    saveSections(sectionsState);
+  },
+
   reset() {
     sectionsState.splice(0, sectionsState.length, ...DEFAULT_SECTIONS);
     saveSections(sectionsState);

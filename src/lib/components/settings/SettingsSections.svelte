@@ -44,6 +44,21 @@
 		sections.toggleSection(sectionId);
 	}
 
+	// Enable all sections
+	function enableAllSections() {
+		sections.enableAll();
+	}
+
+	// Disable all sections
+	function disableAllSections() {
+		// Disable each section individually since there might not be a disableAll method
+		sectionItems.forEach(section => {
+			if (section.enabled) {
+				sections.toggleSection(section.id);
+			}
+		});
+	}
+
 	// Reset to defaults
 	function resetToDefaults() {
 		sections.reset();
@@ -54,16 +69,53 @@
 		const key = `section.${id}`;
 		return s(key) || id.charAt(0).toUpperCase() + id.slice(1);
 	}
+
+	// Check if there are any disabled sections
+	const hasDisabledSections = $derived(sectionItems.some(section => !section.enabled));
+	
+	// Check if there are any enabled sections
+	const hasEnabledSections = $derived(sectionItems.some(section => section.enabled));
 </script>
 
 <div class="space-y-4">
 	<div>
-		<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-			{s('settings.sections.title') || 'Article Sections'}
-		</h4>
-		<p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.sections.instructions') || 'Drag to reorder sections. Toggle to enable/disable.'}
-		</p>
+		<div class="flex items-center justify-between mb-3">
+			<div>
+				<h4 class="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+					{s('settings.sections.title') || 'Article Sections'}
+				</h4>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					{s('settings.sections.instructions') || 'Drag to reorder sections. Toggle to enable/disable.'}
+				</p>
+			</div>
+					<div class="flex items-center justify-end gap-2 flex-wrap">
+			{#if hasDisabledSections}
+				<button
+					type="button"
+					onclick={enableAllSections}
+					class="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 whitespace-nowrap"
+				>
+					{s('settings.sections.enableAll') || 'Enable All'}
+				</button>
+			{/if}
+			{#if hasEnabledSections}
+				<button
+					type="button"
+					onclick={disableAllSections}
+					class="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 whitespace-nowrap"
+				>
+					{s('settings.sections.disableAll') || 'Disable All'}
+				</button>
+			{/if}
+			<button
+				type="button"
+				onclick={resetToDefaults}
+				class="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800 whitespace-nowrap"
+			>
+				{s('settings.sections.reset') || 'Reset'}
+			</button>
+		</div>
+		</div>
 
 		<div
 			class="space-y-2"
@@ -132,16 +184,5 @@
 				</div>
 			{/each}
 		</div>
-	</div>
-
-	<!-- Reset button -->
-	<div class="text-center mb-4">
-		<button
-			type="button"
-			onclick={resetToDefaults}
-			class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-		>
-			{s('settings.sections.resetOrder') || 'Reset to Default Order'}
-		</button>
 	</div>
 </div> 

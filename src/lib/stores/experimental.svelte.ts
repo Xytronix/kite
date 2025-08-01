@@ -11,6 +11,8 @@ export interface ExperimentalFeatures {
   showChaosIndex: boolean;
   showWikipediaTooltips: boolean; // master toggle
   disableWikiTooltipsInHeadlines: boolean;
+  /** When true, prefer Iconify icons over brand logo URLs for source favicons. */
+  preferIconifyIcons: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -24,6 +26,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   showChaosIndex: false,
   showWikipediaTooltips: true,
   disableWikiTooltipsInHeadlines: false,
+  preferIconifyIcons: false,
 };
 
 // Initialize experimental features state
@@ -98,6 +101,10 @@ export const experimental = {
 
   get disableWikiTooltipsInHeadlines() {
     return experimentalState.disableWikiTooltipsInHeadlines;
+  },
+
+  get preferIconifyIcons() {
+    return experimentalState.preferIconifyIcons;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

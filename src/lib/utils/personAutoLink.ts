@@ -1,5 +1,6 @@
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { resolveWikiTitleWithContext } from '$lib/utils/wikiResolver';
+import { validateWikipediaEntry } from '$lib/services/wikipediaService';
 
 export async function autoLinkPersons(root: HTMLElement) {
   if (!root || !experimental.showWikipediaTooltips) return;
@@ -37,7 +38,18 @@ export async function autoLinkPersons(root: HTMLElement) {
     }
   }
 
-  for (const { node, match, index } of candidates) {
+  // Process candidates in reverse order to avoid index invalidation
+  for (const { node, match, index } of candidates.reverse()) {
+    // Verify the node is still valid and the text hasn't changed
+    if (!node.parentNode || !node.textContent) continue;
+    
+    // Check if the match is still at the expected position
+    const currentText = node.textContent;
+    if (index + match.length > currentText.length || 
+        currentText.substring(index, index + match.length) !== match) {
+      continue;
+    }
+
     // Resolve with context-sensitive helper (kind: human)
     let wikiTitle = wikiCache.get(match);
     let wikiQid: string | undefined = undefined;
@@ -50,12 +62,16 @@ export async function autoLinkPersons(root: HTMLElement) {
 
     if (!wikiTitle) continue;
 
+    // Validate that this Wikipedia entry exists before creating link
+    const checkWikiId = wikiQid && wikiQid !== '' ? wikiQid : encodeURIComponent(wikiTitle.replace(/ /g, '_'));
+    const isValid = await validateWikipediaEntry(checkWikiId);
+    if (!isValid) continue;
+
     // Replace substring using Range to avoid cutting words incorrectly
     const anchor = document.createElement('a');
     anchor.textContent = match;
-    const wikiId = wikiQid && wikiQid !== '' ? wikiQid : encodeURIComponent(wikiTitle.replace(/ /g, '_'));
-    const wikiUrl = `https://en.wikipedia.org/wiki/${wikiId}`;
-    anchor.setAttribute('data-wiki-id', wikiId);
+    const wikiUrl = `https://en.wikipedia.org/wiki/${checkWikiId}`;
+    anchor.setAttribute('data-wiki-id', checkWikiId);
     anchor.setAttribute('data-url', wikiUrl);
     anchor.className = 'text-blue-500 hover:underline cursor-pointer';
     anchor.addEventListener('click', (e) => {
@@ -64,10 +80,16 @@ export async function autoLinkPersons(root: HTMLElement) {
       window.open(wikiUrl, '_blank', 'noopener');
     });
 
-    const range = document.createRange();
-    range.setStart(node, index);
-    range.setEnd(node, index + match.length);
-    range.deleteContents();
-    range.insertNode(anchor);
+    try {
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + match.length);
+      range.deleteContents();
+      range.insertNode(anchor);
+    } catch (error) {
+      // Skip this replacement if range creation fails
+      console.warn('Failed to create range for auto-linking:', error);
+      continue;
+    }
   }
 } 

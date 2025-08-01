@@ -1,10 +1,10 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
-import { getFaviconUrl } from '$lib/utils/citationUtils';
 import type { ParsedTextSegment, Citation } from '$lib/utils/citationUtils';
 import type { Article } from '$lib/types';
 import type { CitationMapping } from '$lib/utils/citationContext';
 import CitationTooltip from './CitationTooltip.svelte';
+import SmartImage from '../SmartImage.svelte';
 
 // Props
 interface Props {
@@ -268,11 +268,13 @@ const citedArticles = $derived.by(() => {
 					style="z-index: {5 - index}"
 					title={domain}
 				>
-					<img 
-						src={getFaviconUrl(domain)} 
+					<SmartImage 
+						domain={domain}
 						alt="{domain} favicon" 
-						class="icon-lg rounded-full"
-						loading="lazy"
+						class="w-full h-full rounded-full"
+						size={32}
+						loading="eager"
+						preferIconify={true}
 					/>
 				</div>
 			{/each}
@@ -300,11 +302,13 @@ const citedArticles = $derived.by(() => {
 				<div class="citation-item">
 					[{index + 1}] {citation.domain}
 					{#if citation.domain !== 'common'}
-						<img 
-							src={getFaviconUrl(citation.domain)} 
+						<SmartImage 
+							domain={citation.domain}
 							alt="{citation.domain} favicon" 
-							class="inline-block icon-sm ml-1"
-							loading="lazy"
+							class="inline-block w-4 h-4 ml-1"
+							size={32}
+							loading="eager"
+							preferIconify={true}
 						/>
 					{/if}
 				</div>

@@ -8,7 +8,9 @@
     ],
     "description": "Al Jazeera is an international news network headquartered in Doha, Qatar. It provides news coverage across various categories including politics, business, sports, and international affairs, with a particular focus on Middle Eastern and North African affairs.",
     "owner": "Qatar Media Corporation (QMC)",
-    "typology": "State Funded Media"
+    "typology": "State Funded Media",
+    "logo_url": "https://www.aljazeera.com/wp-content/themes/aljazeera/assets/images/aj-logo.png",
+    "iconify_icon": "simple-icons:aljazeera"
   },
   {
     "country": "United Kingdom",
@@ -19,7 +21,9 @@
     ],
     "description": "BBC News is the news division of the British Broadcasting Corporation (BBC), providing news coverage across various categories including politics, business, sports, and international affairs.",
     "owner": "British Broadcasting Corporation (BBC)",
-    "typology": "State Funded Media"
+    "typology": "State Funded Media",
+    "logo_url": "https://nav.files.bbci.co.uk/orbit/2.32.0/img/bbc-logo.svg",
+    "iconify_icon": "simple-icons:bbc"
   },
   {
     "country": "France",
@@ -29,7 +33,9 @@
     ],
     "description": "France 24 is a French international news channel that broadcasts in English and French. It provides news coverage across various categories including politics, business, sports, and international affairs.",
     "owner": "French Ministry of Europe and Foreign Affairs",
-    "typology": "State Funded Media"
+    "typology": "State Funded Media",
+    "logo_url": "https://static.france24.com/meta_og_twitters/F24_logo.png",
+    "iconify_icon": "simple-icons:france24"
   },
   {
     "country": "Russia",
@@ -985,7 +991,9 @@
     ],
     "description": "Bloomberg Media is a global business and financial news organization. It maintains major editorial hubs in New York, London, Hong Kong, Washington D.C., and Sydney.",
     "owner": "Bloomberg L.P.",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://assets.bwbx.io/s3/javelin/public/hub/images/favicon-black-63fe5249d3.png",
+    "iconify_icon": "simple-icons:bloomberg"
   },
   {
     "country": "United States",
@@ -1571,7 +1579,9 @@
     ],
     "description": "The Financial Times is a daily newspaper and digital news outlet focused on business, economic and political coverage. The publication is known for its distinctive salmon-pink newsprint format.",
     "owner": "Nikkei Inc. (employee-owned)",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://www.ft.com/__origami/service/image/v2/images/raw/ftlogo%3Abrand-ft-logo-square-coloured?source=update-logos&format=png&width=180&height=180",
+    "iconify_icon": "simple-icons:ft"
   },
   {
     "country": "United Kingdom",
@@ -1581,7 +1591,9 @@
     ],
     "description": "The Guardian is a newspaper and digital news outlet that delivers investigative journalism with a mainstream left-wing editorial stance. It operates globally and is known for its liberal political perspective and commitment to independent journalism through its unique ownership structure.",
     "owner": "Scott Trust Limited",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://assets.guim.co.uk/images/favicons/fee5e2d638d1c8b3ba037c0fcd0c0c97/72x72.png",
+    "iconify_icon": "simple-icons:theguardian"
   },
   {
     "country": "Singapore",
@@ -1611,7 +1623,9 @@
     ],
     "description": "The New York Times is a daily newspaper founded in 1851 that provides news coverage, investigative journalism, and opinion content through print and digital platforms.",
     "owner": "The Ochs-Sulzberger Family (through The New York Times Company)",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://www.nytimes.com/vi-assets/static-assets/favicon-d2483f10ef688e6f89e23806b9700298.ico",
+    "iconify_icon": "simple-icons:nytimes"
   },
   {
     "country": "United States",
@@ -1683,7 +1697,9 @@
     ],
     "description": "Reuters is a global news agency founded in 1851 that provides multimedia news content, financial information, and intelligence services. It is one of the three most influential news agencies globally alongside AP and AFP.",
     "owner": "Thomson Reuters",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://www.reuters.com/graphics/content/reuters-branding/REUTERS-LOGO-2016.svg",
+    "iconify_icon": "simple-icons:reuters"
   },
   {
     "country": "United States",
@@ -2305,7 +2321,9 @@
     ],
     "description": "ESPN (Entertainment and Sports Programming Network) is a multinational sports media company that operates multiple television channels, streaming services, websites, and mobile platforms dedicated to sports coverage, news, analysis, and entertainment programming. The company was founded in 1979 and has grown into a comprehensive sports media network with global reach.",
     "owner": "The Walt Disney Company (80% through ABC), Hearst Communications (20%)",
-    "typology": "Private Media"
+    "typology": "Private Media",
+    "logo_url": "https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png",
+    "iconify_icon": "simple-icons:espn"
   },
   {
     "country": "United Kingdom",
@@ -3712,7 +3730,7 @@
       "rts.ch",
       "rtr.ch"
     ],
-    "description": "SRG SSR is a public service broadcaster in Switzerland. It is built upon a federalist model specific to the country’s political organization.",
+    "description": "SRG SSR is a public service broadcaster in Switzerland. It is built upon a federalist model specific to the country's political organization.",
     "owner": "Swiss Confederation",
     "typology": "Public Media"
   },
@@ -3913,5 +3931,242 @@
     "description": "Kauppalehti is Finland's leading business and financial newspaper, established in 1898. It provides comprehensive coverage of business news, financial markets, economics, and corporate developments in Finland and internationally. The publication serves as the primary source of business news for Finnish professionals and investors.",
     "owner": "Alma Media Corporation",
     "typology": "Private Media"
+  },
+  {
+    "country": "United States",
+    "organization": "Stack Overflow",
+    "domains": [
+      "stackoverflow.com"
+    ],
+    "description": "Stack Overflow is a question and answer platform for programmers and developers.",
+    "owner": "Stack Exchange, Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://cdn.sstatic.net/Sites/stackoverflow/Img/apple-touch-icon.png",
+    "iconify_icon": "simple-icons:stackoverflow"
+  },
+  {
+    "country": "United States",
+    "organization": "Medium",
+    "domains": [
+      "medium.com"
+    ],
+    "description": "Medium is an online publishing platform for writers and readers to share and discover content.",
+    "owner": "A Medium Corporation",
+    "typology": "Private Media",
+    "logo_url": "https://miro.medium.com/1*m-R_BkNf1Qjr1YbyOIJY2w.png",
+    "iconify_icon": "simple-icons:medium"
+  },
+  {
+    "country": "United States",
+    "organization": "Apple Inc.",
+    "domains": [
+      "apple.com"
+    ],
+    "description": "Apple Inc. is a technology company that designs, develops, and sells consumer electronics, software, and online services.",
+    "owner": "Apple Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://www.apple.com/favicon.ico",
+    "iconify_icon": "simple-icons:apple"
+  },
+  {
+    "country": "United States",
+    "organization": "Microsoft Corporation",
+    "domains": [
+      "microsoft.com"
+    ],
+    "description": "Microsoft Corporation is a technology company that develops, manufactures, and sells computer software, consumer electronics, and personal computers.",
+    "owner": "Microsoft Corporation",
+    "typology": "Private Media",
+    "logo_url": "https://www.microsoft.com/favicon.ico",
+    "iconify_icon": "simple-icons:microsoft"
+  },
+  {
+    "country": "United States",
+    "organization": "CNN",
+    "domains": [
+      "cnn.com"
+    ],
+    "description": "CNN is a multinational news-based pay television channel and news website owned by CNN Worldwide.",
+    "owner": "Warner Bros. Discovery",
+    "typology": "Private Media",
+    "logo_url": "https://cdn.cnn.com/cnn/.e/img/3.0/global/misc/cnn-logo.png",
+    "iconify_icon": "simple-icons:cnn"
+  },
+  {
+    "country": "United States",
+    "organization": "The Washington Post",
+    "domains": [
+      "washingtonpost.com"
+    ],
+    "description": "The Washington Post is an American daily newspaper published in Washington, D.C., known for political reporting.",
+    "owner": "Nash Holdings (Jeff Bezos)",
+    "typology": "Private Media",
+    "logo_url": "https://www.washingtonpost.com/favicon.ico",
+    "iconify_icon": "simple-icons:washingtonpost"
+  },
+  {
+    "country": "United States",
+    "organization": "Forbes Media",
+    "domains": [
+      "forbes.com"
+    ],
+    "description": "Forbes is an American business magazine focused on business, investing, technology, entrepreneurship, leadership, and lifestyle.",
+    "owner": "Integrated Whale Media Investments",
+    "typology": "Private Media",
+    "logo_url": "https://i.forbesimg.com/favicon.ico",
+    "iconify_icon": "simple-icons:forbes"
+  },
+  {
+    "country": "United States",
+    "organization": "USA Today",
+    "domains": [
+      "usatoday.com"
+    ],
+    "description": "USA Today is an American daily middle-market newspaper and news broadcasting company.",
+    "owner": "Gannett Co., Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://www.gannett-cdn.com/sites/usatoday/images/site-nav-logo@2x.png",
+    "iconify_icon": "simple-icons:usatoday"
+  },
+  {
+    "country": "Spain",
+    "organization": "Marca",
+    "domains": [
+      "marca.com"
+    ],
+    "description": "Marca is a Spanish daily sports newspaper owned by Unidad Editorial.",
+    "owner": "Unidad Editorial",
+    "typology": "Private Media",
+    "logo_url": "https://e00-marca.uecdn.es/favicon.ico",
+    "iconify_icon": "simple-icons:marca"
+  },
+  {
+    "country": "Spain",
+    "organization": "AS",
+    "domains": [
+      "as.com"
+    ],
+    "description": "AS is a Spanish daily sports newspaper focusing on football and other sports.",
+    "owner": "PRISA",
+    "typology": "Private Media",
+    "logo_url": "https://as01.epimg.net/img/comunes/fotos/fichas/equipos/large/1.png"
+  },
+  {
+    "country": "United States",
+    "organization": "ESPN",
+    "domains": [
+      "espn.com"
+    ],
+    "description": "ESPN is an American multinational basic cable sports channel owned by ESPN Inc.",
+    "owner": "The Walt Disney Company",
+    "typology": "Private Media",
+    "logo_url": "https://a.espncdn.com/combiner/i?img=/i/espn/espn_logos/espn_red.png",
+    "iconify_icon": "simple-icons:espn"
+  },
+  {
+    "country": "United States",
+    "organization": "Fox Sports",
+    "domains": [
+      "foxsports.com"
+    ],
+    "description": "Fox Sports is the sports programming division of Fox Corporation.",
+    "owner": "Fox Corporation",
+    "typology": "Private Media",
+    "logo_url": "https://b.fssta.com/uploads/application/app/foxsports.svg",
+    "iconify_icon": "simple-icons:fox"
+  },
+  {
+    "country": "India",
+    "organization": "Sportskeeda",
+    "domains": [
+      "sportskeeda.com"
+    ],
+    "description": "Sportskeeda is an Indian sports news website that covers various sports including cricket, football, and WWE.",
+    "owner": "Sportskeeda",
+    "typology": "Private Media",
+    "logo_url": "https://staticg.sportskeeda.com/skm/assets/sportskeeda-logo.svg"
+  },
+  {
+    "country": "United States",
+    "organization": "Bleacher Report",
+    "domains": [
+      "bleacherreport.com"
+    ],
+    "description": "Bleacher Report is an American sports news website owned by Turner Sports.",
+    "owner": "Warner Bros. Discovery",
+    "typology": "Private Media",
+    "logo_url": "https://img.bleacherreport.net/img/images/photos/003/850/286/hi-res-8c9b8b6e4b5e6e4c4d5a6e4c4d5a6e4c_crop_exact.jpg"
+  },
+  {
+    "country": "United States",
+    "organization": "TechCrunch",
+    "domains": [
+      "techcrunch.com"
+    ],
+    "description": "TechCrunch is an American online technology news outlet focused on high-tech and startup companies.",
+    "owner": "Yahoo Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://techcrunch.com/wp-content/uploads/2015/02/cropped-cropped-favicon-gradient.png",
+    "iconify_icon": "simple-icons:techcrunch"
+  },
+  {
+    "country": "United States",
+    "organization": "The Motley Fool",
+    "domains": [
+      "fool.com"
+    ],
+    "description": "The Motley Fool is a financial services company that provides investment advice and analysis.",
+    "owner": "The Motley Fool",
+    "typology": "Private Media",
+    "logo_url": "https://g.foolcdn.com/art/companylogos/square/mf.png"
+  },
+  {
+    "country": "United States",
+    "organization": "Twitter/X",
+    "domains": [
+      "twitter.com",
+      "x.com"
+    ],
+    "description": "X (formerly Twitter) is a social media platform for sharing short messages and real-time updates.",
+    "owner": "X Corp (Elon Musk)",
+    "typology": "Private Media",
+    "logo_url": "https://abs.twimg.com/favicons/twitter.3.ico",
+    "iconify_icon": "simple-icons:x"
+  },
+  {
+    "country": "United States",
+    "organization": "Meta Platforms",
+    "domains": [
+      "facebook.com"
+    ],
+    "description": "Facebook is a social networking platform for connecting and sharing content with friends and communities.",
+    "owner": "Meta Platforms, Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://static.xx.fbcdn.net/rsrc.php/yo/r/iRmz9lCMBD2.ico",
+    "iconify_icon": "simple-icons:facebook"
+  },
+  {
+    "country": "United States",
+    "organization": "Instagram",
+    "domains": [
+      "instagram.com"
+    ],
+    "description": "Instagram is a photo and video sharing social networking service owned by Meta Platforms.",
+    "owner": "Meta Platforms, Inc.",
+    "typology": "Private Media",
+    "logo_url": "https://static.cdninstagram.com/rsrc.php/v3/yI/r/VsNE-OHk_8a.png",
+    "iconify_icon": "simple-icons:instagram"
+  },
+  {
+    "country": "United States",
+    "organization": "LinkedIn",
+    "domains": [
+      "linkedin.com"
+    ],
+    "description": "LinkedIn is a professional networking platform for career development and business connections.",
+    "owner": "Microsoft Corporation",
+    "typology": "Private Media",
+    "logo_url": "https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca",
+    "iconify_icon": "simple-icons:linkedin"
   }
 ]

@@ -134,6 +134,7 @@
 	});
 </script>
 
+<div class="story-sections">
 {#each sectionsToRender as section}
 	{#if section.id === 'summary'}
 		<StorySummary {story} {citationMapping} />
@@ -311,4 +312,19 @@
 			bind:isLoadingMediaInfo
 		/>
 	{/if}
-{/each} 
+{/each}
+</div>
+
+<style>
+	.story-sections {
+		cursor: default;
+	}
+	
+	.story-sections :global(*) {
+		cursor: inherit;
+	}
+	
+	.story-sections :global(a) {
+		cursor: pointer;
+	}
+</style> 

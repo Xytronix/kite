@@ -61,6 +61,12 @@ Kite web app is just one example front-end that one can run on top of the Kite d
 
 **We would also love to see what kind of custom front-ends you can create on top of Kite data!** Feel free to share them with us and others by editing this Readme file.
 
+## Report System
+
+Kite includes a built-in report system that allows users to report issues with stories, categorization, sources, or content quality.
+
+When a user submits a report, they are redirected to GitHub's issue creation page with pre-filled content, allowing them to create an issue using their own GitHub account.
+
 ## Editing categories
 
 To edit community curated categories, submit a pull request editing `kite_feeds.json`. If you do not know how to do that, you can [open an issue](https://github.com/kagisearch/kite-public/issues/new/choose) and share the feeds you want to add there.

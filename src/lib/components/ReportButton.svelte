@@ -35,6 +35,8 @@ const REPORT_REASONS = [
     { id: 'other', label: tr('report.reason.other', 'Other') }
 ] as const;
 
+// NEW: allow users to choose submission method
+
 type ReasonId = typeof REPORT_REASONS[number]['id'];
 
 let selectedReason = $state<ReasonId | null>(null);
@@ -57,26 +59,85 @@ const sourceOptions: SourceOption[] = (() => {
 
 let selectedSources = $state<string[]>([]);
 
-async function submitReport() {
+async function submitReport(method: 'github' | 'email') {
     if (!selectedReason || submitting) return;
     submitting = true;
 
     try {
+        const storyTitle = story?.title ?? '';
+        const storySummary = story?.short_summary ?? '';
+        const storyQuote = story?.quote ? `"${story.quote}"${story.quote_author ? ` - ${story.quote_author}` : ''}` : '';
+        const storyPerspectives = story?.perspectives?.map((p: any) => p.text).join('\n\n') ?? '';
+        const storyTimeline = story?.timeline?.filter((t: any) => (t.description || t.text) && t.date && t.date !== 'Date unknown')
+            .map((t: any) => `${t.date}: ${t.description || t.text}`).join('\n') ?? '';
+        const storyTalkingPoints = story?.talking_points?.join('\n- ') ?? '';
+        const storySourcesList: string[] = (() => {
+            if (!story?.articles) return [];
+            const seen = new Set<string>();
+            return story.articles.map((a: any) => {
+                const link = a.link || '';
+                if (seen.has(link) || !link) return null;
+                seen.add(link);
+                return link;
+            }).filter(Boolean) as string[];
+        })();
+
         const body = {
             storyId: story?.cluster_number ?? story?.title ?? 'unknown',
+            storyTitle,
+            storySummary,
+            storyQuote,
+            storyPerspectives,
+            storyTimeline,
+            storyTalkingPoints,
+            storySources: storySourcesList,
             reason: selectedReason,
             url: url || undefined,
             details: detailsText || undefined,
             sources: selectedReason === 'uncredible_sources' ? (selectedSources.length ? selectedSources : undefined) : undefined
         };
+
         if (browser) {
-            await fetch('/api/report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+            if (method === 'github') {
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.githubUrl) {
+                        // Open GitHub issue creation page in new tab
+                        window.open(data.githubUrl, '_blank');
+                    }
+                }
+            } else {
+                // Build email link
+                const reasonFormatted = body.reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const titlePart = body.storyTitle ? ` | ${body.storyTitle}` : '';
+                const subject = encodeURIComponent(`Kite Report: ${reasonFormatted}${titlePart} (#${body.storyId})`);
+                const emailLines: string[] = [
+                    `Story ID: ${body.storyId}`,
+                    body.storyTitle ? `Title: ${body.storyTitle}` : '',
+                    body.storySummary ? `Summary: ${body.storySummary}` : '',
+                    `Reason: ${body.reason}`,
+                    body.url ? `Story URL: ${body.url}` : '',
+                    body.storySources && body.storySources.length ? `Sources:\n${body.storySources.map(src => `- ${src}`).join('\n')}` : '',
+                    body.sources && body.sources.length ? `Problematic Sources: ${body.sources.join(', ')}` : '',
+                    body.storyQuote ? `Quote: ${body.storyQuote}` : '',
+                    body.storyTalkingPoints ? `Talking Points:\n- ${body.storyTalkingPoints}` : '',
+                    body.storyPerspectives ? `Perspectives:\n${body.storyPerspectives}` : '',
+                    body.storyTimeline ? `Timeline:\n${body.storyTimeline}` : '',
+                    body.details ? `Additional Details: ${body.details}` : ''
+                ].filter(Boolean);
+                const mailto = `mailto:support@kagi.com?subject=${subject}&body=${encodeURIComponent(emailLines.join('\n'))}`;
+                window.open(mailto, '_blank');
+            }
         }
+
         submitted = true;
+        lastSubmissionMethod = method;
         // Auto close after short delay
         setTimeout(() => {
             isModalOpen = false;
@@ -84,6 +145,7 @@ async function submitReport() {
             selectedReason = null;
             detailsText = '';
             selectedSources = [];
+            lastSubmissionMethod = null;
         }, 1500);
     } catch (err) {
         console.error('Failed to submit report', err);
@@ -91,6 +153,8 @@ async function submitReport() {
         submitting = false;
     }
 }
+
+let lastSubmissionMethod = $state<'github' | 'email' | null>(null);
 </script>
 
 <!-- Report / Flag Button -->
@@ -114,19 +178,18 @@ async function submitReport() {
     <div class="p-4 space-y-4 text-sm text-gray-800 dark:text-gray-100">
         {#if !submitted}
             <p>{tr('report.selectReason', 'Why are you reporting this story?')}</p>
-
-            <div class="space-y-3">
+            <div class="space-y-3 px-1">
                 {#each REPORT_REASONS as reason}
-                    <label class="flex items-start gap-3 cursor-pointer select-none">
+                    <label class="flex items-start gap-3 cursor-pointer select-none py-1 min-h-[24px]">
                         <input
                             type="radio"
-                            class="mt-1.5 h-4 w-4 shrink-0 cursor-pointer border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-blue-500"
+                            class="mt-0.5 h-5 w-5 flex-shrink-0 cursor-pointer rounded-full border border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-500"
                             name="report-reason"
                             value={reason.id}
                             checked={selectedReason === reason.id}
                             onchange={() => (selectedReason = reason.id)}
                         />
-                        <span>{reason.label}</span>
+                        <span class="leading-relaxed text-sm flex-1 min-w-0">{reason.label}</span>
                     </label>
                 {/each}
             </div>
@@ -160,37 +223,62 @@ async function submitReport() {
                 class="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             ></textarea>
 
-            <div class="flex justify-end gap-3 pt-2">
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
+                <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">{tr('report.chooseSubmissionMethod', 'Choose how to submit your report:')}</p>
+                <div class="flex gap-2">
+                    <button
+                        onclick={() => submitReport('github')}
+                        class="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        disabled={
+                            !selectedReason || submitting ||
+                            (selectedReason === 'uncredible_sources' && selectedSources.length === 0)
+                        }
+                    >
+                        {#if submitting}
+                            <Icon icon="tabler:loader-2" class="animate-spin w-4 h-4" />
+                        {:else}
+                            <Icon icon="tabler:brand-github" class="w-4 h-4" />
+                        {/if}
+                        <span>{tr('report.submitViaGithub', 'GitHub')}</span>
+                    </button>
+                    <button
+                        onclick={() => submitReport('email')}
+                        class="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-blue-100 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+                        disabled={
+                            !selectedReason || submitting ||
+                            (selectedReason === 'uncredible_sources' && selectedSources.length === 0)
+                        }
+                    >
+                        {#if submitting}
+                            <Icon icon="tabler:loader-2" class="animate-spin w-4 h-4" />
+                        {:else}
+                            <Icon icon="tabler:mail" class="w-4 h-4" />
+                        {/if}
+                        <span>{tr('report.submitViaEmail', 'Email')}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
                 <button
                     onclick={() => (isModalOpen = false)}
-                    class="rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                    class="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                     {tr('ui.cancel', 'Cancel')}
                 </button>
-                <button
-                    onclick={submitReport}
-                    class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
-                    disabled={
-                        !selectedReason || submitting ||
-                        (selectedReason === 'uncredible_sources' && selectedSources.length === 0)
-                    }
-                >
-                    {#if submitting}
-                        <Icon icon="tabler:loader-2" class="animate-spin w-[18px] h-[18px]" />
-                        <span>{tr('report.submitting', 'Submitting')}</span>
-                    {:else if submitted}
-                        <Icon icon="tabler:check" class="w-[18px] h-[18px]" />
-                        <span>{tr('report.submitted', 'Submitted')}</span>
-                    {:else}
-                        <span>{tr('report.submit', 'Submit')}</span>
-                    {/if}
-                </button>
             </div>
         {:else}
-            <div class="flex flex-col items-center gap-4 py-8">
+                            <div class="flex flex-col items-center gap-4 py-8">
                                  <Icon icon="tabler:check" class="text-green-600 dark:text-green-400 w-10 h-10" />
                 <p class="text-center text-base font-medium">
                     {tr('report.thankYou', 'Thank you for helping keep Kite safe and accurate.')}
+                </p>
+                <p class="text-center text-sm text-gray-600 dark:text-gray-400">
+                    {#if lastSubmissionMethod === 'github'}
+                        {tr('report.githubRedirect', 'A GitHub issue page has been opened for you to complete the report.')}
+                    {:else}
+                        {tr('report.emailRedirect', 'Your email client has opened with a draft to complete the report.')}
+                    {/if}
                 </p>
             </div>
         {/if}

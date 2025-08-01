@@ -68,7 +68,7 @@ const displayTitle = $derived.by(() => {
 
 <!-- Story Header -->
 <header class="mb-1 flex items-center justify-between">
-	<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300">
+	<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300" data-no-wiki>
 		{#if categoryEmoji}
 			<IconDisplay emoji={categoryEmoji} className="icon-sm" forceEmoji={experimental.useCategoryEmojis} />
 		{/if}

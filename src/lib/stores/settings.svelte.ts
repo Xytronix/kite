@@ -223,6 +223,17 @@ export const settings = {
     saveToStorage("introShown", (!show).toString());
   },
 
+  reset() {
+    settingsState.fontSize = "normal";
+    settingsState.storyCount = 10;
+    settingsState.categoryHeaderPosition = "bottom";
+    
+    applyFontSize("normal");
+    saveToStorage("fontSize", "normal");
+    saveToStorage("storyCount", "10");
+    saveToStorage("categoryHeaderPosition", "bottom");
+  },
+
   init() {
     if (!browser) return;
 

@@ -13,25 +13,48 @@ interface SmartFilterStats {
 class SmartContentFilterStore {
 	// Reactive state properties
 	preferences = $state<FilterPreferences>({
-		filterPolitics: false,
-		filterNegativeNews: false,
-		filterLowQuality: true,
-		filterViolence: true,
-		filterCelebrity: false,
-		filterSports: false,
-		filterFinancial: false,
-		filterEntertainment: false,
-		filterTechnology: false,
-		filterOpinions: false,
-		filterAnxietyInducing: false,
-		filterSocialMediaDrama: true,
-		filterPromotional: true,
-		minimumRelevance: 0,
-		minimumQuality: 0.2,
-		minimumSentiment: 0.2
-	});
+        filterPolitics: false,
+        filterNegativeNews: false,
+        filterLowQuality: false,
+        filterViolence: false,
+        filterCelebrity: false,
+        filterSports: false,
+        filterFinancial: false,
+        filterEntertainment: false,
+        filterTechnology: false,
+        filterOpinions: false,
+        filterAnxietyInducing: false,
+        filterSocialMediaDrama: false,
+        filterPromotional: false,
+        filterBreakingNews: false,
+        filterWeather: false,
+        filterLocalNews: false,
+        filterInternationalNews: false,
+        filterEconomicPessimism: false,
+        filterRepetitive: false,
+        filterContentSimilarity: false,
+        contentSimilarityMode: 'today',
+        contentSimilarityExpiry: 3, // 3 days default
+        contentSimilarityThreshold: 70, // 70% similarity threshold
+        contentSimilarityScope: 'within-category', // Default: within categories only
+        similarityTitleWeight: 40, // 40% weight for title similarity
+        similarityContentWeight: 25, // 25% weight for content similarity
+        similarityEntityWeight: 35, // 35% weight for entity similarity
+        filterSensitivity: 'balanced', // Default filter sensitivity
+        globalTitleImportance: 60, // 60% weight for title matches
+        globalContentImportance: 25, // 25% weight for content body
+        globalContextEvidence: 15, // 15% weight for surrounding context
+        categoryWeightOverrides: undefined,
+        minimumRelevance: 0,
+        minimumQuality: 0,
+        minimumSentiment: 0
+    });
 	
-	isEnabled = $state<boolean>(true); // Enable smart filtering by default
+	isEnabled = $state<boolean>(false); // Disabled by default - no filters
+	filterMode = $state<'hide' | 'blur'>('hide');
+	filterScope = $state<'title' | 'summary' | 'all'>('all'); // Added filter scope like contentFilter
+	showFilteredCount = $state<boolean>(true);
+	customKeywords = $state<string[]>([]); // Added custom keywords like contentFilter
 	stats = $state<SmartFilterStats | null>(null);
 	isLoading = $state<boolean>(false);
 	error = $state<string | null>(null);
@@ -40,6 +63,8 @@ class SmartContentFilterStore {
 	private readonly CONFIG_VERSION = 1;
 	private filterService = new SmartFilterService();
 	private _lastStatsHash = '';
+	
+
 
 	constructor() {
 		if (browser) {
@@ -58,6 +83,21 @@ class SmartContentFilterStore {
 				if (typeof parsed.isEnabled === 'boolean') {
 					this.isEnabled = parsed.isEnabled;
 				}
+				if (parsed.filterMode === 'hide' || parsed.filterMode === 'blur') {
+					this.filterMode = parsed.filterMode;
+				}
+				if (parsed.filterScope === 'title' || parsed.filterScope === 'summary' || parsed.filterScope === 'all') {
+					this.filterScope = parsed.filterScope;
+				}
+				if (typeof parsed.showFilteredCount === 'boolean') {
+					this.showFilteredCount = parsed.showFilteredCount;
+				}
+				if (Array.isArray(parsed.customKeywords)) {
+					this.customKeywords = parsed.customKeywords;
+				}
+				if (parsed.preferences?.filterSensitivity === 'strict' || parsed.preferences?.filterSensitivity === 'balanced' || parsed.preferences?.filterSensitivity === 'loose') {
+					this.preferences.filterSensitivity = parsed.preferences.filterSensitivity;
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load smart filter settings:', error);
@@ -71,6 +111,10 @@ class SmartContentFilterStore {
 			const config = {
 				preferences: this.preferences,
 				isEnabled: this.isEnabled,
+				filterMode: this.filterMode,
+				filterScope: this.filterScope,
+				showFilteredCount: this.showFilteredCount,
+				customKeywords: this.customKeywords,
 				version: this.CONFIG_VERSION
 			};
 			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
@@ -83,6 +127,110 @@ class SmartContentFilterStore {
 	// Toggle the smart filter system on/off
 	toggleEnabled() {
 		this.isEnabled = !this.isEnabled;
+		this.saveToStorage();
+	}
+
+	// Set filter mode
+	setFilterMode(mode: 'hide' | 'blur') {
+		this.filterMode = mode;
+		this.saveToStorage();
+	}
+
+	// Set show filtered count
+	setShowFilteredCount(show: boolean) {
+		this.showFilteredCount = show;
+		this.saveToStorage();
+	}
+
+	// Set filter scope
+	setFilterScope(scope: 'title' | 'summary' | 'all') {
+		this.filterScope = scope;
+		this.saveToStorage();
+	}
+
+	// Set filter sensitivity
+	setFilterSensitivity(sensitivity: 'strict' | 'balanced' | 'loose') {
+		this.preferences.filterSensitivity = sensitivity;
+		this.saveToStorage();
+	}
+	
+	// Update category override (simplified without personality detection)
+	updateCategoryOverride(category: string, value: 'strict' | 'balanced' | 'loose' | number | undefined) {
+		if (!this.preferences.categoryOverrides) {
+			this.preferences.categoryOverrides = {};
+		}
+		
+		if (value === undefined) {
+			delete this.preferences.categoryOverrides[category];
+			if (Object.keys(this.preferences.categoryOverrides).length === 0) {
+				this.preferences.categoryOverrides = undefined;
+			}
+		} else {
+			this.preferences.categoryOverrides[category] = value;
+		}
+		
+		this.saveToStorage();
+	}
+
+	// Add custom keyword
+	addCustomKeyword(keyword: string) {
+		const normalized = keyword.toLowerCase().trim();
+		if (normalized && !this.customKeywords.includes(normalized)) {
+			this.customKeywords = [...this.customKeywords, normalized];
+			this.saveToStorage();
+		}
+	}
+
+	// Remove custom keyword
+	removeCustomKeyword(keyword: string) {
+		this.customKeywords = this.customKeywords.filter(k => k !== keyword.toLowerCase());
+		this.saveToStorage();
+	}
+
+	// Set content similarity mode
+	setContentSimilarityMode(mode: 'today' | 'historical') {
+		this.preferences.contentSimilarityMode = mode;
+		this.saveToStorage();
+	}
+
+	// Set content similarity expiry
+	setContentSimilarityExpiry(days: number) {
+		this.preferences.contentSimilarityExpiry = Math.max(1, Math.min(30, days)); // 1-30 days
+		this.saveToStorage();
+	}
+
+	// Set content similarity threshold
+	setContentSimilarityThreshold(threshold: number) {
+		this.preferences.contentSimilarityThreshold = Math.max(0, Math.min(100, threshold)); // 0-100%
+		this.saveToStorage();
+	}
+
+	// Set content similarity scope
+	setContentSimilarityScope(scope: 'within-category' | 'across-categories') {
+		this.preferences.contentSimilarityScope = scope;
+		this.saveToStorage();
+	}
+
+	// Set similarity weights (no normalization needed - algorithm handles it automatically)
+	setSimilarityWeights(titleWeight: number, contentWeight: number, entityWeight: number) {
+		// Ensure no negative values
+		this.preferences.similarityTitleWeight = Math.max(0, titleWeight);
+		this.preferences.similarityContentWeight = Math.max(0, contentWeight);
+		this.preferences.similarityEntityWeight = Math.max(0, entityWeight);
+		
+		// If all weights are zero, reset to defaults
+		if (titleWeight === 0 && contentWeight === 0 && entityWeight === 0) {
+			this.preferences.similarityTitleWeight = 40;
+			this.preferences.similarityContentWeight = 25;
+			this.preferences.similarityEntityWeight = 35;
+		}
+		
+		this.saveToStorage();
+	}
+
+	// Clear custom keywords
+	clearCustomKeywords() {
+		this.customKeywords = [];
 		this.saveToStorage();
 	}
 
@@ -189,31 +337,96 @@ class SmartContentFilterStore {
 		return this.filterService.getFilterStats(stories, this.preferences);
 	}
 
-	// Reset all preferences to defaults
-	reset() {
-		this.preferences = {
-			filterPolitics: false,
-			filterNegativeNews: false,
-			filterLowQuality: true,
-			filterViolence: true,
-			filterCelebrity: false,
-			filterSports: false,
-			filterFinancial: false,
-			filterEntertainment: false,
-			filterTechnology: false,
-			filterOpinions: false,
-			filterAnxietyInducing: false,
-			filterSocialMediaDrama: true,
-			filterPromotional: true,
-			minimumRelevance: 0,
-			minimumQuality: 0.2,
-			minimumSentiment: 0.2
-		};
-		this.isEnabled = false;
-		this.stats = null;
-		this.error = null;
-		this.saveToStorage();
-	}
+	    // Reset just preferences to defaults (for preset deactivation)
+    resetPreferences() {
+        this.preferences = {
+            filterPolitics: false,
+            filterNegativeNews: false,
+            filterLowQuality: false,
+            filterViolence: false,
+            filterCelebrity: false,
+            filterSports: false,
+            filterFinancial: false,
+            filterEntertainment: false,
+            filterTechnology: false,
+            filterOpinions: false,
+            filterAnxietyInducing: false,
+            filterSocialMediaDrama: false,
+            filterPromotional: false,
+            filterBreakingNews: false,
+            filterWeather: false,
+            filterLocalNews: false,
+            filterInternationalNews: false,
+            filterEconomicPessimism: false,
+            filterRepetitive: false,
+            filterContentSimilarity: false,
+            contentSimilarityMode: 'today',
+            contentSimilarityExpiry: 3,
+            contentSimilarityThreshold: 70,
+            contentSimilarityScope: 'within-category',
+            similarityTitleWeight: 40,
+            similarityContentWeight: 25,
+            similarityEntityWeight: 35,
+            filterSensitivity: 'balanced',
+            globalTitleImportance: 60,
+            globalContentImportance: 25,
+            globalContextEvidence: 15,
+            categoryWeightOverrides: undefined,
+            minimumRelevance: 0,
+            minimumQuality: 0,
+            minimumSentiment: 0
+        };
+        this.saveToStorage();
+    }
+
+	    // Reset all settings to defaults (full reset)
+    reset() {
+        this.preferences = {
+            filterPolitics: false,
+            filterNegativeNews: false,
+            filterLowQuality: false,
+            filterViolence: false,
+            filterCelebrity: false,
+            filterSports: false,
+            filterFinancial: false,
+            filterEntertainment: false,
+            filterTechnology: false,
+            filterOpinions: false,
+            filterAnxietyInducing: false,
+            filterSocialMediaDrama: false,
+            filterPromotional: false,
+            filterBreakingNews: false,
+            filterWeather: false,
+            filterLocalNews: false,
+            filterInternationalNews: false,
+            filterEconomicPessimism: false,
+            filterRepetitive: false,
+            filterContentSimilarity: false,
+            contentSimilarityMode: 'today',
+            contentSimilarityExpiry: 3,
+            contentSimilarityThreshold: 70,
+            contentSimilarityScope: 'within-category',
+            similarityTitleWeight: 40,
+            similarityContentWeight: 25,
+            similarityEntityWeight: 35,
+            filterSensitivity: 'balanced',
+            globalTitleImportance: 60,
+            globalContentImportance: 25,
+            globalContextEvidence: 15,
+            categoryWeightOverrides: undefined,
+            minimumRelevance: 0,
+            minimumQuality: 0,
+            minimumSentiment: 0
+        };
+        this.isEnabled = false;
+        this.filterMode = 'hide';
+        this.filterScope = 'all';
+        this.showFilteredCount = true;
+        this.customKeywords = [];
+        this.stats = null;
+        this.error = null;
+        this.saveToStorage();
+    }
 
 	// Export configuration
 	exportConfig(): string {
@@ -222,6 +435,11 @@ class SmartContentFilterStore {
 			_description: "AI-powered content filtering preferences",
 			preferences: this.preferences,
 			isEnabled: this.isEnabled,
+			filterMode: this.filterMode,
+			filterScope: this.filterScope,
+			showFilteredCount: this.showFilteredCount,
+			customKeywords: this.customKeywords,
+			filterSensitivity: this.preferences.filterSensitivity,
 			version: this.CONFIG_VERSION,
 			exportDate: new Date().toISOString()
 		};
@@ -244,6 +462,26 @@ class SmartContentFilterStore {
 			
 			if (typeof config.isEnabled === 'boolean') {
 				this.isEnabled = config.isEnabled;
+			}
+
+			if (config.filterMode === 'hide' || config.filterMode === 'blur') {
+				this.filterMode = config.filterMode;
+			}
+
+			if (config.filterScope === 'title' || config.filterScope === 'summary' || config.filterScope === 'all') {
+				this.filterScope = config.filterScope;
+			}
+
+			if (typeof config.showFilteredCount === 'boolean') {
+				this.showFilteredCount = config.showFilteredCount;
+			}
+
+			if (Array.isArray(config.customKeywords)) {
+				this.customKeywords = config.customKeywords;
+			}
+
+			if (config.filterSensitivity === 'strict' || config.filterSensitivity === 'balanced' || config.filterSensitivity === 'loose') {
+				this.preferences.filterSensitivity = config.filterSensitivity;
 			}
 
 			this.saveToStorage();
@@ -353,6 +591,26 @@ class SmartContentFilterStore {
 			this._lastStatsHash = newHash;
 		}
 	}
+
+    setCategoryWeightOverride(category: string, weights: { titleImportance?: number; contentImportance?: number; contextEvidence?: number } | undefined) {
+        const current = this.preferences.categoryWeightOverrides || {};
+        if (weights === undefined) {
+            // Remove override
+            delete current[category];
+        } else {
+            current[category] = {
+                ...current[category],
+                ...weights
+            };
+        }
+        // Clean up if empty
+        if (Object.keys(current).length === 0) {
+            this.preferences.categoryWeightOverrides = undefined;
+        } else {
+            this.preferences.categoryWeightOverrides = current;
+        }
+        this.saveToStorage();
+    }
 }
 
 export const smartContentFilter = new SmartContentFilterStore();

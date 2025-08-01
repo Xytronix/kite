@@ -1,4 +1,4 @@
-import { scrollLock } from './scrollLock.js';
+import { scrollLock } from './scrollLock';
 
 /**
  * Shared modal behavior logic for consistent modal handling across components

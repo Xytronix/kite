@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { browser } from '$app/environment';
-import { scrollLock } from '$lib/utils/scrollLock.js';
+import { scrollLock } from '$lib/utils/scrollLock';
 
 // Props
 interface Props {

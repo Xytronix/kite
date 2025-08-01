@@ -4,6 +4,7 @@
 
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { resolveWikiTitleWithContext, type WikiResolveResult } from '$lib/utils/wikiResolver';
+import { validateWikipediaEntry } from '$lib/services/wikipediaService';
 
 const orgCache = new Map<string, string>(); // phrase -> wikiTitle or '' if rejected
 
@@ -58,13 +59,18 @@ export async function autoLinkOrgs(root: HTMLElement) {
         if (!res) return;
         const wikiTitle = res.title;
         const qid = res.qid;
+        
+        // Validate that this Wikipedia entry exists before creating link
+        const checkWikiId = qid && qid !== '' ? qid : encodeURIComponent(wikiTitle.replace(/ /g, '_'));
+        const isValid = await validateWikipediaEntry(checkWikiId);
+        if (!isValid) return;
+        
         if (!textNode.parentNode) return;
 
         const anchor = document.createElement('a');
         anchor.textContent = phrase;
-        const wikiId = qid && qid !== '' ? qid : encodeURIComponent(wikiTitle.replace(/ /g, '_'));
-        anchor.setAttribute('data-wiki-id', wikiId);
-        const wikiUrl = `https://en.wikipedia.org/wiki/${wikiId}`;
+        anchor.setAttribute('data-wiki-id', checkWikiId);
+        const wikiUrl = `https://en.wikipedia.org/wiki/${checkWikiId}`;
         // Do NOT set href to avoid accidental navigation during hover
         anchor.setAttribute('data-url', wikiUrl);
         anchor.className = 'text-blue-500 hover:underline cursor-pointer';

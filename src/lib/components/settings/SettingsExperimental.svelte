@@ -35,6 +35,10 @@ function toggleDisableWikiHeadlines() {
 	experimental.toggleFeature('disableWikiTooltipsInHeadlines');
 }
 
+function togglePreferIconifyIcons() {
+	experimental.toggleFeature('preferIconifyIcons');
+}
+
 // Article/Category display helper functions
 // Unified decoration style and target toggles
 type VisualMode = 'none' | 'icons' | 'emojis';
@@ -52,6 +56,24 @@ $: styleMode = experimental.showArticleIcons || experimental.showCategoryIcons
 
 $: headlinesOn = experimental.showArticleIcons || experimental.useArticleEmojis;
 $: categoriesOn = experimental.showCategoryIcons || experimental.useCategoryEmojis;
+
+// Initialize with Icons as default for headlines if nothing is set
+$: if (!headlinesOn && !categoriesOn && styleMode === 'none') {
+	experimental.setFeatures({ showArticleIcons: true });
+}
+
+// Dynamic text based on current style
+$: decorationType = styleMode === 'icons' ? 'Icons' : styleMode === 'emojis' ? 'Emojis' : 'Decorations';
+$: headlineDescription = styleMode === 'icons' 
+	? 'Show icons on story titles and article headlines.'
+	: styleMode === 'emojis'
+	? 'Show emojis on story titles and article headlines.'
+	: 'Show decorations on story titles and article headlines.';
+$: categoryDescription = styleMode === 'icons'
+	? 'Show icons on category tags and filters.'
+	: styleMode === 'emojis'
+	? 'Show emojis on category tags and filters.'
+	: 'Show decorations on category tags and filters.';
 
 /** Apply current style to headlines/categories depending on toggle state */
 function applyStyleToTargets() {
@@ -106,116 +128,139 @@ function toggleCategories() {
 
 	<!-- Visual Decoration Style -->
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-		<div class="mb-2 flex items-center justify-between">
+		<div class="mb-3 flex items-center justify-between">
 			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.visualStyle.label') || 'Decoration Style'}
+				Decoration Style
 			</span>
 		</div>
-		<div class="grid grid-cols-3 gap-2">
+		<div class="flex w-full rounded-lg border border-gray-200 dark:border-gray-600" role="group">
 			<button
 				onclick={() => setVisualMode('none')}
 				type="button"
-				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-l-lg border-r border-gray-200 dark:border-gray-600"
 				class:bg-blue-600={styleMode === 'none'}
-				class:bg-gray-200={styleMode !== 'none'}
-				class:dark:bg-gray-600={styleMode !== 'none'}
-				role="switch"
-				aria-checked={styleMode === 'none'}
+				class:text-white={styleMode === 'none'}
+				class:bg-white={styleMode !== 'none'}
+				class:text-gray-700={styleMode !== 'none'}
+				class:hover:bg-gray-50={styleMode !== 'none'}
+				class:dark:bg-blue-600={styleMode === 'none'}
+				class:dark:text-white={styleMode === 'none'}
+				class:dark:bg-gray-800={styleMode !== 'none'}
+				class:dark:text-gray-300={styleMode !== 'none'}
+				class:dark:hover:bg-gray-700={styleMode !== 'none'}
+				aria-pressed={styleMode === 'none'}
 			>
-				<span class="sr-only">Decoration: None</span>
-				<span class="text-lg">None</span>
+				None
 			</button>
 			<button
 				onclick={() => setVisualMode('icons')}
 				type="button"
-				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-r border-gray-200 dark:border-gray-600"
 				class:bg-blue-600={styleMode === 'icons'}
-				class:bg-gray-200={styleMode !== 'icons'}
-				class:dark:bg-gray-600={styleMode !== 'icons'}
-				role="switch"
-				aria-checked={styleMode === 'icons'}
+				class:text-white={styleMode === 'icons'}
+				class:bg-white={styleMode !== 'icons'}
+				class:text-gray-700={styleMode !== 'icons'}
+				class:hover:bg-gray-50={styleMode !== 'icons'}
+				class:dark:bg-blue-600={styleMode === 'icons'}
+				class:dark:text-white={styleMode === 'icons'}
+				class:dark:bg-gray-800={styleMode !== 'icons'}
+				class:dark:text-gray-300={styleMode !== 'icons'}
+				class:dark:hover:bg-gray-700={styleMode !== 'icons'}
+				aria-pressed={styleMode === 'icons'}
 			>
-				<span class="sr-only">Decoration: Icons</span>
-				<span class="text-lg">Icons</span>
+				Icons
 			</button>
 			<button
 				onclick={() => setVisualMode('emojis')}
 				type="button"
-				class="focus-visible-ring relative inline-flex h-10 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-r-lg"
 				class:bg-blue-600={styleMode === 'emojis'}
-				class:bg-gray-200={styleMode !== 'emojis'}
-				class:dark:bg-gray-600={styleMode !== 'emojis'}
-				role="switch"
-				aria-checked={styleMode === 'emojis'}
+				class:text-white={styleMode === 'emojis'}
+				class:bg-white={styleMode !== 'emojis'}
+				class:text-gray-700={styleMode !== 'emojis'}
+				class:hover:bg-gray-50={styleMode !== 'emojis'}
+				class:dark:bg-blue-600={styleMode === 'emojis'}
+				class:dark:text-white={styleMode === 'emojis'}
+				class:dark:bg-gray-800={styleMode !== 'emojis'}
+				class:dark:text-gray-300={styleMode !== 'emojis'}
+				class:dark:hover:bg-gray-700={styleMode !== 'emojis'}
+				aria-pressed={styleMode === 'emojis'}
 			>
-				<span class="sr-only">Decoration: Emojis</span>
-				<span class="text-lg">Emojis</span>
+				Emojis
 			</button>
 		</div>
-		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.visualStyle.description') || 'Choose how headlines and categories are decorated.'}
+		<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+			Select visual decoration style for headlines and categories.
 		</p>
 	</div>
 
-	<!-- Apply to Headlines -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-		<div class="mb-2 flex items-center justify-between">
-			<label for="toggle-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.visualTargets.headlines') || 'Apply to Headlines'}
-			</label>
-			<button
-				id="toggle-headlines"
-				onclick={toggleHeadlines}
-				type="button"
-				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={headlinesOn}
-				class:bg-gray-200={!headlinesOn}
-				class:dark:bg-gray-600={!headlinesOn}
-				role="switch"
-				aria-checked={headlinesOn}
-			>
-				<span class="sr-only">Toggle headlines decoration</span>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={headlinesOn}
-					class:translate-x-1={!headlinesOn}
-				></span>
-			</button>
+	<!-- Apply to Headlines - Hidden when None is selected -->
+	{#if styleMode !== 'none'}
+		<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+			<div class="mb-2 flex items-center justify-between">
+				<label for="toggle-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Apply {decorationType} to Headlines
+				</label>
+				<button
+					id="toggle-headlines"
+					onclick={toggleHeadlines}
+					type="button"
+					class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+					class:bg-blue-600={headlinesOn}
+					class:bg-gray-200={!headlinesOn}
+					class:dark:bg-gray-600={!headlinesOn}
+					role="switch"
+					aria-checked={headlinesOn}
+				>
+					<span class="sr-only">Toggle headlines {decorationType.toLowerCase()}</span>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+						class:translate-x-6={headlinesOn}
+						class:translate-x-1={!headlinesOn}
+					></span>
+				</button>
+			</div>
+			<p class="text-xs text-gray-500 dark:text-gray-400">
+				{headlineDescription}
+			</p>
 		</div>
-	</div>
 
-	<!-- Apply to Categories -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-		<div class="mb-2 flex items-center justify-between">
-			<label for="toggle-categories" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.visualTargets.categories') || 'Apply to Categories'}
-			</label>
-			<button
-				id="toggle-categories"
-				onclick={toggleCategories}
-				type="button"
-				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
-				class:bg-blue-600={categoriesOn}
-				class:bg-gray-200={!categoriesOn}
-				class:dark:bg-gray-600={!categoriesOn}
-				role="switch"
-				aria-checked={categoriesOn}
-			>
-				<span class="sr-only">Toggle categories decoration</span>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-					class:translate-x-6={categoriesOn}
-					class:translate-x-1={!categoriesOn}
-				></span>
-			</button>
+		<!-- Apply to Categories - Hidden when None is selected -->
+		<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+			<div class="mb-2 flex items-center justify-between">
+				<label for="toggle-categories" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+					Apply {decorationType} to Categories
+				</label>
+				<button
+					id="toggle-categories"
+					onclick={toggleCategories}
+					type="button"
+					class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+					class:bg-blue-600={categoriesOn}
+					class:bg-gray-200={!categoriesOn}
+					class:dark:bg-gray-600={!categoriesOn}
+					role="switch"
+					aria-checked={categoriesOn}
+				>
+					<span class="sr-only">Toggle categories {decorationType.toLowerCase()}</span>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+						class:translate-x-6={categoriesOn}
+						class:translate-x-1={!categoriesOn}
+					></span>
+				</button>
+			</div>
+			<p class="text-xs text-gray-500 dark:text-gray-400">
+				{categoryDescription}
+			</p>
 		</div>
-	</div>
+	{/if}
 
 	<!-- Disable Category Swipe (Mobile Only) -->
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700 md:hidden">
 		<div class="mb-2 flex items-center justify-between">
 			<label for="disable-category-swipe" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.disableCategorySwipe.label') || 'Disable horizontal category swiping'}
+				Disable Category Swipe
 			</label>
 			<button
 				id="disable-category-swipe"
@@ -228,7 +273,7 @@ function toggleCategories() {
 				role="switch"
 				aria-checked={experimental.disableCategorySwipe}
 			>
-				<span class="sr-only">{s('settings.experimental.disableCategorySwipe.label') || 'Disable horizontal category swiping'}</span>
+				<span class="sr-only">Disable category swipe</span>
 				<span
 					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
 					class:translate-x-6={experimental.disableCategorySwipe}
@@ -237,7 +282,7 @@ function toggleCategories() {
 			</button>
 		</div>
 		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.disableCategorySwipe.description') || 'When enabled, horizontal swiping to change categories on mobile devices will be disabled.'}
+			Disable horizontal swipe gestures for changing categories on mobile.
 		</p>
 	</div>
 
@@ -245,7 +290,7 @@ function toggleCategories() {
 	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
 		<div class="mb-2 flex items-center justify-between">
 			<label for="show-chaos-index" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.experimental.chaosIndex.label') || 'Show World Tension Index'}
+				Show World Tension Index
 			</label>
 			<button
 				id="show-chaos-index"
@@ -258,7 +303,7 @@ function toggleCategories() {
 				role="switch"
 				aria-checked={experimental.showChaosIndex}
 			>
-				<span class="sr-only">{s('settings.experimental.chaosIndex.label') || 'Show World Tension Index'}</span>
+				<span class="sr-only">Show World Tension Index</span>
 				<span
 					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
 					class:translate-x-6={experimental.showChaosIndex}
@@ -267,7 +312,7 @@ function toggleCategories() {
 			</button>
 		</div>
 		<p class="text-xs text-gray-500 dark:text-gray-400">
-			{s('settings.experimental.chaosIndex.description') || 'Display a global temperature reading of world stability based on current events.'}
+			Display a global stability indicator based on current events.
 		</p>
 	</div>
 
@@ -297,7 +342,7 @@ function toggleCategories() {
             </button>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
-            Enable or disable automatic Wikipedia hover tooltips inside story content.
+            Show Wikipedia tooltips when hovering over terms in stories.
         </p>
     </div>
 
@@ -327,8 +372,37 @@ function toggleCategories() {
             </button>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
-            Prevent Wikipedia links from being added to story headlines, questions, and similar titles.
+            Remove Wikipedia tooltips from headlines and titles.
         </p>
     </div>
 
+    <!-- Prefer Iconify Icons -->
+    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+        <div class="mb-2 flex items-center justify-between">
+            <label for="prefer-iconify" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Prefer Iconify Icons Over Brand Logos
+            </label>
+            <button
+                id="prefer-iconify"
+                onclick={togglePreferIconifyIcons}
+                type="button"
+                class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+                class:bg-blue-600={experimental.preferIconifyIcons}
+                class:bg-gray-200={!experimental.preferIconifyIcons}
+                class:dark:bg-gray-600={!experimental.preferIconifyIcons}
+                role="switch"
+                aria-checked={experimental.preferIconifyIcons}
+            >
+                <span class="sr-only">Prefer Iconify icons</span>
+                <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    class:translate-x-6={experimental.preferIconifyIcons}
+                    class:translate-x-1={!experimental.preferIconifyIcons}
+                ></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Use consistent Iconify icons instead of brand-specific logo URLs for source favicons.
+        </p>
+    </div>
 </div> 

@@ -476,8 +476,12 @@
     "translationContext": "Message shown when there's an error but the app continues with fallback data"
   },
   "loading.finishing": {
-    "text": "Wird abgeschlossen...",
+    "text": "Abschluss...",
     "translationContext": "Loading message shown when nearly complete"
+  },
+  "loading.historicalStories": {
+    "text": "Lade Artikel von vorherigen Tagen…",
+    "translationContext": "Loading message shown when fetching stories from historical batches"
   },
   "loading.images": {
     "text": "Bilder werden vorab geladen...",
@@ -487,13 +491,33 @@
     "text": "Initialisierung läuft...",
     "translationContext": "Loading message shown when the app is starting up"
   },
+  "loading.moreStories": {
+    "text": "Lade weitere Artikel…",
+    "translationContext": "Loading message shown during infinite scroll when fetching additional stories"
+  },
+  "loading.onthisday": {
+    "text": "Loading On This Day events...",
+    "translationContext": "Loading message shown when fetching On This Day historical events"
+  },
   "loading.ready": {
     "text": "Fertig!",
     "translationContext": "Loading message shown when loading is complete"
   },
+  "loading.retryButton": {
+    "text": "Try Again",
+    "translationContext": "Button text for manual retry after failed data load"
+  },
+  "loading.retrying": {
+    "text": "Connection issue, retrying...",
+    "translationContext": "Message shown when retrying failed data load"
+  },
   "loading.stories": {
     "text": "Artikel werden geladen...",
     "translationContext": "Loading message shown when fetching news stories"
+  },
+  "loading.testing": {
+    "text": "Testing connection...",
+    "translationContext": "Loading message shown when testing network connection quality"
   },
   "onthisday.events": {
     "text": "Ereignisse",
@@ -619,9 +643,21 @@
     "text": "Deaktivierte Kategorien",
     "translationContext": "Title for the disabled (hidden) categories section"
   },
+  "settings.categories.disableFiltered": {
+    "text": "Alle deaktivieren",
+    "translationContext": "Button text to disable all filtered categories"
+  },
+  "settings.categories.enableAll": {
+    "text": "Alle aktivieren",
+    "translationContext": "Button text to enable all categories"
+  },
   "settings.categories.enabled": {
     "text": "Aktivierte Kategorien",
     "translationContext": "Title for the enabled categories section"
+  },
+  "settings.categories.enableFiltered": {
+    "text": "Alle aktivieren",
+    "translationContext": "Button text to enable all filtered categories"
   },
   "settings.categories.filterByType": {
     "text": "Nach Typ filtern...",
@@ -638,6 +674,18 @@
   "settings.categories.noDisabled": {
     "text": "Alle Kategorien aktiviert",
     "translationContext": "Shows when no categories are disabled"
+  },
+  "settings.categories.noEnabled": {
+    "text": "Keine aktivierten Kategorien",
+    "translationContext": "Message when no categories are enabled"
+  },
+  "settings.categories.noFiltered": {
+    "text": "Keine Kategorien dieses Typs sind deaktiviert",
+    "translationContext": "Message when no categories of selected type are disabled"
+  },
+  "settings.categories.reset": {
+    "text": "Zurücksetzen",
+    "translationContext": "Button text to reset categories"
   },
   "settings.categories.types.all": {
     "text": "Alle Typen",
@@ -917,11 +965,11 @@
   },
   "settings.dataLanguage.label": {
     "text": "Inhaltssprache",
-    "translationContext": "Label for the data/content language setting"
+    "translationContext": "Label for data language setting"
   },
   "settings.dataLanguage.tooltip": {
-    "text": "Nachrichten werden in ihrer ursprünglichen Quellsprache generiert und dann übersetzt. 'Standard' zeigt Artikel in ihren Originalsprachen ohne Übersetzung an.",
-    "translationContext": "Tooltip explaining how data language translation works"
+    "text": "Nachrichten werden in ihrer ursprünglichen Quellsprache generiert und dann übersetzt. 'Standard' zeigt Artikel in ihren ursprünglichen Sprachen ohne Übersetzung.",
+    "translationContext": "Tooltip for data language setting"
   },
   "settings.experimental.articleIcons.description": {
     "text": "Wenn aktiviert, werden neben Artikeln kleine Symbole angezeigt, die visuelle Hinweise geben.",
@@ -964,36 +1012,36 @@
     "translationContext": "Label for disable category swipe setting"
   },
   "settings.experimental.warning": {
-    "text": "Dies sind experimentelle Funktionen, die jederzeit geändert oder entfernt werden können.",
-    "translationContext": "Warning text for experimental features"
+    "text": "Diese Funktionen sind experimentell und können in zukünftigen Versionen geändert oder entfernt werden.",
+    "translationContext": "Warning message for experimental features"
   },
   "settings.fontSize.label": {
-    "text": "Schriftgröße",
-    "translationContext": "Label for the font size setting"
+    "text": "Textgröße",
+    "translationContext": "Label for font size setting"
   },
   "settings.fontSize.large": {
     "text": "Groß",
-    "translationContext": "Option for large font size"
+    "translationContext": "Large font size option"
   },
   "settings.fontSize.normal": {
     "text": "Normal",
-    "translationContext": "Option for normal font size"
+    "translationContext": "Normal font size option"
   },
   "settings.fontSize.small": {
     "text": "Klein",
-    "translationContext": "Option for small font size"
+    "translationContext": "Small font size option"
   },
   "settings.fontSize.xl": {
-    "text": "Extra Groß",
-    "translationContext": "Option for extra large font size"
+    "text": "Sehr groß",
+    "translationContext": "Extra large font size option"
   },
   "settings.fontSize.xs": {
-    "text": "Extra klein",
-    "translationContext": "Option for extra small font size"
+    "text": "Sehr klein",
+    "translationContext": "Extra small font size option"
   },
   "settings.language.default": {
     "text": "Standard",
-    "translationContext": "Option for default language"
+    "translationContext": "Default language option"
   },
   "settings.language.label": {
     "text": "Sprache",
@@ -1001,23 +1049,55 @@
   },
   "settings.language.poweredBy": {
     "text": "Übersetzt mit Kagi Translate",
-    "translationContext": "Text for the Kagi Translate powered by link"
+    "translationContext": "Attribution text for translation service"
+  },
+  "settings.location.detected": {
+    "text": "Die Einstellungen wurden automatisch basierend auf Ihrem Standort optimiert. Sie können sie jederzeit ändern.",
+    "translationContext": "Message shown when location-based settings are applied"
+  },
+  "settings.reportIssue.button": {
+    "text": "Problem melden",
+    "translationContext": "Button text to report an issue on GitHub"
+  },
+  "settings.resetSettings.button": {
+    "text": "Alle Einstellungen zurücksetzen",
+    "translationContext": "Button text to reset all settings to defaults"
+  },
+  "settings.resetSettings.confirm": {
+    "text": "Zurücksetzung bestätigen",
+    "translationContext": "Button text for confirming the reset action"
+  },
+  "settings.resetSettings.confirmDescription": {
+    "text": "Erneut klicken um Zurücksetzung zu bestätigen",
+    "translationContext": "Description text for the confirmation state"
+  },
+  "settings.resetSettings.description": {
+    "text": "Dadurch werden alle Einstellungen auf ihre Standardwerte zurückgesetzt",
+    "translationContext": "Description text for the reset settings button"
+  },
+  "settings.sections.enableAll": {
+    "text": "Alle aktivieren",
+    "translationContext": "Button text to enable all sections"
   },
   "settings.sections.instructions": {
-    "text": "Zum Verschieben der Abschnitte ziehen. Schalter zum Ein-/Ausschalten verwenden.",
+    "text": "Zum Neuordnen ziehen. Zum Aktivieren/Deaktivieren umschalten.",
     "translationContext": "Instructions for managing article sections"
+  },
+  "settings.sections.reset": {
+    "text": "Zurücksetzen",
+    "translationContext": "Button text to reset sections to defaults"
   },
   "settings.sections.resetOrder": {
     "text": "Auf Standardreihenfolge zurücksetzen",
-    "translationContext": "Button text to reset section order to defaults"
+    "translationContext": "Button text to reset section order"
   },
   "settings.sections.switch": {
     "text": "Aktivieren/Deaktivieren",
-    "translationContext": "Aria label for the enable/disable switch for sections"
+    "translationContext": "Aria label for section toggle switch"
   },
   "settings.sections.title": {
-    "text": "Artikelabschnitte",
-    "translationContext": "Title for the article sections settings"
+    "text": "Artikel-Abschnitte",
+    "translationContext": "Title for article sections settings"
   },
   "settings.shareLanguage.message": {
     "text": "Schauen Sie sich Kite News auf {{language}} an - es wird die Einleitung überspringen und direkt in Ihrer Sprache laden!",
@@ -1027,9 +1107,205 @@
     "text": "Link in die Zwischenablage kopiert!",
     "translationContext": "Success message when link is copied"
   },
+  "settings.smartFilter.advanced": {
+    "text": "Erweiterte Einstellungen",
+    "translationContext": "Title for advanced settings section"
+  },
+  "settings.smartFilter.advancedDescription": {
+    "text": "Feinabstimmung der algorithmischen Bewertungsschwellen. Höhere Werte = strengere Filterung.",
+    "translationContext": "Description for advanced settings"
+  },
+  "settings.smartFilter.confirmReset": {
+    "text": "Ja, zurücksetzen",
+    "translationContext": "Button text to confirm reset"
+  },
+  "settings.smartFilter.contentTypes": {
+    "text": "Inhaltstyp-Filter",
+    "translationContext": "Title for content type filters section"
+  },
+  "settings.smartFilter.contentTypesDescription": {
+    "text": "Wählen Sie aus, welche Inhaltstypen automatisch herausgefiltert werden sollen",
+    "translationContext": "Description for content type filters"
+  },
+  "settings.smartFilter.description": {
+    "text": "KI-gestützte Inhaltsfilterung mit Algorithmen zur Analyse von Relevanz, Qualität und Stimmung anstelle einfacher Schlüsselwort-Übereinstimmung.",
+    "translationContext": "Description for smart filter feature"
+  },
+  "settings.smartFilter.enableDescription": {
+    "text": "Automatisches Filtern von minderwertigen, irrelevanten oder unerwünschten Inhalten mittels KI-Analyse",
+    "translationContext": "Description for enable smart filtering toggle"
+  },
+  "settings.smartFilter.enableTitle": {
+    "text": "Intelligente Filterung aktivieren",
+    "translationContext": "Title for enable smart filtering toggle"
+  },
+  "settings.smartFilter.filterAnxietyInducing": {
+    "text": "Angstauslösende Inhalte",
+    "translationContext": "Label for anxiety-inducing content filter"
+  },
+  "settings.smartFilter.filterAnxietyInducingDesc": {
+    "text": "Katastrophenberichterstattung und Weltuntergangsszenarien filtern",
+    "translationContext": "Description for anxiety-inducing content filter"
+  },
+  "settings.smartFilter.filterCelebrity": {
+    "text": "Prominenten-Nachrichten",
+    "translationContext": "Label for celebrity news filter"
+  },
+  "settings.smartFilter.filterCelebrityDesc": {
+    "text": "Prominenten-Klatsch und Unterhaltungsnachrichten filtern",
+    "translationContext": "Description for celebrity news filter"
+  },
+  "settings.smartFilter.filtered": {
+    "text": "Gefilterte Artikel",
+    "translationContext": "Label for filtered stories statistic"
+  },
+  "settings.smartFilter.filterEntertainment": {
+    "text": "Unterhaltungsindustrie",
+    "translationContext": "Label for entertainment industry filter"
+  },
+  "settings.smartFilter.filterEntertainmentDesc": {
+    "text": "Film-, TV- und Musikindustrienachrichten filtern",
+    "translationContext": "Description for entertainment industry filter"
+  },
+  "settings.smartFilter.filterFinancial": {
+    "text": "Finanznachrichten",
+    "translationContext": "Label for financial news filter"
+  },
+  "settings.smartFilter.filterFinancialDesc": {
+    "text": "Börse, Gewinnberichte und Unternehmensfinanznachrichten filtern",
+    "translationContext": "Description for financial news filter"
+  },
+  "settings.smartFilter.filterLowQuality": {
+    "text": "Minderwertige Inhalte",
+    "translationContext": "Label for low quality content filter"
+  },
+  "settings.smartFilter.filterLowQualityDesc": {
+    "text": "Clickbait, Spam und schlechten Journalismus filtern",
+    "translationContext": "Description for low quality content filter"
+  },
+  "settings.smartFilter.filterNegative": {
+    "text": "Negative Nachrichten",
+    "translationContext": "Label for negative news filter"
+  },
+  "settings.smartFilter.filterNegativeDesc": {
+    "text": "Deprimierende oder belastende Inhalte filtern",
+    "translationContext": "Description for negative news filter"
+  },
+  "settings.smartFilter.filterOpinions": {
+    "text": "Meinungsartikel",
+    "translationContext": "Label for opinion pieces filter"
+  },
+  "settings.smartFilter.filterOpinionsDesc": {
+    "text": "Leitartikel und Kommentare filtern, sachliche Berichterstattung beibehalten",
+    "translationContext": "Description for opinion pieces filter"
+  },
+  "settings.smartFilter.filterPolitics": {
+    "text": "Politische Inhalte",
+    "translationContext": "Label for political content filter"
+  },
+  "settings.smartFilter.filterPoliticsDesc": {
+    "text": "Politische Nachrichten und parteiische Inhalte filtern",
+    "translationContext": "Description for political content filter"
+  },
+  "settings.smartFilter.filterPromotional": {
+    "text": "Werbeinhalte",
+    "translationContext": "Label for promotional content filter"
+  },
+  "settings.smartFilter.filterPromotionalDesc": {
+    "text": "Pressemitteilungen und als Nachrichten getarntes Marketing filtern",
+    "translationContext": "Description for promotional content filter"
+  },
+  "settings.smartFilter.filterRate": {
+    "text": "Filterrate",
+    "translationContext": "Label for filter rate statistic"
+  },
+  "settings.smartFilter.filterSocialMediaDrama": {
+    "text": "Social-Media-Drama",
+    "translationContext": "Label for social media drama filter"
+  },
+  "settings.smartFilter.filterSocialMediaDramaDesc": {
+    "text": "Twitter-Fehden und Online-Kontroversen filtern",
+    "translationContext": "Description for social media drama filter"
+  },
+  "settings.smartFilter.filterSports": {
+    "text": "Sportberichterstattung",
+    "translationContext": "Label for sports coverage filter"
+  },
+  "settings.smartFilter.filterSportsDesc": {
+    "text": "Alle Sportnachrichten, Ergebnisse und Berichterstattung filtern",
+    "translationContext": "Description for sports coverage filter"
+  },
+  "settings.smartFilter.filterTechnology": {
+    "text": "Technologie-Nachrichten",
+    "translationContext": "Label for technology news filter"
+  },
+  "settings.smartFilter.filterTechnologyDesc": {
+    "text": "Tech-Unternehmensnachrichten und Produkteinführungen filtern",
+    "translationContext": "Description for technology news filter"
+  },
+  "settings.smartFilter.filterViolence": {
+    "text": "Gewalttätige Inhalte",
+    "translationContext": "Label for violent content filter"
+  },
+  "settings.smartFilter.filterViolenceDesc": {
+    "text": "Gewalt, Kriminalität und verstörende Inhalte filtern",
+    "translationContext": "Description for violent content filter"
+  },
+  "settings.smartFilter.minimumQuality": {
+    "text": "Mindest-Qualität",
+    "translationContext": "Label for minimum quality threshold"
+  },
+  "settings.smartFilter.minimumRelevance": {
+    "text": "Mindest-Relevanz",
+    "translationContext": "Label for minimum relevance threshold"
+  },
+  "settings.smartFilter.minimumSentiment": {
+    "text": "Mindest-Stimmung",
+    "translationContext": "Label for minimum sentiment threshold"
+  },
+  "settings.smartFilter.qualityTooltip": {
+    "text": "Wie hochwertig der Journalismus und das Schreiben sein muss",
+    "translationContext": "Tooltip for quality threshold"
+  },
+  "settings.smartFilter.relevanceTooltip": {
+    "text": "Wie relevant der Inhalt für Ihre Interessen sein muss",
+    "translationContext": "Tooltip for relevance threshold"
+  },
+  "settings.smartFilter.reset": {
+    "text": "Einstellungen zurücksetzen",
+    "translationContext": "Title for reset settings section"
+  },
+  "settings.smartFilter.resetButton": {
+    "text": "Auf Standard zurücksetzen",
+    "translationContext": "Button text to reset settings"
+  },
+  "settings.smartFilter.resetConfirm": {
+    "text": "Sind Sie sicher, dass Sie alle intelligenten Filtereinstellungen auf die Standardwerte zurücksetzen möchten?",
+    "translationContext": "Confirmation message for reset"
+  },
+  "settings.smartFilter.resetDescription": {
+    "text": "Alle intelligenten Filtereinstellungen auf ihre Standardwerte zurücksetzen.",
+    "translationContext": "Description for reset settings"
+  },
+  "settings.smartFilter.sentimentTooltip": {
+    "text": "Wie positiv oder neutral die Inhaltsstimmung sein muss",
+    "translationContext": "Tooltip for sentiment threshold"
+  },
+  "settings.smartFilter.statistics": {
+    "text": "Filter-Statistiken",
+    "translationContext": "Title for filter statistics section"
+  },
+  "settings.smartFilter.title": {
+    "text": "Intelligenter Inhaltsfilter",
+    "translationContext": "Title for smart filter settings"
+  },
+  "settings.smartFilter.totalProcessed": {
+    "text": "Verarbeitete Artikel",
+    "translationContext": "Label for total processed stories statistic"
+  },
   "settings.storyCount.label": {
-    "text": "Anzahl der angezeigten Artikel:",
-    "translationContext": "Label for the story count setting"
+    "text": "Artikel pro Kategorie",
+    "translationContext": "Label for story count setting"
   },
   "settings.tabs.categories": {
     "text": "Kategorien",
@@ -1051,29 +1327,65 @@
     "text": "Abschnitte",
     "translationContext": "Title for the sections settings tab"
   },
+  "settings.tabs.smartFilter": {
+    "text": "Smart Filter",
+    "translationContext": "Title for the smart filter settings tab"
+  },
   "settings.theme.dark": {
     "text": "Dunkel",
-    "translationContext": "Option for dark theme"
+    "translationContext": "Dark theme option"
   },
   "settings.theme.label": {
-    "text": "Thema",
-    "translationContext": "Label for the theme setting"
+    "text": "Design",
+    "translationContext": "Label for theme setting"
   },
   "settings.theme.light": {
     "text": "Hell",
-    "translationContext": "Option for light theme"
+    "translationContext": "Light theme option"
   },
   "settings.theme.system": {
     "text": "System",
-    "translationContext": "Option for system theme"
+    "translationContext": "System theme option"
   },
   "settings.uiLanguage.label": {
-    "text": "Sprache der Benutzeroberfläche",
-    "translationContext": "Label for the UI language setting"
+    "text": "Oberflächensprache",
+    "translationContext": "Label for UI language setting"
   },
   "settings.uiLanguage.tooltip": {
-    "text": "Steuert die Sprache von Schaltflächen, Menüs und Interface-Text. 'Standard' verwendet die Sprache Ihres Browsers.",
-    "translationContext": "Tooltip explaining how UI language works"
+    "text": "Steuert die Sprache von Schaltflächen, Menüs und Oberflächentexten.",
+    "translationContext": "Tooltip for UI language setting"
+  },
+  "smartFilter.adjustFilters": {
+    "text": "Adjust filters",
+    "translationContext": "Button text to go to smart filter settings"
+  },
+  "smartFilter.allStoriesFiltered": {
+    "text": "All stories in this category were filtered",
+    "translationContext": "Message when all stories in a category are filtered by smart filters"
+  },
+  "smartFilter.allStoriesFilteredDescription": {
+    "text": "Your smart filters have hidden all stories in this category for today.",
+    "translationContext": "Description when all stories are filtered"
+  },
+  "smartFilter.clickToReveal": {
+    "text": "Click to show",
+    "translationContext": "Instruction text for revealing filtered story"
+  },
+  "smartFilter.disableFiltering": {
+    "text": "Disable smart filtering",
+    "translationContext": "Button text to disable smart filtering"
+  },
+  "smartFilter.filteredBecause": {
+    "text": "Hidden due to filter:",
+    "translationContext": "Label shown when story is filtered by smart filters"
+  },
+  "smartFilter.storiesFiltered": {
+    "text": "{{count}} stories filtered by smart filters",
+    "translationContext": "Message for multiple stories filtered count"
+  },
+  "smartFilter.storyFiltered": {
+    "text": "{{count}} story filtered by smart filters",
+    "translationContext": "Message for single story filtered count"
   },
   "source.contribute.button": {
     "text": "Informationen beisteuern",
@@ -1142,6 +1454,14 @@
   "stats.weekDay": {
     "text": "Woche {{week}}, Tag {{day}}",
     "translationContext": "Shows the current week and day of the year, {{week}} and {{day}} will be replaced with numbers"
+  },
+  "stories.errorMessage": {
+    "text": "Please check your connection or try again later.",
+    "translationContext": "Error message shown when stories fail to load"
+  },
+  "stories.loadMore": {
+    "text": "Weitere Artikel laden",
+    "translationContext": "Button text to load additional stories"
   },
   "stories.noStories": {
     "text": "Etwas ist schiefgelaufen, hier gibt es keine Artikel!",
@@ -1227,9 +1547,33 @@
     "text": "Turbulenzmesser",
     "translationContext": "Tooltip text for the turbulence meter button"
   },
+  "ui.citations": {
+    "text": "Citations",
+    "translationContext": "Title for citations section"
+  },
+  "ui.clearSearch": {
+    "text": "Clear search",
+    "translationContext": "Aria label for clear search button"
+  },
   "ui.close": {
     "text": "Schließen",
     "translationContext": "Text for close buttons"
+  },
+  "ui.closeDialog": {
+    "text": "Close dialog",
+    "translationContext": "Aria label for close dialog button"
+  },
+  "ui.imageUnavailable": {
+    "text": "Image unavailable",
+    "translationContext": "Text shown when an image cannot be loaded"
+  },
+  "ui.nextSlide": {
+    "text": "Next slide",
+    "translationContext": "Aria label for next slide button"
+  },
+  "ui.previousSlide": {
+    "text": "Previous slide",
+    "translationContext": "Aria label for previous slide button"
   },
   "view.list": {
     "text": "Listenansicht",

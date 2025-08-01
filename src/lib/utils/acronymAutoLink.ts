@@ -1,5 +1,6 @@
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { resolveWikiTitleWithContext, type WikiResolveResult } from '$lib/utils/wikiResolver';
+import { validateWikipediaEntry } from '$lib/services/wikipediaService';
 
 const acronymCache = new Map<string, string>();
 
@@ -45,12 +46,17 @@ export async function autoLinkAcronyms(root: HTMLElement) {
           title = cached;
         }
         if (!title) return;
+        
+        // Validate that this Wikipedia entry exists before creating link
+        const checkWikiId = qid && qid !== '' ? qid : encodeURIComponent(title.replace(/ /g, '_'));
+        const isValid = await validateWikipediaEntry(checkWikiId);
+        if (!isValid) return;
+        
         if (!textNode.parentNode) return;
         const anchor = document.createElement('a');
         anchor.textContent = acronym;
-        const wikiId = qid && qid !== '' ? qid : encodeURIComponent(title.replace(/ /g, '_'));
-        anchor.setAttribute('data-wiki-id', wikiId);
-        const wikiUrl = `https://en.wikipedia.org/wiki/${wikiId}`;
+        anchor.setAttribute('data-wiki-id', checkWikiId);
+        const wikiUrl = `https://en.wikipedia.org/wiki/${checkWikiId}`;
         anchor.setAttribute('data-url', wikiUrl);
         anchor.className = 'text-blue-500 hover:underline cursor-pointer';
         anchor.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });

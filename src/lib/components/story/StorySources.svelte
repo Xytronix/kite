@@ -4,6 +4,7 @@ import { dataService } from '$lib/services/dataService';
 import { language } from '$lib/stores/language.svelte.js';
 import type { MediaInfo } from '$lib/types';
 import { getTimeAgo, getMostRecentArticleDate } from '$lib/utils/getTimeAgo';
+import SmartImage from '../SmartImage.svelte';
 
 // Props
 interface Props {
@@ -100,11 +101,13 @@ async function handleSourceClick(domain: any) {
 					title={`Show articles from ${domain?.name || 'Unknown'}`}
 				>
 					<div class="flex w-full min-w-0 items-center space-x-2">
-						<img
-							src={domain?.favicon || '/svg/placeholder.svg'}
-							alt={domain?.name ? `${domain.name} Favicon` : 'Default Favicon'}
-							class="h-5 w-5 rounded-full"
-							loading="lazy"
+						<SmartImage
+							domain={domain?.name}
+							alt={`${domain?.name || 'Unknown'} Favicon`}
+							class="h-5 w-5 rounded-full flex-shrink-0"
+							size={32}
+							loading="eager"
+							preferIconify={true}
 						/>
 						<span class="truncate text-sm font-semibold">
 							{domain?.name || 'Unknown'}

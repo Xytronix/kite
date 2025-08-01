@@ -1,16 +1,19 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { s } from '$lib/client/localization.svelte';
 	import { dataService, dataReloadService } from '$lib/services/dataService';
 	import { language } from '$lib/stores/language.svelte.js';
 	import { categories as categoriesStore } from '$lib/stores/categories.svelte.js';
 	import { sections } from '$lib/stores/sections.svelte.js';
+	import { settings } from '$lib/stores/settings.svelte.js';
 	import { imagePreloadingService } from '$lib/services/imagePreloadingService.js';
 	import { timeTravelBatch } from '$lib/stores/timeTravelBatch.svelte.js';
 	import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
 	import { formatTimeAgo } from '$lib/utils/formatTimeAgo';
-	import type { Category, Story } from '$lib/types';
+	import { onThisDayService } from '$lib/services/onThisDayService.js';
+	import { testConnectionQuality } from '$lib/utils/fetchWithRetry.js';
+	import type { Category, Story, OnThisDayEvent } from '$lib/types';
 	import SplashScreen from './SplashScreen.svelte';
 
 	// Props
@@ -29,6 +32,7 @@
 			chaosLastUpdated?: string;
 			isLatestBatch: boolean;
 			temporaryCategory?: string | null;
+			onThisDayEvents?: OnThisDayEvent[];
 		}) => void;
 		onError?: (error: string) => void;
 		initialBatchId?: string | null;
@@ -36,6 +40,9 @@
 	}
 
 	const { onDataLoaded, onError, initialBatchId, initialCategoryId }: Props = $props();
+
+	// Flag to hide progress/details on warm cache loads
+	let skipProgressDetails = false;
 
 	// Check for post-maintenance flag immediately to avoid flash
 	// Only consider it valid if it's recent (within 30 seconds)
@@ -59,10 +66,52 @@
 	
 	const isPostMaintenance = checkPostMaintenance();
 	
-	// Determine initial loading flag
+	// Persistent logging function for DataLoader
+	const persistentLogDataLoader = (message: string, data?: any) => {
+		if (typeof window === 'undefined') return;
+		
+		const timestamp = new Date().toISOString();
+		const logEntry = { timestamp, message: `[DATALOADER] ${message}`, data, url: window.location.href };
+		
+		try {
+			const logs = JSON.parse(localStorage.getItem('kite-debug-logs') || '[]');
+			logs.push(logEntry);
+			if (logs.length > 50) logs.splice(0, logs.length - 50);
+			localStorage.setItem('kite-debug-logs', JSON.stringify(logs));
+		} catch (e) {
+			console.warn('Failed to save persistent log:', e);
+		}
+		
+		console.log(`[PERSISTENT DATALOADER] ${message}`, data || '');
+	};
+
+	// Track DataLoader initialization
+	persistentLogDataLoader('🚀 DataLoader component initializing', {
+		timestamp: Date.now(),
+		isPostMaintenance,
+		initialBatchId,
+		initialCategoryId,
+		url: typeof window !== 'undefined' ? window.location.href : 'server'
+	});
+
+	// Determine initial loading flag - always start with true for SSR compatibility
 	const shouldShowInitialLoading = (() => {
-	    if (isPostMaintenance) return false;
-	    if (typeof window !== 'undefined' && sessionStorage.getItem('kite-loaded')) return false;
+	    // Always start with loading on server-side
+	    if (typeof window === 'undefined') {
+	        console.log('🔧 Server-side: Will show initial loading');
+	        return true;
+	    }
+	    
+	    if (isPostMaintenance) {
+	        console.log('🔧 Skipping initial loading: post-maintenance detected');
+	        persistentLogDataLoader('🔧 Skipping initial loading: post-maintenance detected');
+	        return false;
+	    }
+	    
+	    // Check if we already have cached data from a previous DataLoader instance
+	    const hasCachedData = typeof window !== 'undefined' && window.localStorage.getItem('kite-has-loaded-data') === 'true';
+
+	    // We keep showing the splash screen with full progress even on warm loads
 	    return true;
 	})();
 
@@ -84,6 +133,44 @@
 	let currentCategory = $state('');
 	let allCategoryStories = $state<Record<string, Story[]>>({});
 	let isLatestBatch = $state(true);
+	let onThisDayEvents = $state<OnThisDayEvent[]>([]);
+
+	// Add afterInitial flag
+	let afterInitial = $state(false);
+
+	// When initial load completes, mark afterInitial
+	// (we will add after the first initialLoading=false)
+
+	// Retry state for loadInitialData function
+	let retryCount = $state(0);
+	let retryTimeout = $state<NodeJS.Timeout | null>(null);
+	let connectionQuality = $state<'excellent' | 'good' | 'fair' | 'poor' | null>(null);
+	let isSlowConnection = $state(false);
+
+	// Helper function to get the first enabled category in user-defined order
+	function getFirstEnabledCategory(availableCategories: Category[]): string {
+		// Get enabled categories in user-defined order (categoriesStore.enabled is already ordered)
+		const enabledCategoryIds = categoriesStore.enabled;
+		
+		// Find the first enabled category that exists in available categories
+		for (const categoryId of enabledCategoryIds) {
+			if (availableCategories.some(cat => cat.id === categoryId)) {
+				console.log(`✨ Using first enabled category from user order: ${categoryId}`);
+				return categoryId;
+			}
+		}
+		
+		// Fallback 1: Try 'World' if available
+		if (availableCategories.some(cat => cat.id === 'World')) {
+			console.log(`🌍 No enabled categories available, falling back to 'World'`);
+			return 'World';
+		}
+		
+		// Fallback 2: Use first available category
+		const fallback = availableCategories.length > 0 ? availableCategories[0].id : 'World';
+		console.log(`🔄 Using first available category as fallback: ${fallback}`);
+		return fallback;
+	}
 
 	// Function to preload all images for stories with timeout handling
 	async function preloadCategoryImages(stories: Story[]) {
@@ -94,7 +181,7 @@
 				// Bump progress so the splash doesn’t stall mid-way
 				loadingProgress = Math.max(loadingProgress, 85);
 				resolve();
-			}, 3000); // 3-second fallback – keep UX snappy
+			}, 300); // Reduced to 300ms to prevent blank page delays
 		});
 		
 		try {
@@ -109,9 +196,40 @@
 
 	// Main data loading function
 	async function loadInitialData() {
+		persistentLogDataLoader('🔄 loadInitialData() called', {
+			timestamp: Date.now(),
+			retryCount,
+			callStack: new Error().stack?.split('\n').slice(1, 5).join(' | ') // Show first few stack frames
+		});
+		
 		try {
-			loadingStage = '...';
-			loadingProgress = 10;
+			// Test connection quality on first attempt
+			if (retryCount === 0) {
+				loadingStage = s('loading.testing') || 'Testing connection...';
+				loadingProgress = 5;
+				
+				try {
+					const connectionTest = await testConnectionQuality();
+					connectionQuality = connectionTest.quality;
+					isSlowConnection = connectionTest.quality === 'poor' || connectionTest.quality === 'fair';
+					
+					if (isSlowConnection) {
+						console.log(`🐌 Slow connection detected (${connectionTest.quality}, ${Math.round(connectionTest.responseTime)}ms). Using extended timeouts.`);
+					} else {
+						console.log(`⚡ Good connection detected (${connectionTest.quality}, ${Math.round(connectionTest.responseTime)}ms).`);
+					}
+				} catch (error) {
+					console.warn('Connection test failed, assuming poor connection:', error);
+					connectionQuality = 'poor';
+					isSlowConnection = true;
+				}
+			}
+			
+			// Skip separate story-loading stage – SplashScreen handles all loading UI
+			loadingStage = '';
+			loadingProgress = 30;
+
+			console.log('🚀 Starting initial data load from kite.kagi.com');
 
 			// Store batch info to avoid duplicate API calls
 			let providedBatchInfo: { id: string; createdAt: string; totalReadCount?: number } | undefined;
@@ -175,23 +293,41 @@
 				availableCategoryIds.includes(catId)
 			);
 			
+			// Debug logging for historical batch category issues
+			if (!isLatestBatch) {
+				console.log('🕰️ Loading historical batch:', batchId);
+				console.log('📋 Available categories in historical batch:', availableCategoryIds);
+				console.log('⚙️ User enabled categories:', categoriesStore.enabled);
+				console.log('✅ Valid enabled categories for this batch:', validEnabledCategories);
+			}
+			
 			// Update enabled categories to remove any that don't exist in current batch
 			if (validEnabledCategories.length !== categoriesStore.enabled.length) {
-				console.warn('Some enabled categories are not available in current batch, updating enabled list');
+				const missingCategories = categoriesStore.enabled.filter(cat => !availableCategoryIds.includes(cat));
+				console.warn('⚠️ Some enabled categories are not available in current batch:', missingCategories);
+				console.log('🔧 Updating enabled categories from', categoriesStore.enabled, 'to', validEnabledCategories);
 				categoriesStore.setEnabled(validEnabledCategories);
+			}
+			
+			// Ensure we have at least one valid category
+			if (validEnabledCategories.length === 0) {
+				console.warn('⚠️ No enabled categories available in batch, using first available category');
+				if (categories.length > 0) {
+					categoriesStore.setEnabled([categories[0].id]);
+					validEnabledCategories.push(categories[0].id);
+				}
 			}
 			
 			// Initialize sections store
 			sections.init();
 			
-			loadingStage = s('loading.stories') || 'Loading all category stories...';
-			loadingProgress = 30;
-
-			// Get all enabled categories except OnThisDay (case-insensitive)
+			// Get only enabled categories except OnThisDay (case-insensitive)
 			// Use validEnabledCategories to ensure we only try to load existing categories
 			const enabledCategories = validEnabledCategories.filter(cat => 
 				cat.toLowerCase() !== 'onthisday'
 			);
+			
+			console.log(`📦 Preloading enabled categories: ${enabledCategories.join(', ')} (${enabledCategories.length} categories)`);
 			
 			// If we have a category from URL that's not enabled, we need to include it
 			const categoriesToLoad = [...enabledCategories];
@@ -208,27 +344,102 @@
 				}
 			}
 			
-			// Use category from URL if provided, otherwise use first enabled
-			const targetCategory = initialCategoryId || enabledCategories[0] || 'World';
+			// Use category from URL if provided, otherwise default to first enabled category
+			const targetCategory = initialCategoryId || getFirstEnabledCategory(categories);
 			currentCategory = targetCategory;
+			
+			console.log(`🎯 Target category set to: ${targetCategory} ${initialCategoryId ? '(from URL)' : '(first enabled)'}`);
 
-			// Load stories for ALL enabled categories (plus any from URL)
+			// Load stories for enabled categories only (plus any from URL)
 			const categoryPromises = categoriesToLoad.map(async (categoryId) => {
-				try {
-					const categoryUuid = categoryMap[categoryId];
-					if (!categoryUuid) {
-						console.warn(`Category UUID not found for ${categoryId}`);
-						return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
-					}
-					const result = await dataService.loadStories(batchId, categoryUuid, 12, language.data);
-					return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
-				} catch (error) {
-					console.warn(`Failed to load stories for category ${categoryId}:`, error);
+				if (categoryId.toLowerCase() === 'onthisday') {
 					return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
 				}
+
+				// Add timeout wrapper for historical batch loading
+				const loadWithTimeout = async (): Promise<{ categoryId: string, stories: Story[], readCount: number, timestamp: number }> => {
+					try {
+						const categoryUuid = categoryMap[categoryId];
+						if (!categoryUuid) {
+							console.warn(`Category UUID not found for ${categoryId} in batch ${batchId}`);
+							return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
+						}
+						
+						console.log(`📦 Loading stories for category ${categoryId} from batch ${batchId}...`);
+						const result = await dataService.loadStories(batchId, categoryUuid, settings.storyCount, language.data);
+						console.log(`✅ Loaded ${result.stories.length} stories for category ${categoryId}`);
+						return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
+					} catch (error) {
+						console.warn(`❌ Failed to load stories for category ${categoryId} from batch ${batchId}:`, error);
+						return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
+					}
+				};
+
+				// Add timeout to prevent getting stuck on historical batches
+				const timeoutPromise = new Promise<{ categoryId: string, stories: Story[], readCount: number, timestamp: number }>((resolve) => {
+					setTimeout(() => {
+						console.warn(`⏰ Timeout loading category ${categoryId} from batch ${batchId}, returning empty result`);
+						resolve({ categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 });
+					}, 1000); // Reduced to 1 second to prevent blank page delays
+				});
+
+				return Promise.race([loadWithTimeout(), timeoutPromise]);
 			});
 
-			const categoryResults = await Promise.all(categoryPromises);
+			// Load OnThisDay events only if available AND enabled by user
+			const onThisDayPromise = async (): Promise<OnThisDayEvent[]> => {
+				const isOnThisDayEnabled = validEnabledCategories.some(cat => cat.toLowerCase() === 'onthisday');
+				if (!initialData.hasOnThisDay || !isOnThisDayEnabled) {
+					console.log('📅 OnThisDay is disabled or not available for this batch');
+					return [];
+				}
+				
+				console.log('📅 OnThisDay is enabled - loading events...');
+				try {
+					const events = await onThisDayService.loadOnThisDayEvents(language.data);
+					console.log(`✅ Loaded ${events.length} OnThisDay events`);
+					return events;
+				} catch (error) {
+					console.warn('Failed to load OnThisDay events:', error);
+					return [];
+				}
+			};
+
+			// Track progress during category loading
+			let loadedCategories = 0;
+			const totalCategories = categoriesToLoad.length;
+			
+			const trackingPromises = categoryPromises.map(async (promise, index) => {
+				const result = await promise;
+				loadedCategories++;
+				loadingProgress = 30 + (loadedCategories / totalCategories) * 30; // 30-60% for category loading
+				loadingStage = `Loading categories... (${loadedCategories}/${totalCategories})`;
+				console.log(`📊 Category loading progress: ${loadedCategories}/${totalCategories} (${Math.round(loadingProgress)}%)`);
+				return result;
+			});
+
+			// Use Promise.allSettled to prevent getting stuck if some categories fail
+			const [categoryResults, onThisDayEventsResult] = await Promise.all([
+				Promise.allSettled(trackingPromises).then(results => {
+					const successful = results
+						.filter(result => result.status === 'fulfilled')
+						.map(result => (result as PromiseFulfilledResult<any>).value);
+					
+					const failed = results.filter(result => result.status === 'rejected');
+					if (failed.length > 0) {
+						console.warn(`⚠️ ${failed.length} categories failed to load, continuing with ${successful.length} successful`);
+						failed.forEach((result, index) => {
+							console.error(`❌ Category ${index} failed:`, (result as PromiseRejectedResult).reason);
+						});
+					}
+					
+					return successful;
+				}),
+				onThisDayPromise()
+			]);
+
+			// Set OnThisDay events
+			onThisDayEvents = onThisDayEventsResult;
 			
 			// Store all category stories
 			allCategoryStories = {};
@@ -236,7 +447,13 @@
 			let totalReadCountSum = 0;
 			
 			for (const result of categoryResults) {
-				allCategoryStories[result.categoryId] = result.stories;
+				// Ensure story uniqueness by cluster_number or title
+				const uniqueStories = result.stories.filter((story, index, arr) => {
+					const storyId = story.cluster_number?.toString() || story.title;
+					return arr.findIndex(s => (s.cluster_number?.toString() || s.title) === storyId) === index;
+				});
+				
+				allCategoryStories[result.categoryId] = uniqueStories;
 				maxTimestamp = Math.max(maxTimestamp, result.timestamp);
 				totalReadCountSum += result.readCount;
 			}
@@ -253,39 +470,15 @@
 			loadingStage = s('loading.images') || 'Preloading first category images...';
 			loadingProgress = 65; // start image phase above 50% so bar continues moving
 			
-			// Animate progress from 65 → 85 % while images preload
-			// Use faster animation for post-maintenance loads
-			const startAnimatingProgress = () => {
-				const start = performance.now();
-				const duration = isPostMaintenance ? 200 : 2000; // Much faster for post-maintenance
-
-				const step = () => {
-					const elapsed = performance.now() - start;
-					const t = Math.min(1, elapsed / duration);
-					// ease-out curve (sqrt)
-					const eased = Math.sqrt(t);
-					loadingProgress = 65 + eased * (85 - 65);
-					if (t < 1) {
-						progressAnimId = requestAnimationFrame(step);
-					}
-				};
-				progressAnimId = requestAnimationFrame(step);
-			};
-
-			let progressAnimId: number | null = null;
-			if (!isPostMaintenance) {
-				startAnimatingProgress();
-			} else {
-				// Skip animation for post-maintenance, jump directly to 85%
-				loadingProgress = 85;
-			}
+			// Skip progress animation - jump directly to 85% for instant loading
+			loadingProgress = 85;
 
 			// Only preload images for the first category to keep initial load fast
 			// Skip image preloading for post-maintenance loads since images should be cached
 			if (!isPostMaintenance) {
 				const firstCategoryStories = allCategoryStories[targetCategory] || [];
 				console.log(`📦 Preloading images for first category: ${targetCategory} (${firstCategoryStories.length} stories)`);
-				console.log(`📚 Total categories preloaded: ${enabledCategories.length} (${Object.values(allCategoryStories).flat().length} total stories)`);
+				console.log(`📚 Enabled categories preloaded: ${enabledCategories.length} (${Object.values(allCategoryStories).flat().length} total stories)`);
 				
 				if (firstCategoryStories.length > 0) {
 					try {
@@ -300,11 +493,7 @@
 				console.log('🔄 Post-maintenance load - skipping image preloading (using cache)');
 			}
 
-			// Ensure progress animation stops and set progress to 85 after image step
-			if (progressAnimId !== null) {
-				cancelAnimationFrame(progressAnimId);
-				progressAnimId = null;
-			}
+			// Set progress to 85% after image step (no animation needed)
 			loadingProgress = Math.max(loadingProgress, 85);
 
 			loadingStage = s('loading.finishing') || 'Finishing up...';
@@ -313,7 +502,11 @@
 			loadingProgress = 100;
 			loadingStage = s('loading.ready') || 'Ready!';
 
-			initialLoading = false;
+			// Mark that we have loaded data to prevent flash on future DataLoader remounts
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem('kite-has-loaded-data', 'true');
+				persistentLogDataLoader('✅ Marked data as loaded in localStorage to prevent future flashes');
+			}
 
 			// Skip delay for post-maintenance loads for faster transition
 			const finishLoading = () => {
@@ -331,23 +524,104 @@
 						chaosDescription,
 						chaosLastUpdated,
 						isLatestBatch,
-						temporaryCategory: temporaryCategoryId
+						temporaryCategory: temporaryCategoryId,
+						onThisDayEvents
 					});
 				}
+
+				// Hide splash screen only after parent processed data
+				initialLoading = false;
+				afterInitial = true; // Mark after initial load completes
 			};
 
-			// Skip delay for post-maintenance loads for faster transition
-			if (isPostMaintenance) {
-				finishLoading();
-			} else {
-				setTimeout(finishLoading, 100);
-			}
+			// Execute finishLoading immediately - no delays
+			finishLoading();
 
 		} catch (error) {
 			console.error('Error loading initial data:', error);
+			
+			// Enhanced network error detection
+			const isNetworkError = error instanceof Error && (
+				error.message.includes('Failed to get latest batch') ||
+				error.message.includes('Internal Server Error') ||
+				error.message.includes('Server error') ||
+				error.message.includes('fetch') ||
+				error.message.includes('Network connection failed') ||
+				error.message.includes('timeout') ||
+				error.message.includes('aborted') ||
+				error.message.includes('Failed to load') ||
+				error.name === 'TypeError' ||
+				error.name === 'NetworkError' ||
+				error.name === 'AbortError'
+			);
+			
+			// Adaptive retry limits based on connection quality
+			const maxRetries = isSlowConnection ? 8 : 5; // More retries for slow connections
+			
+			// Track retry attempts
+			if (!retryCount) {
+				retryCount = 0;
+			}
+			
+			if (isNetworkError && retryCount < maxRetries) {
+				retryCount++;
+				
+				// Adaptive retry delay based on connection quality and attempt
+				let baseDelay = isSlowConnection ? 3000 : 1500;
+				const multiplier = isSlowConnection ? 1.3 : 1.5;
+				const maxDelay = isSlowConnection ? 20000 : 12000;
+				
+				const retryDelay = Math.min(baseDelay * Math.pow(multiplier, retryCount - 1), maxDelay);
+				
+				// Add jitter to prevent thundering herd
+				const jitter = Math.random() * 0.3 * retryDelay;
+				const finalDelay = retryDelay + jitter;
+				
+				console.log(`🔄 Network error detected (attempt ${retryCount}/${maxRetries}), retrying in ${Math.round(finalDelay/1000)}s...`);
+				persistentLogDataLoader('🔄 Network error - scheduling retry', {
+					attempt: retryCount,
+					maxRetries,
+					delayMs: Math.round(finalDelay),
+					errorMessage: error instanceof Error ? error.message : String(error)
+				});
+				
+				// Enhanced loading message with connection context
+				const connectionInfo = connectionQuality ? ` (${connectionQuality} connection)` : '';
+				loadingStage = s('loading.retrying') || `Connection issue, retrying... (${retryCount}/${maxRetries})${connectionInfo}`;
+				
+				// Retry after a delay, but prevent multiple concurrent retries
+				if (!retryTimeout) {
+					retryTimeout = setTimeout(() => {
+						console.log(`🔄 Retrying data load (attempt ${retryCount + 1})...`);
+						persistentLogDataLoader('🔄 Retry timeout fired - calling loadInitialData', {
+							attempt: retryCount + 1
+						});
+						retryTimeout = null;
+						loadInitialData();
+					}, finalDelay);
+				}
+				return;
+			}
+			
+			// Reset retry count and clear any pending timeout for future attempts
+			retryCount = 0;
+			if (retryTimeout) {
+				clearTimeout(retryTimeout);
+				retryTimeout = null;
+			}
+			
 			hasError = true;
 			errorMessage = error instanceof Error ? error.message : 'Failed to load data';
 			loadingStage = s('loading.error') || 'Error loading data';
+			
+			// Provide more helpful error messages
+			if (error instanceof Error) {
+				if (error.message.includes('Internal Server Error')) {
+					errorMessage = 'The news service is temporarily unavailable. Please try again in a few minutes.';
+				} else if (error.message.includes('Network connection failed')) {
+					errorMessage = 'Unable to connect to the news service. Please check your internet connection.';
+				}
+			}
 			
 			// Show error for a bit then continue with fallback
 			setTimeout(() => {
@@ -356,7 +630,7 @@
 				if (onError) {
 					onError(errorMessage);
 				}
-			}, 2000);
+			}, 1000); // Reduced error display time to prevent blank page delays
 		}
 	}
 
@@ -406,23 +680,41 @@
 				}
 			}
 			
-			const firstEnabledCategory = initialCategoryId || enabledCategories[0] || 'World';
+			const firstEnabledCategory = initialCategoryId || getFirstEnabledCategory(categories);
 			currentCategory = firstEnabledCategory;
+			
+			console.log(`🎯 Language reload: Target category set to: ${firstEnabledCategory} ${initialCategoryId ? '(from URL)' : '(first enabled)'}`);
 
-			// Load stories for ALL enabled categories (plus any from URL)
+			// Load stories for enabled categories only (plus any from URL)
 			const categoryPromises = categoriesToLoad.map(async (categoryId) => {
-				try {
-					const categoryUuid = categoryMap[categoryId];
-					if (!categoryUuid) {
-						console.warn(`Category UUID not found for ${categoryId}`);
+				// Add timeout wrapper for language reload
+				const loadWithTimeout = async (): Promise<{ categoryId: string, stories: Story[], readCount: number, timestamp: number }> => {
+					try {
+						const categoryUuid = categoryMap[categoryId];
+						if (!categoryUuid) {
+							console.warn(`Category UUID not found for ${categoryId} during language reload`);
+							return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
+						}
+						
+						console.log(`📦 Language reload: Loading stories for category ${categoryId}...`);
+						const result = await dataService.loadStories(batchId, categoryUuid, settings.storyCount, language.data);
+						console.log(`✅ Language reload: Loaded ${result.stories.length} stories for category ${categoryId}`);
+						return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
+					} catch (error) {
+						console.warn(`❌ Language reload: Failed to load stories for category ${categoryId}:`, error);
 						return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
 					}
-					const result = await dataService.loadStories(batchId, categoryUuid, 12, language.data);
-					return { categoryId, stories: result.stories, readCount: result.readCount, timestamp: result.timestamp };
-				} catch (error) {
-					console.warn(`Failed to load stories for category ${categoryId}:`, error);
-					return { categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 };
-				}
+				};
+
+				// Add timeout to prevent getting stuck during language reload
+				const timeoutPromise = new Promise<{ categoryId: string, stories: Story[], readCount: number, timestamp: number }>((resolve) => {
+					setTimeout(() => {
+						console.warn(`⏰ Language reload: Timeout loading category ${categoryId}, returning empty result`);
+						resolve({ categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 });
+					}, 8000); // 8 second timeout for language reload
+				});
+
+				return Promise.race([loadWithTimeout(), timeoutPromise]);
 			});
 
 			const categoryResults = await Promise.all(categoryPromises);
@@ -433,7 +725,13 @@
 			let totalReadCountSum = 0;
 			
 			for (const result of categoryResults) {
-				allCategoryStories[result.categoryId] = result.stories;
+				// Ensure story uniqueness by cluster_number or title
+				const uniqueStories = result.stories.filter((story, index, arr) => {
+					const storyId = story.cluster_number?.toString() || story.title;
+					return arr.findIndex(s => (s.cluster_number?.toString() || s.title) === storyId) === index;
+				});
+				
+				allCategoryStories[result.categoryId] = uniqueStories;
 				maxTimestamp = Math.max(maxTimestamp, result.timestamp);
 				totalReadCountSum += result.readCount;
 			}
@@ -452,7 +750,7 @@
 				await preloadCategoryImages(firstCategoryStories);
 			}
 
-			console.log(`✅ Language reload complete: ${enabledCategories.length} categories, ${Object.values(allCategoryStories).flat().length} total stories`);
+			console.log(`✅ Language reload complete: ${enabledCategories.length} enabled categories, ${Object.values(allCategoryStories).flat().length} total stories`);
 			
 			// Notify parent component with updated data
 			if (onDataLoaded) {
@@ -469,7 +767,8 @@
 					chaosDescription,
 					chaosLastUpdated,
 					isLatestBatch,
-					temporaryCategory: temporaryCategoryId
+					temporaryCategory: temporaryCategoryId,
+					onThisDayEvents
 				});
 			}
 
@@ -484,62 +783,135 @@
 
 	// Load data when component mounts
 	onMount(() => {
+		persistentLogDataLoader('📍 onMount() called - DataLoader mounting', {
+			timestamp: Date.now(),
+			isPostMaintenance,
+			initialBatchId,
+			initialCategoryId
+		});
+		
+		// Initialize time travel batch store to restore or clear stale state
+		timeTravelBatch.init();
+		
+		// Check if we have a stale time travel batch and clear it
+		if (timeTravelBatch.isStale()) {
+			console.log('🗑️ Clearing stale time travel batch on mount');
+			persistentLogDataLoader('🗑️ Clearing stale time travel batch on mount');
+			timeTravelBatch.set(null);
+		}
+		
 		if (isPostMaintenance) {
 			// Clear the flag now that we've used it
 			localStorage.removeItem('kite-post-maintenance');
 			console.log('🔄 Post-maintenance reload - skipping splash screen');
+			persistentLogDataLoader('🔄 Post-maintenance reload - skipping splash screen');
 		} else {
 			console.log('🚀 DataLoader mounted - loading initial data');
+			persistentLogDataLoader('🚀 DataLoader mounted - loading initial data');
 		}
 		
+		persistentLogDataLoader('🔄 About to call loadInitialData from onMount');
 		loadInitialData();
 		
 		// Register reload callback
 		dataReloadService.onReload(reloadAllData);
+		
+		persistentLogDataLoader('✅ onMount() completed');
+	});
+	
+	// Track when component is destroyed
+	onDestroy(() => {
+		const stack = new Error().stack?.split('\n').slice(1, 8).join(' | ') || 'no stack';
+		persistentLogDataLoader('💀 DataLoader component destroying/unmounting', {
+			timestamp: Date.now(),
+			destroyStack: stack
+		});
+		
+		// Only log in development mode to reduce console noise
+		if (browser && window.location.hostname === 'localhost') {
+			console.log('🔍 DataLoader destroyed by:', stack);
+		}
+		
+		// Clear any pending timeouts
+		if (retryTimeout) {
+			clearTimeout(retryTimeout);
+			retryTimeout = null;
+		}
 	});
 	
 	// Watch for batch changes (time travel mode toggle)
 	let lastProcessedBatchId: string | null = null;
-	let needsReload = $state(false);
 	
 	// Track when batch changes and trigger reload
 	$effect(() => {
 		if (!browser) return;
 		const currentBatchId = timeTravelBatch.batchId;
 		
-		// Check if we need to reload
-		if (currentBatchId !== lastProcessedBatchId && !initialLoading && lastProcessedBatchId !== null) {
-			console.log(`🔄 Batch changed from ${lastProcessedBatchId} to ${currentBatchId}, triggering reload...`);
-			
-			// Update state
+		persistentLogDataLoader('⚡ $effect triggered - batch watcher', {
+			currentBatchId: currentBatchId?.substring(0, 8) || 'null',
+			lastProcessedBatchId: lastProcessedBatchId?.substring(0, 8) || 'null',
+			initialLoading,
+			isFirstRun: lastProcessedBatchId === null
+		});
+		
+		// Initialize on first run
+		if (lastProcessedBatchId === null) {
 			lastProcessedBatchId = currentBatchId;
-			isLatestBatch = currentBatchId === null;
-			initialLoading = true;
-			loadingProgress = 0;
-			loadingStage = s('loading.loadingData') || 'Loading news data...';
-			needsReload = true;
-		} else {
-			lastProcessedBatchId = currentBatchId;
+			persistentLogDataLoader('🔧 First run of batch watcher - initializing');
+			return;
 		}
-	});
-	
-	// Handle reload trigger
-	$effect(() => {
-		if (needsReload) {
-			needsReload = false;
-			setTimeout(() => {
-				loadInitialData();
-			}, 100);
+		
+		// Check if we need to reload
+		if (currentBatchId !== lastProcessedBatchId && !initialLoading) {
+			console.log(`🔄 Batch changed from ${lastProcessedBatchId} to ${currentBatchId}, triggering reload...`);
+			persistentLogDataLoader('🔄 Batch changed - triggering reload', {
+				from: lastProcessedBatchId?.substring(0, 8) || 'null',
+				to: currentBatchId?.substring(0, 8) || 'null'
+			});
+			
+			// Update tracking variable first
+			lastProcessedBatchId = currentBatchId;
+			
+			// Trigger reload without modifying reactive state in the effect
+			queueMicrotask(() => {
+				afterInitial = true; // ensure corner spinner
+				isLatestBatch = currentBatchId === null;
+				initialLoading = true;
+				loadingProgress = 0;
+				loadingStage = s('loading.loadingData') || 'Loading news data...';
+				
+				persistentLogDataLoader('🔄 About to call loadInitialData from batch watcher');
+				// Trigger reload after state is updated
+				setTimeout(() => {
+					loadInitialData();
+				}, 100);
+			});
 		}
 	});
 </script>
 
 {#if initialLoading}
-	<SplashScreen 
-		showProgress={true}
-		progress={loadingProgress}
-		stage={loadingStage}
-		hasError={hasError}
-		errorMessage={errorMessage}
-	/>
+    <SplashScreen 
+        showProgress={true}
+        progress={loadingProgress}
+        stage={loadingStage}
+        hasError={hasError}
+        errorMessage={errorMessage}
+        onRetry={() => {
+            // Reset error state and retry
+            hasError = false;
+            errorMessage = '';
+            loadingProgress = 0;
+            loadingStage = s('loading.initializing') || 'Initializing...';
+            retryCount = 0; // Reset retry count for manual retry
+            if (retryTimeout) {
+                clearTimeout(retryTimeout);
+                retryTimeout = null;
+            }
+            loadInitialData();
+        }}
+    />
+{:else}
+    <!-- DataLoader is done loading - render nothing (invisible) -->
+    <div style="display: none;"></div>
 {/if} 

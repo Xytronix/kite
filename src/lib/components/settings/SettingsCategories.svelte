@@ -13,6 +13,7 @@
 	};
 	import { getCategoryDisplayName } from '$lib/utils/category';
 	import { categoryMetadataService, type CategoryMetadata } from '$lib/services/categoryMetadataService';
+	import { locationService, type LocationInfo } from '$lib/services/locationService';
 	import Select from '$lib/components/Select.svelte';
 	import Icon from '@iconify/svelte';
 	
@@ -34,6 +35,7 @@
 	
 	// Category metadata and filtering
 	let categoryMetadata = $state<CategoryMetadata[]>([]);
+	let locationInfo = $state<LocationInfo | null>(null);
 	// biome-ignore lint/style/useConst -- categoryFilter is updated via UI events later in the component
 	let categoryFilter = $state('all');
 	
@@ -53,7 +55,9 @@
 		if (props.categories && props.categories.length > 0) {
 			untrack(() => {
 				categories.setAllCategories(props.categories);
-				categories.initWithDefaults();
+				loadLocationInfo().then(() => {
+					categories.initWithLocationDefaults(locationInfo?.suggestedCategories);
+				});
 				loadCategoryMetadata();
 				syncFromStore();
 			});
@@ -68,6 +72,16 @@
 		} catch (error) {
 			console.error('Failed to load category metadata:', error);
 			categoryMetadata = [];
+		}
+	}
+
+	// Load location information for dynamic suggestions
+	async function loadLocationInfo() {
+		try {
+			locationInfo = await locationService.detectLocation();
+		} catch (error) {
+			console.error('Failed to detect location:', error);
+			locationInfo = null;
 		}
 	}
 
@@ -229,6 +243,189 @@
 		// Move from disabled to enabled
 		categories.enableCategory(categoryId);
 	}
+
+	// Bulk action handlers
+	function handleEnableAll() {
+		const categoriesToEnable = categoryFilter === 'all' 
+			? filteredDisabledItems.map(item => item.id)
+			: filteredDisabledItems.map(item => item.id);
+		
+		for (const categoryId of categoriesToEnable) {
+			categories.enableCategory(categoryId);
+		}
+	}
+
+	function handleDisableAll() {
+		// Get all enabled items that match the current filter
+		const enabledItemsToDisable = enabledItems.filter(item => {
+			if (categoryFilter === 'all') return true;
+			const categoryType = getCategoryType(item.id);
+			return categoryType === categoryFilter;
+		});
+
+		// Prevent disabling all categories if it would leave none enabled
+		const remainingEnabled = enabledItems.filter(item => {
+			if (categoryFilter === 'all') return false;
+			const categoryType = getCategoryType(item.id);
+			return categoryType !== categoryFilter;
+		});
+
+		if (remainingEnabled.length === 0) {
+			// Don't allow disabling all categories
+			return;
+		}
+
+		// Disable the filtered categories
+		for (const item of enabledItemsToDisable) {
+			categories.disableCategory(item.id);
+		}
+	}
+
+	function handleReset() {
+		// Force reset by clearing current state first, then applying defaults
+		const allCategoryIds = categories.allCategories.map((cat) => cat.id);
+		
+		// Determine which categories should be enabled by default
+		const defaultEnabledCategories = (locationInfo?.suggestedCategories && locationInfo.suggestedCategories.length > 0)
+			? locationInfo.suggestedCategories
+			: [
+				"world",
+				"usa", 
+				"business",
+				"tech",
+				"science",
+				"sports",
+				"gaming",
+				"onthisday",
+			];
+
+		// Filter to only include categories that actually exist
+		const validDefaultEnabled = defaultEnabledCategories.filter(categoryId =>
+			allCategoryIds.includes(categoryId)
+		);
+
+		// Create ordered list with World first, then location categories, then other defaults
+		let newOrder = [];
+		
+		// Add World first if it's in the enabled defaults
+		if (validDefaultEnabled.includes("world")) {
+			newOrder.push("world");
+		}
+		
+		// Add location-based categories after World (if using location suggestions)
+		if (locationInfo?.suggestedCategories && locationInfo.suggestedCategories.length > 0) {
+			const locationCategories = validDefaultEnabled.filter(categoryId => 
+				categoryId !== "world" && 
+				!["business", "tech", "science", "sports", "gaming", "onthisday", "usa"].includes(categoryId)
+			);
+			newOrder.push(...locationCategories);
+		}
+		
+		// Add remaining default categories in their original order
+		const remainingDefaults = validDefaultEnabled.filter(categoryId => 
+			!newOrder.includes(categoryId)
+		);
+		newOrder.push(...remainingDefaults);
+		
+		// Add all other categories that aren't in defaults
+		const remainingCategories = allCategoryIds.filter(
+			categoryId => !validDefaultEnabled.includes(categoryId)
+		);
+		newOrder.push(...remainingCategories);
+		
+		// Apply the reset
+		categories.setOrder(newOrder);
+		categories.setEnabled(validDefaultEnabled);
+	}
+
+	// Check if bulk actions should be shown
+	const showBulkActions = $derived(filteredDisabledItems.length > 0);
+	
+	// Check if disable all button should be shown
+	const showDisableAll = $derived(() => {
+		if (categoryFilter === 'all') return false;
+		
+		// Check if there are enabled items of the filtered type
+		const enabledOfType = enabledItems.filter(item => {
+			const categoryType = getCategoryType(item.id);
+			return categoryType === categoryFilter;
+		});
+		
+		// Only show if there are items to disable and it won't leave zero enabled categories
+		const remainingEnabled = enabledItems.filter(item => {
+			const categoryType = getCategoryType(item.id);
+			return categoryType !== categoryFilter;
+		});
+		
+		return enabledOfType.length > 0 && remainingEnabled.length > 0;
+	});
+	
+	// Get current default categories (location-based if available)
+	const getCurrentDefaults = $derived(() => {
+		if (locationInfo?.suggestedCategories && locationInfo.suggestedCategories.length > 0) {
+			return locationInfo.suggestedCategories.filter(categoryId =>
+				categories.allCategories.some(cat => cat.id === categoryId)
+			);
+		}
+		
+		// Fallback to static defaults
+		const staticDefaults = [
+			"world",
+			"usa", 
+			"business",
+			"tech",
+			"science",
+			"sports",
+			"gaming",
+			"onthisday",
+		];
+		
+		return staticDefaults.filter(categoryId =>
+			categories.allCategories.some(cat => cat.id === categoryId)
+		);
+	});
+	
+	const canReset = $derived(() => {
+		const availableDefaults = getCurrentDefaults();
+		
+		// Check if current enabled differs from defaults
+		return categories.enabled.length !== availableDefaults.length || 
+			!categories.enabled.every(id => availableDefaults.includes(id));
+	});
+
+	// Get location display text - only show when using location-based defaults
+	let locationDisplayText = $state('');
+	
+	$effect(() => {
+		if (!locationInfo || !locationInfo.suggestedCategories || locationInfo.suggestedCategories.length === 0) {
+			locationDisplayText = '';
+			return;
+		}
+		
+		// Check if current enabled categories match the location-based suggestions
+		const validSuggestions = locationInfo.suggestedCategories.filter(categoryId =>
+			categories.allCategories.some(cat => cat.id === categoryId)
+		);
+		
+		const isUsingLocationDefaults = 
+			categories.enabled.length === validSuggestions.length &&
+			categories.enabled.every(id => validSuggestions.includes(id));
+		
+		if (!isUsingLocationDefaults) {
+			locationDisplayText = '';
+			return;
+		}
+		
+		const parts = [];
+		if (locationInfo.country) {
+			parts.push(locationInfo.country);
+		}
+		if (locationInfo.timezone) {
+			parts.push(locationInfo.timezone.split('/').pop()?.replace('_', ' '));
+		}
+		
+		locationDisplayText = parts.length > 0 ? 'Optimized for: ' + parts.join(', ') : '';
+	});
 </script>
 
 <div class="space-y-4">
@@ -236,6 +433,12 @@
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			{s('settings.categories.instructions') || 'Drag to reorder, or click to enable/disable. Drag between sections to move categories.'}
 		</p>
+		{#if locationDisplayText}
+			<p class="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+				<Icon icon="tabler:map-pin" class="w-3 h-3" />
+				{locationDisplayText}
+			</p>
+		{/if}
 	</div>
 
 	<div>
@@ -295,17 +498,49 @@
 			<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
 				{s('settings.categories.disabled') || 'Disabled Categories'}
 			</h4>
-			<div class="w-48">
-				<Select
-					bind:value={categoryFilter}
-					options={filterOptionsWithCounts}
-					placeholder={s('settings.categories.filterByType') || 'Filter by type...'}
-					className="text-xs"
-					height="h-8"
-					onChange={(value: string) => {
-						categoryFilter = value;
-					}}
-				/>
+			<div class="flex items-center gap-2">
+				{#if showBulkActions}
+					<button
+						type="button"
+						onclick={handleEnableAll}
+						class="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20"
+					>
+						{categoryFilter === 'all' 
+							? (s('settings.categories.enableAll') || 'Enable All')
+							: (s('settings.categories.enableFiltered') || `Enable All ${filterOptions.find(opt => opt.value === categoryFilter)?.label || ''}`)}
+					</button>
+				{/if}
+				{#if showDisableAll}
+					<button
+						type="button"
+						onclick={handleDisableAll}
+						class="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+					>
+						{s('settings.categories.disableFiltered') || `Disable All ${filterOptions.find(opt => opt.value === categoryFilter)?.label || ''}`}
+					</button>
+				{/if}
+				{#if canReset}
+					<button
+						type="button"
+						onclick={handleReset}
+						class="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800"
+						title={locationInfo?.country ? `Reset to defaults for ${locationInfo.country}` : 'Reset to defaults'}
+					>
+						{s('settings.categories.reset') || 'Reset'}
+					</button>
+				{/if}
+				<div class="w-48">
+					<Select
+						bind:value={categoryFilter}
+						options={filterOptionsWithCounts}
+						placeholder={s('settings.categories.filterByType') || 'Filter by type...'}
+						className="text-xs"
+						height="h-8"
+						onChange={(value: string) => {
+							categoryFilter = value;
+						}}
+					/>
+				</div>
 			</div>
 		</div>
 		<div

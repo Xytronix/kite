@@ -1,5 +1,6 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
+import { sections } from '$lib/stores/sections.svelte.js';
 import StoryHeader from './StoryHeader.svelte';
 import StorySectionManager from './StorySectionManager.svelte';
 import StoryActions from './StoryActions.svelte';
@@ -10,6 +11,7 @@ import { autoLinkPlaces } from '$lib/utils/placeAutoLink';
 import { autoLinkOrgs } from '$lib/utils/orgAutoLink';
 import { autoLinkAcronyms } from '$lib/utils/acronymAutoLink';
 import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
+import { tick } from 'svelte';
 
 // Props
 interface Props {
@@ -85,7 +87,21 @@ let imagesPreloaded = $derived(viewportPreloader.isPreloaded || hoverPreloader.i
 let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Handle story click
-function handleStoryClick() {
+function handleStoryClick(event?: Event) {
+    // Only allow root click toggling when story is blurred (privacy filter).
+    // For expanded stories, toggling is handled by explicit header/close buttons.
+    if (event && !isBlurred) {
+        return;
+    }
+
+    // Ignore clicks originating from interactive elements even when blurred
+    if (event) {
+        const target = event.target as HTMLElement;
+        const interactiveSelector = 'a, button, input, textarea, select, label, [role="switch"], [data-no-toggle], .horizontal-scroll-container';
+        if (target.closest(interactiveSelector)) {
+            return;
+        }
+    }
 	// If blurred, reveal and expand
 	if (isBlurred) {
 		isBlurred = false;
@@ -95,6 +111,12 @@ function handleStoryClick() {
 		}, 100);
 		return;
 	}
+	
+	// Prevent rapid clicking that could cause duplicate calls
+	if (scrollTimeout) {
+		return;
+	}
+	
 	if (onToggle) onToggle();
 }
 
@@ -125,9 +147,11 @@ $effect(() => {
     if (isExpanded && browser && storyElement) {
         // Small delay to ensure the content is rendered
         scrollTimeout = setTimeout(() => {
+            // Store current scroll position to prevent unwanted jumps
+            const initialScrollY = window.pageYOffset;
+            
             // Get the story element's position
             const rect = storyElement.getBoundingClientRect();
-            const currentScrollY = window.pageYOffset;
 
             // Only scroll if the story is not already in view
             const viewportHeight = window.innerHeight;
@@ -142,16 +166,19 @@ $effect(() => {
                 const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
 
                 // Scroll to show the story title with some padding
-                const targetY = currentScrollY + storyTop - headerHeight - 20;
+                const targetY = initialScrollY + storyTop - headerHeight - 20;
 
-                window.scrollTo({
-                    top: Math.max(0, targetY),
-                    behavior: 'smooth'
+                // Use requestAnimationFrame to ensure smooth scrolling
+                requestAnimationFrame(() => {
+                    window.scrollTo({
+                        top: Math.max(0, targetY),
+                        behavior: 'smooth'
+                    });
                 });
             }
 
             scrollTimeout = null; // clear ref after execution
-        }, 100);
+        }, 150); // Slightly longer delay to ensure DOM is stable
     }
 
     // Cleanup when component is destroyed
@@ -203,6 +230,24 @@ $effect(() => {
         processedAutoLinkOrg = false;
         processedAutoLinkAcr = false;
     }
+});
+
+// Keep story anchored when section settings (enabled/disabled) change
+$effect(() => {
+    const _ = JSON.stringify(sections.settings); // react to any toggle
+
+    if (!isExpanded || !browser || !storyElement) return;
+
+    const beforeTop = storyElement.getBoundingClientRect().top;
+
+    tick().then(() => {
+        if (!storyElement) return;
+        const afterTop = storyElement.getBoundingClientRect().top;
+        const delta = afterTop - beforeTop;
+        if (delta !== 0) {
+            window.scrollBy({ top: delta, left: 0 });
+        }
+    });
 });
 </script>
 

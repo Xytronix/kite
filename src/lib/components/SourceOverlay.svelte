@@ -1,11 +1,12 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
-import { scrollLock } from '$lib/utils/scrollLock.js';
+import { scrollLock } from '$lib/utils/scrollLock';
 import Icon from '@iconify/svelte';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
 import { fetchWikipediaContentForDomain, type WikipediaContent } from '$lib/services/wikipediaService';
+import SmartImage from './SmartImage.svelte';
 
 // Props
 interface Props {
@@ -27,6 +28,7 @@ let dialogElement: HTMLElement | undefined = $state(undefined);
 let firstFocusableElement: HTMLElement | undefined = $state(undefined);
 let lastFocusableElement: HTMLElement | undefined = $state(undefined);
 let previousActiveElement: Element | null = null;
+let focusManagementInitialized = $state(false);
 
 // Use the fetched media info
 const mediaInfo = $derived.by(() => {
@@ -45,10 +47,14 @@ let [initialize, instance] = useOverlayScrollbars({
 	}
 });
 
-// Initialize OverlayScrollbars
+// Initialize OverlayScrollbars only when overlay opens
 $effect(() => {
-	if (scrollableElement) {
-		initialize(scrollableElement);
+	if (scrollableElement && isOpen) {
+		try {
+			initialize(scrollableElement);
+		} catch (error) {
+			console.warn('Failed to initialize OverlayScrollbars:', error);
+		}
 	}
 });
 
@@ -106,12 +112,11 @@ function updateFocusableElements() {
 // Handle visibility changes for scroll lock and focus management
 $effect(() => {
 	if (typeof document !== 'undefined') {
-		if (isOpen) {
+		if (isOpen && !focusManagementInitialized) {
 			// Store the previously active element
 			previousActiveElement = document.activeElement;
 			
-			// Lock background scroll
-			scrollLock.lock();
+			// Background scroll locked in dedicated effect below
 			
 			// Set up keyboard listeners
 			document.addEventListener('keydown', handleKeydown);
@@ -124,26 +129,38 @@ $effect(() => {
 					firstFocusableElement.focus();
 				}
 			}, 0);
-		} else {
+			
+			focusManagementInitialized = true;
+		} else if (!isOpen && focusManagementInitialized) {
 			// Clean up listeners
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('keydown', handleFocusTrap);
 			
-			// Unlock background scroll
-			scrollLock.unlock();
+			// Background scroll unlocked in dedicated effect below
 			
-			// Return focus to the previously active element
-			if (previousActiveElement && 'focus' in previousActiveElement) {
-				(previousActiveElement as HTMLElement).focus();
-			}
+			// Skip focus restoration to prevent position jumping
+			// previousActiveElement is cleared but not restored
+			
+			focusManagementInitialized = false;
 		}
 		
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('keydown', handleFocusTrap);
-			scrollLock.unlock();
+			// Unlock handled in dedicated effect below
 		};
 	}
+});
+
+// Add new dedicated scroll lock effect
+$effect(() => {
+    if (typeof document === 'undefined') return;
+    if (isOpen) {
+        scrollLock.lock();
+        return () => {
+            scrollLock.unlock();
+        };
+    }
 });
 
 // Handle close
@@ -161,18 +178,43 @@ function handleBackdropClick(event: MouseEvent) {
 let wikipediaInfo = $state<WikipediaContent | null>(null);
 let isLoadingWikipediaInfo = $state(false);
 
+// Track the last source we fetched Wikipedia info for to prevent refetching
+let lastFetchedSource = $state<string | null>(null);
+
 // Watch for overlay open & missing media info to fetch Wikipedia fallback
 $effect(() => {
-    // Run asynchronously but do not return a Promise to the effect caller
-    (async () => {
-        if (isOpen && !currentMediaInfo && currentSource?.name) {
-            // Avoid refetching if we already have data for the same source
-            if (wikipediaInfo && currentSource.name === wikipediaInfo.title) return;
-            isLoadingWikipediaInfo = true;
-            wikipediaInfo = await fetchWikipediaContentForDomain(currentSource.name);
-            isLoadingWikipediaInfo = false;
-        } else if (!isOpen) {
+    // Only proceed if overlay is open, no media info, and we have a source name
+    if (!isOpen || currentMediaInfo || !currentSource?.name) {
+        // Reset when overlay closes or conditions change
+        if (!isOpen) {
             wikipediaInfo = null;
+            lastFetchedSource = null;
+            isLoadingWikipediaInfo = false;
+        }
+        return;
+    }
+    
+    // Avoid refetching if we already have data for the same source
+    if (lastFetchedSource === currentSource.name && wikipediaInfo) {
+        return;
+    }
+    
+    // Fetch Wikipedia content asynchronously without blocking reactive updates
+    (async () => {
+        try {
+            isLoadingWikipediaInfo = true;
+            lastFetchedSource = currentSource.name;
+            const result = await fetchWikipediaContentForDomain(currentSource.name);
+            
+            // Only update if we're still looking at the same source and overlay is open
+            if (isOpen && currentSource?.name === lastFetchedSource) {
+                wikipediaInfo = result;
+            }
+        } catch (error) {
+            console.error('Failed to fetch Wikipedia content:', error);
+            wikipediaInfo = null;
+        } finally {
+            isLoadingWikipediaInfo = false;
         }
     })();
 });
@@ -187,7 +229,7 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 
 {#if isOpen}
 	<div
-		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 dark:bg-black/70"
+		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 dark:bg-black/70 transition-opacity duration-200"
 		onclick={handleBackdropClick}
 		onkeydown={(e) => {
 			if (e.key === 'Escape') {
@@ -201,7 +243,7 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 	>
 		<div 
 			bind:this={dialogElement}
-			class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800" 
+			class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800 transform transition-all duration-200 scale-100" 
 			role="document"
 		>
 			<div 
@@ -211,10 +253,13 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 			>
 			<header class="mb-4 flex items-center justify-between">
 				<div class="flex items-center space-x-2">
-					<img
-						src={currentSource?.favicon || '/svg/placeholder.svg'}
-						alt={currentSource?.name ? `${currentSource.name} favicon` : 'Generic favicon'}
+					<SmartImage
+						domain={currentSource?.name}
+						alt={`${currentSource?.name || 'Unknown Source'} favicon`}
 						class="h-6 w-6"
+						size={32}
+						loading="eager"
+						preferIconify={true}
 					/>
 					<h3 id="source-overlay-title" class="dark:text-dark-text text-xl font-bold">
 						{currentSource?.name || 'Unknown Source'}
@@ -252,11 +297,36 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 			<div class="space-y-4">
 				{#each sourceArticles as article}
 					<article class="flex space-x-4">
-						<img
-							src={article.image || '/svg/placeholder.svg'}
-							alt="Article"
-							class="h-24 w-24 rounded object-cover"
-						/>
+						<div class="flex-shrink-0">
+							{#if article.image}
+								<img
+									src={article.image}
+									alt="Article"
+									class="h-24 w-24 rounded object-cover"
+									onerror={(e) => {
+										const target = e.target as HTMLImageElement;
+										target.style.display = 'none';
+										(target.nextElementSibling as HTMLElement)!.style.display = 'flex';
+									}}
+								/>
+								<!-- Fallback article image -->
+								<div 
+									class="h-24 w-24 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500"
+									style="display: none;"
+								>
+									<svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+									</svg>
+								</div>
+							{:else}
+								<!-- Default article image when no image available -->
+								<div class="h-24 w-24 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
+									<svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+									</svg>
+								</div>
+							{/if}
+						</div>
 						<div>
 							<a
 								href={article.link}

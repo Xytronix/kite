@@ -1,8 +1,8 @@
 <script lang="ts">
-import { getFaviconUrl } from '$lib/utils/citationUtils';
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
 import { s } from '$lib/client/localization.svelte';
 import type { Article } from '$lib/types';
+import SmartImage from '../SmartImage.svelte';
 
 interface Props {
 	item: { article: Article | null; number: number; isCommon?: boolean };
@@ -63,11 +63,13 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 			[{item.number}]
 		</span>
 		<div class="flex items-center {spacingClasses} flex-1 min-w-0">
-			<img 
-				src={getFaviconUrl(item.article.domain)} 
-				alt="{item.article.domain} favicon" 
+			<SmartImage
+				domain={item.article.domain}
+				alt="{item.article.domain} favicon"
 				class="{iconSizeClasses} rounded-full flex-shrink-0"
-				loading="lazy"
+				size={32}
+				loading="eager"
+				preferIconify={true}
 			/>
 			<span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none">
 				{item.article.domain}
