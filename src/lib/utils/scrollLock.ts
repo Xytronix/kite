@@ -151,3 +151,185 @@ class ScrollLock {
 
 // Export singleton instance
 export const scrollLock = new ScrollLock();
+
+/**
+ * Enhanced scroll position utilities for preventing layout shifts
+ */
+
+// Type for comprehensive scroll position
+type ScrollPosition = {
+  x: number;
+  y: number;
+  timestamp: number;
+};
+
+let savedScrollPosition: ScrollPosition | null = null;
+
+// Legacy simple utilities (kept for backwards compatibility)
+export function saveScroll(): number {
+  return window.pageYOffset || document.documentElement.scrollTop || 0;
+}
+
+export function restoreScroll(position: number, smooth = false): void {
+  window.scrollTo({
+    top: position,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+}
+
+// Enhanced scroll preservation utilities
+/**
+ * Save the current scroll position with timestamp
+ * @returns The saved scroll position
+ */
+export function saveScrollPosition(): ScrollPosition | null {
+  if (typeof window === 'undefined') return null;
+  
+  const position: ScrollPosition = {
+    x: window.scrollX || window.pageXOffset || 0,
+    y: window.scrollY || window.pageYOffset || 0,
+    timestamp: Date.now()
+  };
+  
+  savedScrollPosition = position;
+  return position;
+}
+
+/**
+ * Restore the previously saved scroll position
+ * @param position Optional position to restore (uses saved position if not provided)
+ * @param smooth Whether to use smooth scrolling
+ */
+export function restoreScrollPosition(position?: ScrollPosition | null, smooth: boolean = false): void {
+  if (typeof window === 'undefined') return;
+  
+  const pos = position || savedScrollPosition;
+  if (!pos) return;
+  
+  // Only restore if the position is recent (within 5 seconds) to avoid stale restores
+  const isRecent = Date.now() - pos.timestamp < 5000;
+  if (!isRecent) return;
+  
+  if (smooth) {
+    window.scrollTo({
+      left: pos.x,
+      top: pos.y,
+      behavior: 'smooth'
+    });
+  } else {
+    window.scrollTo(pos.x, pos.y);
+  }
+}
+
+/**
+ * Clear the saved scroll position
+ */
+export function clearSavedScrollPosition(): void {
+  savedScrollPosition = null;
+}
+
+/**
+ * Wrap a function with scroll position preservation
+ * Saves scroll position before executing the function and restores it after DOM updates
+ * @param fn The function to wrap
+ * @param restoreDelay Optional delay before restoring scroll (defaults to next tick)
+ * @returns A wrapped function that preserves scroll position
+ */
+export function withScrollPreservation<T extends (...args: any[]) => any>(
+  fn: T,
+  restoreDelay: number = 0
+): T {
+  return ((...args: Parameters<T>) => {
+    if (typeof window === 'undefined') {
+      return fn(...args);
+    }
+    
+    // Save current scroll position
+    const position = saveScrollPosition();
+    
+    // Execute the function
+    const result = fn(...args);
+    
+    // Schedule scroll restoration after DOM updates
+    if (restoreDelay > 0) {
+      setTimeout(() => restoreScrollPosition(position), restoreDelay);
+    } else {
+      // Use requestAnimationFrame for next frame restoration
+      requestAnimationFrame(() => restoreScrollPosition(position));
+    }
+    
+    return result;
+  }) as T;
+}
+
+/**
+ * Async version of withScrollPreservation that works with promises and Svelte's tick()
+ * @param fn The async function to wrap
+ * @param useTick Whether to wait for Svelte's tick() before restoring scroll
+ * @returns A wrapped async function that preserves scroll position
+ */
+export function withScrollPreservationAsync<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  useTick: boolean = true
+): T {
+  return (async (...args: Parameters<T>) => {
+    if (typeof window === 'undefined') {
+      return await fn(...args);
+    }
+    
+    // Save current scroll position
+    const position = saveScrollPosition();
+    
+    try {
+      // Execute the async function
+      const result = await fn(...args);
+      
+      // Wait for DOM updates
+      if (useTick) {
+        const { tick } = await import('svelte');
+        await tick();
+      }
+      
+      // Restore scroll position
+      restoreScrollPosition(position);
+      
+      return result;
+    } catch (error) {
+      // Still try to restore scroll position on error
+      restoreScrollPosition(position);
+      throw error;
+    }
+  }) as T;
+}
+
+/**
+ * Create a safe action wrapper that preserves scroll position for UI state changes
+ * This is specifically designed for handling filter toggles, banners, and other UI mutations
+ * @param action The action function to wrap
+ * @returns A wrapped action that preserves scroll position
+ */
+export function createSafeAction<T extends (...args: any[]) => any>(action: T): T {
+  return withScrollPreservation((...args: Parameters<T>) => {
+    // Initial save of the scroll position
+    const prevPosition = saveScrollPosition();
+
+    // Perform the action
+    const result = action(...args);
+
+    // Attempt to detect and restore scroll position relative to potential new banners or UI changes
+    setTimeout(() => {
+      if (prevPosition) restoreScrollPosition(prevPosition, false);
+    }, 50); // Slightly longer delay for more complex UI updates
+
+    return result;
+  }, 16) as T; // 16ms = 1 frame delay
+}
+
+/**
+ * Create a safe async action wrapper that preserves scroll position for async UI state changes
+ * @param action The async action function to wrap
+ * @returns A wrapped async action that preserves scroll position
+ */
+export function createSafeAsyncAction<T extends (...args: any[]) => Promise<any>>(action: T): T {
+  return withScrollPreservationAsync(action, true) as T;
+}

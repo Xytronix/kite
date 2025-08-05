@@ -5,6 +5,8 @@
   import Tooltip from "$lib/components/Tooltip.svelte";
   import { smartContentFilter } from "$lib/stores/smartContentFilter.svelte";
   import Icon from "@iconify/svelte";
+  import { tick } from "svelte";
+  import { createSafeAction, createSafeAsyncAction } from "$lib/utils/scrollLock";
 
   // UI control state variables
   let showImportConfirmation = $state(false);
@@ -447,8 +449,8 @@
     return getActiveFilterGroups();
   });
 
-  // Reset a specific filter group
-  function resetFilterGroup(groupName: string) {
+  // Reset a specific filter group - with scroll preservation
+  const resetFilterGroup = createSafeAction((groupName: string) => {
     if (groupName === "Custom Keywords") {
       smartContentFilter.clearCustomKeywords();
     } else if (groupName === "Content Similarity") {
@@ -466,7 +468,7 @@
         });
       }
     }
-  }
+  });
 
   // Handle clicks without scroll jumping
   function handleFilterClick(e: Event, action: () => void) {
@@ -486,8 +488,8 @@
     return `${baseClasses} ${activeClasses}`;
   }
 
-  // Clear all active filters and settings (no confirmation)
-  function clearAllFilters() {
+  // Clear all active filters and settings (no confirmation) - with scroll preservation
+  const clearAllFilters = createSafeAction(() => {
     // Only clear filters that are currently active (true)
     Object.keys(filterGroups).forEach((groupName) => {
       const group = filterGroups[groupName as keyof typeof filterGroups];
@@ -519,10 +521,10 @@
     if (smartContentFilter.preferences.contentSimilarityThreshold > 0) {
       smartContentFilter.setContentSimilarityThreshold(0);
     }
-  }
+  });
 
-  // Apply a preset (allow multiple presets to be combined)
-  function togglePreset(presetId: string) {
+  // Apply a preset (allow multiple presets to be combined) - with scroll preservation
+  const togglePreset = createSafeAction((presetId: string) => {
     const allPresets = [...basicPresets, ...specializedPresets];
     const preset = allPresets.find((p) => p.id === presetId);
     if (!preset) return;
@@ -547,7 +549,7 @@
         }
       });
     }
-  }
+  });
 
   // Get reason why preset cannot be activated
   function getDeactivationReason(presetId: string): string {
@@ -846,7 +848,8 @@
     return tags;
   }
 
-  function removeFilter(key: string, value: boolean | string) {
+  // Remove individual filter with scroll preservation
+  const removeFilter = createSafeAction((key: string, value: boolean | string) => {
     if (key === "filterContentSimilarity") {
       smartContentFilter.updatePreference("filterContentSimilarity", false);
     } else {
@@ -855,7 +858,7 @@
         false,
       );
     }
-  }
+  });
 
   // System Controls Functions
   // Export configuration
@@ -1085,13 +1088,15 @@
     }
   }
 
-  function removeCustomKeyword(keyword: string) {
+  // Remove individual custom keyword with scroll preservation
+  const removeCustomKeyword = createSafeAction((keyword: string) => {
     smartContentFilter.removeCustomKeyword(keyword);
-  }
+  });
 
-  function clearAllCustomKeywords() {
+  // Clear all custom keywords with scroll preservation
+  const clearAllCustomKeywords = createSafeAction(() => {
     smartContentFilter.clearCustomKeywords();
-  }
+  });
 
   function normalizeKeyword(keyword: string): string {
     return keyword.toLowerCase().trim();
@@ -1591,7 +1596,7 @@ const baseClasses =
 </div>
 
 <!-- Main Content Area with Landmark Role -->
-<main class="space-y-6 p-4" aria-label="Content Filter Settings">
+<main class="space-y-6 p-4" aria-label="Content Filter Settings" style="contain: layout;">
   <!-- Main Toggle Section -->
   <section id="main-toggle" class="mb-6" aria-labelledby="main-toggle-heading">
     <div class="flex items-center justify-between">
@@ -1654,11 +1659,12 @@ const baseClasses =
         "Choose from preset configurations to quickly set up your content filters"}
     </p>
 
-    <!-- Active Filters & Presets Indicator -->
-    {#if activePresets.length > 0 || activeFilterGroups.length > 0}
-      <div
-        class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
-      >
+    <!-- Active Filters & Presets Indicator - Smooth transitions without layout shift -->
+    <div class="mb-6">
+      {#if activePresets.length > 0 || activeFilterGroups.length > 0}
+        <div
+          class="rounded-lg border border-blue-200 bg-blue-50 p-4 transition-all duration-300 ease-in-out dark:border-blue-800 dark:bg-blue-900/20"
+        >
         <!-- Active Presets Section -->
         {#if activePresets.length > 0}
           <div class="flex items-center justify-between">
@@ -1822,7 +1828,8 @@ const baseClasses =
           </div>
         {/if}
       </div>
-    {/if}
+      {/if}
+    </div>
 
     <!-- Basic Presets -->
     <div class="mb-6">
@@ -2672,7 +2679,11 @@ const baseClasses =
                 <button
                   type="button"
                   class="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                  onclick={clearAllCustomKeywords}
+                  onclick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    clearAllCustomKeywords();
+                  }}
                 >
                   {s("settings.contentFilter.customKeywords.clearAll") ||
                     "Clear All"}
@@ -3816,7 +3827,11 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced') ? 'text-blue-600 dark:
               <button
                 type="button"
                 class="ml-2 rounded-full p-0.5 text-gray-600 opacity-75 hover:bg-gray-200 hover:text-gray-800 hover:opacity-100 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-gray-200"
-                onclick={() => removeFilter(filter.key, filter.value)}
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  removeFilter(filter.key, filter.value);
+                }}
                 aria-label={`Remove ${filter.label} filter`}
               >
                 <Icon icon="tabler:x" class="h-3 w-3" />
@@ -3837,7 +3852,11 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced') ? 'text-blue-600 dark:
               <button
                 type="button"
                 class="ml-2 rounded-full p-0.5 text-gray-600 opacity-75 hover:bg-gray-200 hover:text-gray-800 hover:opacity-100 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-gray-200"
-                onclick={() => smartContentFilter.removeCustomKeyword(keyword)}
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  removeCustomKeyword(keyword);
+                }}
                 aria-label={`Remove keyword "${keyword}"`}
               >
                 <Icon icon="tabler:x" class="h-3 w-3" />
@@ -3868,7 +3887,11 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced') ? 'text-blue-600 dark:
             <button
               type="button"
               class="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/30"
-              onclick={() => clearAllFilters()}
+              onclick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                clearAllFilters();
+              }}
             >
               {s("settings.contentFilter.clearAll") || "Clear All Filters"}
             </button>
