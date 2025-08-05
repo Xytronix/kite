@@ -1,6 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { experimental } from '$lib/stores/experimental.svelte.js';
+import Icon from '@iconify/svelte';
 
 // Toggle handlers
 function toggleArticleIcons() {
@@ -127,9 +128,10 @@ function toggleCategories() {
 	</p>
 
 	<!-- Visual Decoration Style -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+	<div class="mb-6">
 		<div class="mb-3 flex items-center justify-between">
-			<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+			<span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:palette" class="w-4 h-4 mr-2" />
 				Decoration Style
 			</span>
 		</div>
@@ -196,9 +198,10 @@ function toggleCategories() {
 
 	<!-- Apply to Headlines - Hidden when None is selected -->
 	{#if styleMode !== 'none'}
-		<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+		<div class="mb-6">
 			<div class="mb-2 flex items-center justify-between">
-				<label for="toggle-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label for="toggle-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+					<Icon icon="tabler:news" class="w-4 h-4 mr-2" />
 					Apply {decorationType} to Headlines
 				</label>
 				<button
@@ -226,9 +229,10 @@ function toggleCategories() {
 		</div>
 
 		<!-- Apply to Categories - Hidden when None is selected -->
-		<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+		<div class="mb-6">
 			<div class="mb-2 flex items-center justify-between">
-				<label for="toggle-categories" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label for="toggle-categories" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+					<Icon icon="tabler:tags" class="w-4 h-4 mr-2" />
 					Apply {decorationType} to Categories
 				</label>
 				<button
@@ -257,9 +261,10 @@ function toggleCategories() {
 	{/if}
 
 	<!-- Disable Category Swipe (Mobile Only) -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700 md:hidden">
+	<div class="mb-6 md:hidden">
 		<div class="mb-2 flex items-center justify-between">
-			<label for="disable-category-swipe" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+			<label for="disable-category-swipe" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:swipe" class="w-4 h-4 mr-2" />
 				Disable Category Swipe
 			</label>
 			<button
@@ -287,9 +292,10 @@ function toggleCategories() {
 	</div>
 
 	<!-- Chaos Index -->
-	<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+	<div class="mb-6">
 		<div class="mb-2 flex items-center justify-between">
-			<label for="show-chaos-index" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+			<label for="show-chaos-index" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:activity" class="w-4 h-4 mr-2" />
 				Show World Tension Index
 			</label>
 			<button
@@ -317,9 +323,10 @@ function toggleCategories() {
 	</div>
 
     <!-- Wikipedia Tooltips in Stories -->
-    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="mb-6">
         <div class="mb-2 flex items-center justify-between">
-            <label for="wiki-tooltips" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="wiki-tooltips" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:tooltip" class="w-4 h-4 mr-2" />
                 Show Wikipedia Tooltips in Stories
             </label>
             <button
@@ -347,9 +354,10 @@ function toggleCategories() {
     </div>
 
     <!-- Disable Tooltips in Headlines -->
-    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="mb-6">
         <div class="mb-2 flex items-center justify-between">
-            <label for="wiki-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="wiki-headlines" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:eye-off" class="w-4 h-4 mr-2" />
                 Disable Wikipedia Tooltips in Headlines
             </label>
             <button
@@ -377,9 +385,10 @@ function toggleCategories() {
     </div>
 
     <!-- Prefer Iconify Icons -->
-    <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="mb-6">
         <div class="mb-2 flex items-center justify-between">
-            <label for="prefer-iconify" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="prefer-iconify" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:brand-tabler" class="w-4 h-4 mr-2" />
                 Prefer Iconify Icons Over Brand Logos
             </label>
             <button

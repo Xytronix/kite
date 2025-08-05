@@ -442,8 +442,9 @@
 	</div>
 
 	<div>
-		<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-			{s('settings.categories.enabled') || 'Enabled Categories'}
+		<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+			<Icon icon="tabler:eye" class="w-4 h-4 mr-2" />
+			Enabled Categories
 		</h4>
 		<div
 			class="min-h-[40px] rounded-lg p-3 flex flex-wrap gap-2 border-2 border-dashed"
@@ -487,7 +488,8 @@
 			{/each}
 			{#if enabledItems.length === 0}
 				<div class="text-sm text-gray-500 dark:text-gray-400">
-					{s('settings.categories.noEnabled') || 'No enabled categories'}
+				<Icon icon="tabler:eye-off" class="w-4 h-4 inline mr-1" />{s('settings.categories.disabled') || 'Disabled Categories'}
+tings.categories.enabled') || 'Enabled Categories'}
 				</div>
 			{/if}
 		</div>
@@ -495,8 +497,9 @@
 
 	<div>
 		<div class="flex items-center justify-between mb-3">
-			<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-				{s('settings.categories.disabled') || 'Disabled Categories'}
+			<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:eye-off" class="w-4 h-4 mr-2" />
+				Disabled Categories
 			</h4>
 			<div class="flex items-center gap-2">
 				{#if showBulkActions}
