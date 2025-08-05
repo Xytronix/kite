@@ -891,30 +891,68 @@
     const file = input.files?.[0];
     if (!file) return;
 
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      systemMessage = {
+        type: "error",
+        title: "File too large",
+        description: "Configuration files must be smaller than 10MB.",
+      };
+      return;
+    }
+
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      systemMessage = {
+        type: "error",
+        title: "Invalid file type",
+        description: "Please select a JSON configuration file.",
+      };
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      // Pre-validate the import
-      const result = smartContentFilter.importConfig(content);
-      if (result.errorKey) {
+      try {
+        const content = e.target?.result as string;
+        // Pre-validate the import
+        const result = smartContentFilter.importConfig(content);
+        if (result.errorKey) {
+          systemMessage = {
+            type: "error",
+            title: s(result.errorKey) || result.errorKey,
+            description:
+              s("settings.contentFilter.import.error.description") ||
+              "Unable to import configuration. Please check the file format.",
+          };
+          return;
+        }
+
+        // Store the data and show confirmation
+        pendingImportData = content;
+        importWarning = result.warningKey
+          ? s(result.warningKey) || result.warningKey
+          : undefined;
+        selectedFileName = file.name;
+        showImportConfirmation = true;
+      } catch (error) {
         systemMessage = {
           type: "error",
-          title: s(result.errorKey) || result.errorKey,
-          description:
-            s("settings.contentFilter.import.error.description") ||
-            "Unable to import configuration. Please check the file format.",
+          title: "File reading error",
+          description: "Failed to read the configuration file. Please try again.",
         };
-        return;
+        console.error("File reading error:", error);
       }
-
-      // Store the data and show confirmation
-      pendingImportData = content;
-      importWarning = result.warningKey
-        ? s(result.warningKey) || result.warningKey
-        : undefined;
-      selectedFileName = file.name;
-      showImportConfirmation = true;
     };
+    
+    reader.onerror = () => {
+      systemMessage = {
+        type: "error",
+        title: "File reading failed",
+        description: "Could not read the selected file. Please try a different file.",
+      };
+    };
+    
     reader.readAsText(file);
   }
 
@@ -997,12 +1035,25 @@
     }, 5000);
   }
 
-  // Cleanup timeout on component destroy
+  // Enhanced cleanup on component destroy
   $effect(() => {
     return () => {
+      // Clear all timeouts
       if (resetTimeout) {
         clearTimeout(resetTimeout);
       }
+      
+      // Clear system message timeout if needed
+      if (systemMessage?.type === "success") {
+        systemMessage = null;
+      }
+      
+      // Clear announcements for memory optimization
+      announcements = [];
+      
+      // Reset any pending import data
+      pendingImportData = null;
+      showImportConfirmation = false;
     };
   });
 
@@ -1053,6 +1104,30 @@
       normalized.length <= 50 &&
       !smartContentFilter.customKeywords.includes(normalized)
     );
+  }
+
+  // Enhanced validation for numeric inputs
+  function validateNumericRange(value: number, min: number, max: number): number {
+    if (isNaN(value)) return min;
+    return Math.max(min, Math.min(max, value));
+  }
+
+  // Safe slider input handler with validation
+  function handleSliderInput(
+    event: Event,
+    updateFunction: (value: number) => void,
+    min: number = 0,
+    max: number = 100,
+  ) {
+    try {
+      const value = parseInt((event.target as HTMLInputElement).value);
+      const validatedValue = validateNumericRange(value, min, max);
+      updateFunction(validatedValue);
+    } catch (error) {
+      console.warn("Invalid slider input:", error);
+      // Reset to minimum value on error
+      updateFunction(min);
+    }
   }
 
   // Accessibility state and functions
@@ -1137,6 +1212,51 @@
     if (event.key === "Enter") {
       event.preventDefault();
       submitFunction();
+    }
+  }
+
+  // Improved keyboard navigation helper for complex controls
+  function handleComplexControlKeyDown(
+    event: KeyboardEvent,
+    actions: {
+      onEnter?: () => void;
+      onSpace?: () => void;
+      onArrowLeft?: () => void;
+      onArrowRight?: () => void;
+      onEscape?: () => void;
+    },
+  ) {
+    switch (event.key) {
+      case "Enter":
+        if (actions.onEnter) {
+          event.preventDefault();
+          actions.onEnter();
+        }
+        break;
+      case " ":
+        if (actions.onSpace) {
+          event.preventDefault();
+          actions.onSpace();
+        }
+        break;
+      case "ArrowLeft":
+        if (actions.onArrowLeft) {
+          event.preventDefault();
+          actions.onArrowLeft();
+        }
+        break;
+      case "ArrowRight":
+        if (actions.onArrowRight) {
+          event.preventDefault();
+          actions.onArrowRight();
+        }
+        break;
+      case "Escape":
+        if (actions.onEscape) {
+          event.preventDefault();
+          actions.onEscape();
+        }
+        break;
     }
   }
 
