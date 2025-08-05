@@ -1,4 +1,22 @@
 import { experimental } from '$lib/stores/experimental.svelte.js';
+import { language } from '$lib/stores/language.svelte.js';
+import { browser } from '$app/environment';
+import { resolveQIdToWikipediaUrl } from './qidResolver.js';
+
+// Map language codes used in UI to Wikipedia sub-domains
+function normalizeWikiLang(lang: string | undefined): string {
+    if (!lang) return 'en';
+    const lower = lang.toLowerCase();
+    const overrides: Record<string, string> = {
+        'pt-br': 'pt',
+        'zh-hans': 'zh',
+        'zh-hant': 'zh',
+        'nb': 'no'
+    };
+    if (overrides[lower]) return overrides[lower];
+    // Take first segment before dash (e.g. "en-us" -> "en")
+    return lower.split('-')[0] || 'en';
+}
 import { resolveWikiTitleWithContext, type WikiResolveResult } from '$lib/utils/wikiResolver';
 import { validateWikipediaEntry } from '$lib/services/wikipediaService';
 
@@ -56,9 +74,23 @@ export async function autoLinkAcronyms(root: HTMLElement) {
         const anchor = document.createElement('a');
         anchor.textContent = acronym;
         anchor.setAttribute('data-wiki-id', checkWikiId);
-        const wikiUrl = `https://en.wikipedia.org/wiki/${checkWikiId}`;
-        anchor.setAttribute('data-url', wikiUrl);
+        
         anchor.className = 'text-blue-500 hover:underline cursor-pointer';
+        
+        // Resolve Q-IDs to proper Wikipedia URLs immediately
+        const currentLang = (browser ? language.ui : 'en') || 'en';
+        const wikiLang = normalizeWikiLang(currentLang);
+        let wikiUrl: string;
+        if (checkWikiId.startsWith('Q')) {
+          wikiUrl = await resolveQIdToWikipediaUrl(checkWikiId, currentLang);
+        } else {
+          wikiUrl = `https://${wikiLang}.wikipedia.org/wiki/${checkWikiId}`;
+        }
+        
+        anchor.setAttribute('data-url', wikiUrl);
+        anchor.setAttribute('href', wikiUrl);
+        anchor.setAttribute('target', '_blank');
+        anchor.setAttribute('rel', 'noopener noreferrer');
         anchor.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });
         const range = document.createRange();
         range.setStart(textNode, start);

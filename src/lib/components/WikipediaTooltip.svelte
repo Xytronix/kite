@@ -5,11 +5,11 @@ import { useFloating, offset, flip, shift, arrow, size } from '@skeletonlabs/flo
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-svelte';
 import Portal from 'svelte-portal';
 import { scrollLock } from '$lib/utils/scrollLock';
-import { fetchWikipediaContent, type WikipediaContent } from '$lib/services/wikipediaService';
+import { fetchWikipediaContent, fetchWikipediaContentWithEnhancedSearch, type WikipediaContent } from '$lib/services/wikipediaService';
 import { s } from '$lib/client/localization.svelte';
 
 interface Props {
-	onWikipediaClick?: (title: string, content: string, imageUrl?: string) => void;
+	onWikipediaClick?: (title: string, content: string, imageUrl?: string, wikiUrl?: string) => void;
 }
 
 let { onWikipediaClick }: Props = $props();
@@ -79,7 +79,7 @@ export async function handleWikipediaInteraction(event: Event) {
 		const interactionType = event.type;
 		const title = wikiLink.getAttribute('title') || wikiLink.textContent || '';
 		const wikiId = wikiLink.getAttribute('data-wiki-id') || '';
-		const href = wikiLink.getAttribute('href') || '';
+		const href = wikiLink.getAttribute('href') || wikiLink.getAttribute('data-url') || '';
 		const tooltipId = `${wikiId}-${title}`;
 		
 		isMobile = detectMobile();
@@ -114,7 +114,12 @@ export async function handleWikipediaInteraction(event: Event) {
 		tooltipContent = '';
 		tooltipImage = '';
 		tooltipFullImage = '';
-		tooltipWikiUrl = href || `https://en.wikipedia.org/wiki/${wikiId}`;
+		// For Q-IDs, ignore the href and wait for resolution. For regular titles, use href or construct URL
+		if (wikiId.startsWith('Q')) {
+			tooltipWikiUrl = ''; // Will be set after Q-ID resolution
+		} else {
+			tooltipWikiUrl = href || `https://en.wikipedia.org/wiki/${wikiId}`;
+		}
 		isLoading = true;
 		
 		// Show tooltip - the floating element will be bound when the template renders
@@ -130,17 +135,38 @@ export async function handleWikipediaInteraction(event: Event) {
 		//   });
 		// }, 0);
 		
-		// console.log(`Wiki interaction - Title: "${title}", WikiId: "${wikiId}"`);
 		
-		// Fetch Wikipedia content
+		// Fetch Wikipedia content with enhanced features
 		try {
-			const loadedData = await fetchWikipediaContent(wikiId);
+			let loadedData: WikipediaContent | null = null;
+			
+			// Priority 1: For Q-IDs, always use direct Wikipedia API to resolve properly
+			if (wikiId.startsWith('Q')) {
+				loadedData = await fetchWikipediaContent(wikiId);
+			}
+			// Priority 2: Enhanced search with Knowledge Graph (server-side, secure) for regular titles
+			else {
+				loadedData = await fetchWikipediaContentWithEnhancedSearch(title);
+			}
+			
+			// Priority 3: Direct Wikipedia API (reliable fallback)
+			if (!loadedData) {
+				loadedData = await fetchWikipediaContent(wikiId);
+			}
+			
 			// Update tooltip if it's still showing for the same ID
-			if (showTooltip && currentTooltipId === tooltipId) {
+			if (showTooltip && currentTooltipId === tooltipId && loadedData) {
 				tooltipContent = loadedData?.extract || 'No summary available.';
 				tooltipImage = loadedData?.thumbnail?.source || '';
 				tooltipFullImage = loadedData?.originalImage?.source || tooltipImage;
-				tooltipWikiUrl = loadedData?.wikiUrl || tooltipWikiUrl;
+				// Always use the resolved URL from the API, especially important for Q-IDs
+				const resolvedUrl = loadedData?.wikiUrl;
+				const fallbackUrl = tooltipWikiUrl;
+				
+				// Always use the resolved URL from the API which respects the language setting
+				tooltipWikiUrl = resolvedUrl || fallbackUrl;
+				
+
 
 				// Country flag detection – if description contains 'country' etc.
 				const desc = (loadedData as any)?.description as string | undefined;
@@ -159,7 +185,8 @@ export async function handleWikipediaInteraction(event: Event) {
 					hideTooltip();
 					// Defer call slightly to allow tooltip hide state
 					setTimeout(() => {
-						onWikipediaClick(loadedData.title || title, loadedData.extract || '', imgUrl);
+
+						onWikipediaClick(loadedData.title || title, loadedData.extract || '', imgUrl, loadedData.wikiUrl);
 					}, 0);
 				}
 				

@@ -7,10 +7,11 @@ interface Props {
 	title: string;
 	content: string;
 	imageUrl?: string;
+	wikiUrl?: string;
 	onClose: () => void;
 }
 
-let { visible, title, content, imageUrl, onClose }: Props = $props();
+let { visible, title, content, imageUrl, wikiUrl, onClose }: Props = $props();
 </script>
 
 <BaseModal
@@ -30,13 +31,15 @@ let { visible, title, content, imageUrl, onClose }: Props = $props();
 			/>
 		{/if}
 		<p class="text-gray-700 dark:text-gray-300">{content}</p>
-		<a
-			href="https://en.wikipedia.org/wiki/{encodeURIComponent(title)}"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="mt-4 inline-block text-blue-500 hover:underline"
-		>
-			Read more on Wikipedia →
-		</a>
+		{#if wikiUrl}
+			<a
+				href={wikiUrl}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="mt-4 inline-block text-blue-500 hover:underline"
+			>
+				Read more on Wikipedia →
+			</a>
+		{/if}
 	</div>
 </BaseModal>

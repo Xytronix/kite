@@ -8,27 +8,31 @@ const wikipediaCache = new Map<string, any>();
 const wikipediaFailedCache = new Map<string, boolean>();
 
 export interface WikipediaContent {
-	extract: string;
-	thumbnail: { source: string } | null;
-	originalImage: { source: string } | null;
-	title: string;
-	wikiUrl: string;
+    extract: string;
+    thumbnail: { source: string } | null;
+    originalImage: { source: string } | null;
+    title: string;
+    wikiUrl: string;
+    entityType?: string; // e.g., "Person", "Organization", "Place"
+    confidence?: number; // 0-1 confidence score
+    googleKgMID?: string; // Google Knowledge Graph MID
+    wikidataQID?: string; // Wikidata Q-ID
 }
 
 /**
  * Check if a Wikipedia entry has previously failed to load
  */
 export function hasWikipediaEntryFailed(wikiId: string, lang?: string): boolean {
-	const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
-	const wikiLang = normalizeWikiLang(uiLang);
-	let id: string;
-	try {
-		id = decodeURIComponent(wikiId);
-	} catch {
-		id = wikiId;
-	}
-	const cacheKey = `${wikiLang}:${id}`;
-	return wikipediaFailedCache.has(cacheKey);
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    let id: string;
+    try {
+        id = decodeURIComponent(wikiId);
+    } catch {
+        id = wikiId;
+    }
+    const cacheKey = `${wikiLang}:${id}`;
+    return wikipediaFailedCache.has(cacheKey);
 }
 
 /**
@@ -36,81 +40,81 @@ export function hasWikipediaEntryFailed(wikiId: string, lang?: string): boolean 
  * Uses HEAD request to avoid downloading full content
  */
 export async function validateWikipediaEntry(wikiId: string, lang?: string): Promise<boolean> {
-	// First check if we already know it failed
-	if (hasWikipediaEntryFailed(wikiId, lang)) {
-		return false;
-	}
+    // First check if we already know it failed
+    if (hasWikipediaEntryFailed(wikiId, lang)) {
+        return false;
+    }
 
-	const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
-	const wikiLang = normalizeWikiLang(uiLang);
-	let id: string;
-	try {
-		id = decodeURIComponent(wikiId);
-	} catch {
-		id = wikiId;
-	}
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    let id: string;
+    try {
+        id = decodeURIComponent(wikiId);
+    } catch {
+        id = wikiId;
+    }
 
-	try {
-		let url: string;
-		
-		// Check if this is a Wikidata Q-ID
-		if (/^Q\d+$/.test(id)) {
-			// For Q-IDs, first resolve to actual Wikipedia page
-			const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${id}&props=sitelinks&sitefilter=${wikiLang}wiki&format=json&origin=*`;
-			const wikidataResponse = await fetch(wikidataUrl, { method: 'HEAD' });
-			if (!wikidataResponse.ok) {
-				markWikipediaEntryAsFailed(id, uiLang);
-				return false;
-			}
-		}
-		
-		// Use REST API summary endpoint for validation
-		url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
-		const response = await fetch(url, { method: 'HEAD' });
-		
-		if (!response.ok) {
-			// Try search fallback
-			const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(id)}&srlimit=1&format=json&origin=*`;
-			const searchResp = await fetch(searchUrl);
-			if (!searchResp.ok) {
-				markWikipediaEntryAsFailed(id, uiLang);
-				return false;
-			}
-			const searchData = await searchResp.json();
-			if (!searchData?.query?.search?.[0]?.title) {
-				markWikipediaEntryAsFailed(id, uiLang);
-				return false;
-			}
-		}
-		
-		return true;
-	} catch (error) {
-		markWikipediaEntryAsFailed(id, uiLang);
-		return false;
-	}
+    try {
+        let url: string;
+
+        // Check if this is a Wikidata Q-ID
+        if (/^Q\d+$/.test(id)) {
+            // For Q-IDs, first resolve to actual Wikipedia page
+            const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${id}&props=sitelinks&sitefilter=${wikiLang}wiki&format=json&origin=*`;
+            const wikidataResponse = await fetch(wikidataUrl, { method: 'HEAD' });
+            if (!wikidataResponse.ok) {
+                markWikipediaEntryAsFailed(id, uiLang);
+                return false;
+            }
+        }
+
+        // Use REST API summary endpoint for validation
+        url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
+        const response = await fetch(url, { method: 'HEAD' });
+
+        if (!response.ok) {
+            // Try search fallback
+            const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(id)}&srlimit=1&format=json&origin=*`;
+            const searchResp = await fetch(searchUrl);
+            if (!searchResp.ok) {
+                markWikipediaEntryAsFailed(id, uiLang);
+                return false;
+            }
+            const searchData = await searchResp.json();
+            if (!searchData?.query?.search?.[0]?.title) {
+                markWikipediaEntryAsFailed(id, uiLang);
+                return false;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        markWikipediaEntryAsFailed(id, uiLang);
+        return false;
+    }
 }
 
 /**
  * Mark a Wikipedia entry as failed
  */
 function markWikipediaEntryAsFailed(wikiId: string, lang?: string): void {
-	const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
-	const wikiLang = normalizeWikiLang(uiLang);
-	let id: string;
-	try {
-		id = decodeURIComponent(wikiId);
-	} catch {
-		id = wikiId;
-	}
-	const cacheKey = `${wikiLang}:${id}`;
-	wikipediaFailedCache.set(cacheKey, true);
+    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const wikiLang = normalizeWikiLang(uiLang);
+    let id: string;
+    try {
+        id = decodeURIComponent(wikiId);
+    } catch {
+        id = wikiId;
+    }
+    const cacheKey = `${wikiLang}:${id}`;
+    wikipediaFailedCache.set(cacheKey, true);
 }
 
 /**
  * Clear the failed Wikipedia entries cache
  */
 export function clearWikipediaFailedCache() {
-	wikipediaFailedCache.clear();
+    wikipediaFailedCache.clear();
 }
 
 /**
@@ -183,13 +187,42 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
         }
 
         data = await response.json();
+
+        // If we have a basic extract but want richer content, try Parse API for HTML
+        let htmlExtract = data.extract || 'No summary available.';
+        if (data.extract && data.extract.length < 500) {
+            try {
+                const parseUrl = `https://${summaryLang}.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(data.title)}&prop=text&section=0&format=json&origin=*`;
+                const parseResp = await fetch(parseUrl);
+                if (parseResp.ok) {
+                    const parseData = await parseResp.json();
+                    const htmlContent = parseData.parse?.text?.['*'];
+                    if (htmlContent) {
+                        // Extract first paragraph from HTML, clean it up
+                        const cleanExtract = extractFirstParagraph(htmlContent);
+                        if (cleanExtract && cleanExtract.length > data.extract.length) {
+                            htmlExtract = cleanExtract;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Fallback to original extract if Parse API fails
+                console.debug('Parse API fallback failed:', e);
+            }
+        }
+
+        // Always construct the URL using the correct language subdomain
+        const finalWikiUrl = data.content_urls?.desktop?.page || `https://${summaryLang}.wikipedia.org/wiki/${encodeURIComponent(data.title || '')}`;
+
         const result: WikipediaContent = {
-            extract: data.extract || 'No summary available.',
+            extract: htmlExtract,
             thumbnail: data.thumbnail || null,
             originalImage: data.originalimage || null,
             title: data.title || '',
-            wikiUrl: data.content_urls?.desktop?.page || `https://${summaryLang}.wikipedia.org/wiki/${encodeURIComponent(data.title || id)}`
+            wikiUrl: finalWikiUrl
         };
+
+
 
         // Cache the content
         wikipediaCache.set(cacheKey, result);
@@ -209,7 +242,7 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
                     return await fetchWikipediaContent(altTitle, uiLang);
                 }
             }
-        } catch {/* ignore search fallback errors */}
+        } catch {/* ignore search fallback errors */ }
 
         // 2) If we already tried English or userLang === 'en', give up directly
         if (wikiLang === 'en') {
@@ -233,7 +266,7 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
                 // Recursively fetch using Q-ID which has full language logic
                 return await fetchWikipediaContent(qid, uiLang);
             }
-        } catch {/* ignore */}
+        } catch {/* ignore */ }
         // 4) Final failure
         markWikipediaEntryAsFailed(id, uiLang);
         return {
@@ -250,14 +283,14 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
  * Clear the Wikipedia cache
  */
 export function clearWikipediaCache() {
-	wikipediaCache.clear();
+    wikipediaCache.clear();
 }
 
 /**
  * Get cache size
  */
 export function getWikipediaCacheSize(): number {
-	return wikipediaCache.size;
+    return wikipediaCache.size;
 }
 
 // Add a separate cache for domain look-ups to avoid mixing keys with page/Q-IDs
@@ -357,6 +390,118 @@ export async function fetchWikipediaContentBySearch(query: string, lang?: string
     } catch (err) {
         console.error('Error fetching Wikipedia content for query:', query, err);
         return null;
+    }
+}
+
+/**
+ * Enhanced search using server-side Knowledge Graph API
+ * This calls our secure server endpoint instead of exposing API keys to the client
+ */
+export async function fetchWikipediaContentWithEnhancedSearch(
+    query: string,
+    lang?: string
+): Promise<WikipediaContent | null> {
+    try {
+        const response = await fetch(`/api/wikipedia/search?q=${encodeURIComponent(query)}&lang=${lang || 'en'}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.error) {
+                console.debug('Server-side Wikipedia search error:', data.error);
+                return await fetchWikipediaContentBySearch(query, lang);
+            }
+            return data;
+        }
+    } catch (e) {
+        console.debug('Enhanced Wikipedia search failed, falling back to direct search:', e);
+    }
+
+    // Fallback to existing search functionality
+    return await fetchWikipediaContentBySearch(query, lang);
+}
+
+/**
+ * Legacy function - Enhanced search using Google Knowledge Graph API (requires API key)
+ * @deprecated Use fetchWikipediaContentWithEnhancedSearch instead for security
+ * Falls back to Wikipedia search if not configured
+ */
+export async function fetchWikipediaContentWithKnowledgeGraph(
+    query: string,
+    lang?: string,
+    googleApiKey?: string
+): Promise<WikipediaContent | null> {
+    console.warn('fetchWikipediaContentWithKnowledgeGraph is deprecated. Use fetchWikipediaContentWithEnhancedSearch instead.');
+
+    // Redirect to secure server-side implementation
+    return await fetchWikipediaContentWithEnhancedSearch(query, lang);
+}
+
+/**
+ * Lookup entity by MID using server-side API
+ */
+export async function lookupEntityByMID(
+    mid: string,
+    lang?: string
+): Promise<WikipediaContent | null> {
+    try {
+        const response = await fetch(`/api/wikipedia/lookup?mid=${encodeURIComponent(mid)}&lang=${lang || 'en'}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.error) {
+                console.debug('Server-side MID lookup error:', data.error);
+                return null;
+            }
+            return data;
+        }
+    } catch (e) {
+        console.debug('MID lookup failed:', e);
+    }
+
+    return null;
+}
+
+/**
+ * Extract and clean the first meaningful paragraph from Wikipedia HTML content
+ */
+function extractFirstParagraph(htmlContent: string): string {
+    try {
+        // Create a temporary DOM element to parse HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+
+        // Remove unwanted elements
+        const unwantedSelectors = [
+            '.mw-editsection',
+            '.reference',
+            '.mw-ref',
+            '.navbox',
+            '.infobox',
+            '.ambox',
+            '.hatnote',
+            'sup',
+            '.coordinates'
+        ];
+
+        unwantedSelectors.forEach(selector => {
+            tempDiv.querySelectorAll(selector).forEach(el => el.remove());
+        });
+
+        // Find the first substantial paragraph
+        const paragraphs = tempDiv.querySelectorAll('p');
+        for (const p of paragraphs) {
+            const text = p.textContent?.trim() || '';
+            // Skip short paragraphs, coordinates, etc.
+            if (text.length > 100 && !text.match(/^\d+°\d+′/)) {
+                return text;
+            }
+        }
+
+        // Fallback to first paragraph if no substantial one found
+        return paragraphs[0]?.textContent?.trim() || '';
+    } catch (e) {
+        console.debug('HTML parsing failed:', e);
+        return '';
     }
 }
 

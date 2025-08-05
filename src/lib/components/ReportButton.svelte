@@ -1,8 +1,8 @@
 <script lang="ts">
-import BaseModal from './BaseModal.svelte';
-import Icon from '@iconify/svelte';
-import { s } from '$lib/client/localization.svelte';
-import { browser } from '$app/environment';
+		import BaseModal from './BaseModal.svelte';
+	import Icon from '@iconify/svelte';
+	import { s } from '$lib/client/localization.svelte';
+	import { browser } from '$app/environment';
 
 interface Props {
     story: any;
@@ -285,7 +285,7 @@ let lastSubmissionMethod = $state<'github' | 'email' | null>(null);
     </div>
 </BaseModal>
 
-<style lang="postcss">
+<style>
     textarea {
         resize: vertical;
     }
