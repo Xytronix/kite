@@ -134,6 +134,7 @@
 	let allCategoryStories = $state<Record<string, Story[]>>({});
 	let isLatestBatch = $state(true);
 	let onThisDayEvents = $state<OnThisDayEvent[]>([]);
+	let storiesToPreloadIcons = $state<Story[]>([]);
 
 	// Add afterInitial flag
 	let afterInitial = $state(false);
@@ -460,6 +461,8 @@
 
 			// Set initial display to target category (from URL or first enabled)
 			stories = allCategoryStories[targetCategory] || [];
+			// Pass stories to preload icons for
+			storiesToPreloadIcons = stories;
 			// Use batch totalReadCount if available, otherwise fall back to sum
 			if (!totalReadCount || totalReadCount === 0) {
 				totalReadCount = totalReadCountSum;
@@ -897,6 +900,7 @@
         stage={loadingStage}
         hasError={hasError}
         errorMessage={errorMessage}
+        storiesToPreload={storiesToPreloadIcons}
         onRetry={() => {
             // Reset error state and retry
             hasError = false;

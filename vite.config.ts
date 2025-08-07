@@ -12,7 +12,10 @@ export default defineConfig({
       "@iconify/svelte",
       "svelte-dnd-action",
       "svelte-portal",
-      "overlayscrollbars-svelte"
+      "overlayscrollbars-svelte",
+      "@floating-ui/dom",
+      "@floating-ui/utils",
+      "@skeletonlabs/floating-ui-svelte"
     ],
     include: [
       "@iconify/json",

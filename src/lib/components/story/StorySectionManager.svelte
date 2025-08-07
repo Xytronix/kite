@@ -4,7 +4,7 @@
 	import { buildCitationMapping, replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 	import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 	import CitationText from './CitationText.svelte';
-	import CitationTooltip from './CitationTooltip.svelte';
+import SourceTooltip from './SourceTooltip.svelte';
 	import StorySummary from './StorySummary.svelte';
 	import StoryHighlights from './StoryHighlights.svelte';
 	import StoryQuote from './StoryQuote.svelte';
@@ -116,7 +116,7 @@
 	});
 
 	// Shared tooltip reference for business angle section
-	let businessAngleCitationTooltip = $state<CitationTooltip | undefined>();
+let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 
 	// Get all cited articles from business angle section
 	const businessAngleCitedArticles = $derived.by(() => {
@@ -219,13 +219,14 @@
 				</ul>
 			{/if}
 			
-			<!-- Shared Citation Tooltip for Business Angle -->
-			<CitationTooltip 
+		<!-- Shared Source Tooltip for Business Angle -->
+			<SourceTooltip 
 				bind:this={businessAngleCitationTooltip} 
 				articles={businessAngleCitedArticles.citedArticles} 
 				citationNumbers={businessAngleCitedArticles.citedNumbers} 
 				hasCommonKnowledge={businessAngleCitedArticles.hasCommonKnowledge}
 				citedItems={businessAngleCitedArticles.citedItems}
+				{citationMapping}
 			/>
 		</section>
 	{:else if section.id === 'scientificSignificance'}
@@ -305,6 +306,7 @@
 		<StorySources 
 			domains={story.domains}
 			articles={story.articles}
+			{citationMapping}
 			bind:showSourceOverlay
 			bind:currentSource
 			bind:sourceArticles

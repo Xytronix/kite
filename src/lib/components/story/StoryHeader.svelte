@@ -100,19 +100,24 @@ const displayTitle = $derived.by(() => {
 	<div class="-mt-3 ml-4 flex-shrink-0">
 		<button
 			onclick={onReadClick}
-			class="focus-visible-ring rounded"
+			class="focus-visible-ring rounded-full flex items-center justify-center p-1.5 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+			class:bg-blue-50={isRead}
+			class:dark:bg-blue-950={isRead}
+			class:hover:bg-blue-100={isRead}
+			class:dark:hover:bg-blue-900={isRead}
 			title={s('article.readStatus') || 'Mark as read'}
 			aria-label={isRead ? 'Mark as unread' : 'Mark as read'}
 		>
 			<svg
-				class="h-6 w-6"
-				class:text-blue-500={isRead}
-				class:text-gray-300={!isRead}
-				class:dark:text-gray-600={!isRead}
+				class="h-4 w-4 transition-all duration-200"
+				class:text-blue-600={isRead}
+				class:dark:text-blue-400={isRead}
+				class:text-gray-400={!isRead}
+				class:dark:text-gray-500={!isRead}
+				class:scale-110={isRead}
 				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 19 19"
-				fill={isRead ? '#7BA3FF' : 'currentColor'}
-				stroke={isRead ? '#427AFC' : 'none'}
+				viewBox="0 0 20 20"
+				fill="currentColor"
 			>
 				<path
 					fill-rule="evenodd"

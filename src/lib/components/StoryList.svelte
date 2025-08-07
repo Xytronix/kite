@@ -9,6 +9,7 @@ import { feedDate } from '$lib/stores/feedDate.svelte';
 import { onDestroy, onMount } from 'svelte';
 import type { ContentScore } from '$lib/algorithms/contentFilter';
 import { SmartFilterService } from '$lib/services/smartFilterService';
+import { preloadStoryIcons, preloadCommonIcons, preloadSourceIcons } from '$lib/utils/iconPreloader';
 
 // Props
 interface Props {
@@ -139,6 +140,18 @@ $effect(() => {
 	const preferences = smartContentFilter.preferences;
 	const isEnabled = smartContentFilter.isEnabled;
 	showFilteredStories = false;
+});
+
+// Preload icons when stories change - IMMEDIATELY, not in effect
+$effect(() => {
+	if (stories.length > 0) {
+		const storyItems = stories.filter((item): item is Story => !(item as any).__dateDivider);
+		if (storyItems.length > 0) {
+			// Preload ALL story icons immediately - no delays
+			preloadStoryIcons(storyItems, true);
+			preloadSourceIcons(storyItems);
+		}
+	}
 });
 
 const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
@@ -513,6 +526,9 @@ onMount(() => {
 	}
 	
 	persistentLog('📱 StoryList mounted', { currentCategory });
+	
+	// Preload common icons immediately
+	preloadCommonIcons();
 	
 	// Log page refresh events
 	const beforeUnloadHandler = (event: BeforeUnloadEvent) => {

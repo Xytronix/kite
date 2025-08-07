@@ -13,6 +13,8 @@ export interface ExperimentalFeatures {
   disableWikiTooltipsInHeadlines: boolean;
   /** When true, prefer Iconify icons over brand logo URLs for source favicons. */
   preferIconifyIcons: boolean;
+  /** When true, disable automatic scrolling when clicking on story titles. */
+  disableStoryScrolling: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -27,6 +29,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   showWikipediaTooltips: true,
   disableWikiTooltipsInHeadlines: false,
   preferIconifyIcons: false,
+  disableStoryScrolling: false,
 };
 
 // Initialize experimental features state
@@ -105,6 +108,10 @@ export const experimental = {
 
   get preferIconifyIcons() {
     return experimentalState.preferIconifyIcons;
+  },
+
+  get disableStoryScrolling() {
+    return experimentalState.disableStoryScrolling;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

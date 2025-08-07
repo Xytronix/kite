@@ -1,9 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './src/**/*.{html,js,svelte,ts}',
-    './src/app.html'
-  ],
+  content: {
+    files: [
+      './src/**/*.{html,js,svelte,ts}',
+      './src/app.html'
+    ],
+    extract: {
+      // For Svelte files, only extract content from template and style blocks
+      svelte: (content) => {
+        // Remove script blocks to prevent JavaScript variables from being parsed as CSS
+        const withoutScript = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        return withoutScript;
+      }
+    }
+  },
   theme: {
     extend: {
       // Custom colors for your Kite app

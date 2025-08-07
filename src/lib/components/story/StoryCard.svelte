@@ -12,6 +12,7 @@ import { autoLinkOrgs } from '$lib/utils/orgAutoLink';
 import { autoLinkAcronyms } from '$lib/utils/acronymAutoLink';
 import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
 import { tick } from 'svelte';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -83,6 +84,19 @@ const hoverPreloader = useHoverPreloading(story, { priority });
 // Track if images are preloaded
 let imagesPreloaded = $derived(viewportPreloader.isPreloaded || hoverPreloader.isPreloaded);
 
+// Preload citation icons on hover/focus
+let citationsPreloaded = $state(false);
+function preloadCitations() {
+	if (!citationsPreloaded && story) {
+		citationsPreloaded = true;
+		import('$lib/utils/iconPreloader').then(({ preloadStoryCitations }) => {
+			preloadStoryCitations(story).catch(err => {
+				console.warn('Failed to preload story citations on hover:', err);
+			});
+		});
+	}
+}
+
 // Keep reference to any pending scroll timeout so we can cancel it
 let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -144,27 +158,46 @@ $effect(() => {
         scrollTimeout = null;
     }
 
+    // Skip scrolling if disabled in experimental settings
+    if (experimental.disableStoryScrolling) {
+        return;
+    }
+
     if (isExpanded && browser && storyElement) {
         // Small delay to ensure the content is rendered
         scrollTimeout = setTimeout(() => {
             // Store current scroll position to prevent unwanted jumps
             const initialScrollY = window.pageYOffset;
             
-            // Get the story element's position
+            // Get the story element's position BEFORE expansion
             const rect = storyElement.getBoundingClientRect();
-
-            // Only scroll if the story is not already in view
             const viewportHeight = window.innerHeight;
             const storyTop = rect.top;
+            const storyHeight = rect.height;
 
-            // Check if story is already properly visible (not cut off)
-            const isVisible = storyTop >= 0 && storyTop < viewportHeight * 0.3;
+            // Calculate header height (fallback to 60px if not found)
+            const headerEl = document.querySelector('header') || document.querySelector('nav');
+            const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
 
-            if (!isVisible) {
-                // Calculate header height (fallback to 60px if not found)
-                const headerEl = document.querySelector('header') || document.querySelector('nav');
-                const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
+            // Estimate expanded content height (rough approximation)
+            const estimatedExpandedHeight = storyHeight + 400; // Assume ~400px of additional content when expanded
+            const storyBottom = storyTop + estimatedExpandedHeight;
 
+            // Smart scrolling logic:
+            // 1. Scroll if title is hidden behind header
+            const isTitleHiddenBehindHeader = storyTop < headerHeight + 10;
+            
+            // 2. Scroll if the expanded story won't fit in the viewport
+            const availableSpace = viewportHeight - headerHeight - 40; // 40px padding
+            const storyWontFitInViewport = estimatedExpandedHeight > availableSpace && storyTop > headerHeight + 50;
+            
+            // 3. Scroll if story is mostly cut off at the bottom (less than 30% visible)
+            const visibleAtBottom = viewportHeight - storyTop;
+            const isMostlyCutOffAtBottom = visibleAtBottom < estimatedExpandedHeight * 0.3 && storyTop > headerHeight + 50;
+            
+            const shouldScroll = isTitleHiddenBehindHeader || storyWontFitInViewport || isMostlyCutOffAtBottom;
+
+            if (shouldScroll) {
                 // Scroll to show the story title with some padding
                 const targetY = initialScrollY + storyTop - headerHeight - 20;
 
@@ -256,13 +289,13 @@ $effect(() => {
 	bind:this={storyElement}
 	id="story-{story.cluster_number}"
 	aria-label="News story: {story.title}"
-	class="relative py-2 transition-all duration-300 cursor-pointer"
-	class:border-b={!isExpanded}
-	class:border-gray-200={!isExpanded}
-	class:dark:border-gray-700={!isExpanded}
-	onmouseenter={hoverPreloader.handleMouseEnter}
+	class="relative py-2 cursor-pointer transition-all duration-300 border-b"
+	class:border-gray-200={!isExpanded && !isBlurred}
+	class:dark:border-gray-700={!isExpanded && !isBlurred}
+	class:border-transparent={isExpanded || isBlurred}
+	onmouseenter={(e) => { hoverPreloader.handleMouseEnter(e); preloadCitations(); }}
 	onmouseleave={hoverPreloader.handleMouseLeave}
-	onfocus={hoverPreloader.handleMouseEnter}
+	onfocus={(e) => { hoverPreloader.handleMouseEnter(e); preloadCitations(); }}
 	onclick={handleStoryClick}
 	onkeydown={(e) => e.key === 'Enter' && handleStoryClick()}
 	role={isBlurred ? "button" : null}

@@ -40,6 +40,10 @@ function togglePreferIconifyIcons() {
 	experimental.toggleFeature('preferIconifyIcons');
 }
 
+function toggleDisableStoryScrolling() {
+	experimental.toggleFeature('disableStoryScrolling');
+}
+
 // Article/Category display helper functions
 // Unified decoration style and target toggles
 type VisualMode = 'none' | 'icons' | 'emojis';
@@ -412,6 +416,37 @@ function toggleCategories() {
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
             Use consistent Iconify icons instead of brand-specific logo URLs for source favicons.
+        </p>
+    </div>
+
+    <!-- Disable Story Scrolling -->
+    <div class="mb-6">
+        <div class="mb-2 flex items-center justify-between">
+            <label for="disable-story-scrolling" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:hand-stop" class="w-4 h-4 mr-2" />
+                Disable Story Scrolling
+            </label>
+            <button
+                id="disable-story-scrolling"
+                onclick={toggleDisableStoryScrolling}
+                type="button"
+                class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+                class:bg-blue-600={experimental.disableStoryScrolling}
+                class:bg-gray-200={!experimental.disableStoryScrolling}
+                class:dark:bg-gray-600={!experimental.disableStoryScrolling}
+                role="switch"
+                aria-checked={experimental.disableStoryScrolling}
+            >
+                <span class="sr-only">Disable story scrolling</span>
+                <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    class:translate-x-6={experimental.disableStoryScrolling}
+                    class:translate-x-1={!experimental.disableStoryScrolling}
+                ></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Prevent automatic scrolling when clicking on story titles.
         </p>
     </div>
 </div> 

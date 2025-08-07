@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
-import CitationTooltip from './CitationTooltip.svelte';
+import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import { parseTimelineEvent } from '$lib/utils/textParsing';
@@ -17,7 +17,7 @@ interface Props {
 let { timeline, articles = [], citationMapping }: Props = $props();
 
 // Shared tooltip reference
-let citationTooltip = $state<CitationTooltip | undefined>();
+let citationTooltip = $state<SourceTooltip | undefined>();
 
 // Parse timeline events once and prepare display data
 const timelineData = $derived.by(() => {
@@ -91,13 +91,14 @@ const timelineData = $derived.by(() => {
 	</div>
 </section>
 
-<!-- Shared Citation Tooltip -->
-<CitationTooltip 
+<!-- Shared Source Tooltip -->
+<SourceTooltip 
 	bind:this={citationTooltip} 
 	articles={timelineData.citedArticles.citedArticles} 
 	citationNumbers={timelineData.citedArticles.citedNumbers} 
 	hasCommonKnowledge={timelineData.citedArticles.hasCommonKnowledge}
 	citedItems={timelineData.citedArticles.citedItems}
+	{citationMapping}
 />
 
 <style>

@@ -1,12 +1,14 @@
-
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
   import Select from "$lib/components/Select.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import { smartContentFilter } from "$lib/stores/smartContentFilter.svelte";
+  import {
+    createSafeAction,
+    createSafeAsyncAction,
+  } from "$lib/utils/scrollLock";
   import Icon from "@iconify/svelte";
   import { tick } from "svelte";
-  import { createSafeAction, createSafeAsyncAction } from "$lib/utils/scrollLock";
 
   // UI control state variables
   let showImportConfirmation = $state(false);
@@ -849,16 +851,18 @@
   }
 
   // Remove individual filter with scroll preservation
-  const removeFilter = createSafeAction((key: string, value: boolean | string) => {
-    if (key === "filterContentSimilarity") {
-      smartContentFilter.updatePreference("filterContentSimilarity", false);
-    } else {
-      smartContentFilter.updatePreference(
-        key as keyof typeof smartContentFilter.preferences,
-        false,
-      );
-    }
-  });
+  const removeFilter = createSafeAction(
+    (key: string, value: boolean | string) => {
+      if (key === "filterContentSimilarity") {
+        smartContentFilter.updatePreference("filterContentSimilarity", false);
+      } else {
+        smartContentFilter.updatePreference(
+          key as keyof typeof smartContentFilter.preferences,
+          false,
+        );
+      }
+    },
+  );
 
   // System Controls Functions
   // Export configuration
@@ -905,7 +909,7 @@
     }
 
     // Validate file type
-    if (!file.name.toLowerCase().endsWith('.json')) {
+    if (!file.name.toLowerCase().endsWith(".json")) {
       systemMessage = {
         type: "error",
         title: "Invalid file type",
@@ -942,20 +946,22 @@
         systemMessage = {
           type: "error",
           title: "File reading error",
-          description: "Failed to read the configuration file. Please try again.",
+          description:
+            "Failed to read the configuration file. Please try again.",
         };
         console.error("File reading error:", error);
       }
     };
-    
+
     reader.onerror = () => {
       systemMessage = {
         type: "error",
         title: "File reading failed",
-        description: "Could not read the selected file. Please try a different file.",
+        description:
+          "Could not read the selected file. Please try a different file.",
       };
     };
-    
+
     reader.readAsText(file);
   }
 
@@ -1045,15 +1051,15 @@
       if (resetTimeout) {
         clearTimeout(resetTimeout);
       }
-      
+
       // Clear system message timeout if needed
       if (systemMessage?.type === "success") {
         systemMessage = null;
       }
-      
+
       // Clear announcements for memory optimization
       announcements = [];
-      
+
       // Reset any pending import data
       pendingImportData = null;
       showImportConfirmation = false;
@@ -1112,7 +1118,11 @@
   }
 
   // Enhanced validation for numeric inputs
-  function validateNumericRange(value: number, min: number, max: number): number {
+  function validateNumericRange(
+    value: number,
+    min: number,
+    max: number,
+  ): number {
     if (isNaN(value)) return min;
     return Math.max(min, Math.min(max, value));
   }
@@ -1290,8 +1300,8 @@
     isActive: boolean,
     canActivate: boolean = true,
   ) => {
-const baseClasses =
-"flex h-full w-full flex-col items-center justify-start space-y-2 rounded-lg border px-3 py-3 text-center transition-all duration-200"
+    const baseClasses =
+      "flex h-full w-full flex-col items-center justify-start space-y-2 rounded-lg border px-3 py-3 text-center transition-all duration-200";
     const activeClasses = isActive
       ? "border-blue-500 bg-blue-50 text-blue-900 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-100"
       : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-600";
@@ -1489,7 +1499,7 @@ const baseClasses =
     // Map to static Tailwind classes that force equal row heights
     const gridClassMap = {
       1: "grid grid-cols-1 auto-rows-fr gap-1",
-      2: "grid grid-cols-2 auto-rows-fr gap-1", 
+      2: "grid grid-cols-2 auto-rows-fr gap-1",
       3: "grid grid-cols-3 auto-rows-fr gap-1",
       4: "grid grid-cols-4 auto-rows-fr gap-1",
     };
@@ -1596,7 +1606,11 @@ const baseClasses =
 </div>
 
 <!-- Main Content Area with Landmark Role -->
-<main class="space-y-6 p-4" aria-label="Content Filter Settings" style="contain: layout;">
+<main
+  class="space-y-6 p-4"
+  aria-label="Content Filter Settings"
+  style="contain: layout;"
+>
   <!-- Main Toggle Section -->
   <section id="main-toggle" class="mb-6" aria-labelledby="main-toggle-heading">
     <div class="flex items-center justify-between">
@@ -1665,169 +1679,171 @@ const baseClasses =
         <div
           class="rounded-lg border border-blue-200 bg-blue-50 p-4 transition-all duration-300 ease-in-out dark:border-blue-800 dark:bg-blue-900/20"
         >
-        <!-- Active Presets Section -->
-        {#if activePresets.length > 0}
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              {#if activePresets.length === 1}
-                <Icon
-                  icon={activePresets[0].icon}
-                  class="h-5 w-5 text-blue-600 dark:text-blue-400"
-                />
-                <div>
-                  <p
-                    class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                  >
-                    Active Preset: {activePresets[0].label}
-                  </p>
-                  <p class="text-xs text-blue-700 dark:text-blue-300">
-                    {activePresets[0].tooltip}
-                  </p>
-                </div>
-              {:else}
-                <div class="flex -space-x-1">
-                  {#each activePresets.slice(0, 3) as preset}
-                    <Icon
-                      icon={preset.icon}
-                      class="h-4 w-4 rounded-full border border-blue-200 bg-white p-0.5 text-blue-600 dark:border-blue-700 dark:bg-gray-800 dark:text-blue-400"
-                    />
-                  {/each}
-                  {#if activePresets.length > 3}
-                    <div
-                      class="flex h-4 w-4 items-center justify-center rounded-full border border-blue-200 bg-blue-100 dark:border-blue-700 dark:bg-blue-800"
-                    >
-                      <span
-                        class="text-xs font-medium text-blue-600 dark:text-blue-400"
-                        >+{activePresets.length - 3}</span
-                      >
-                    </div>
-                  {/if}
-                </div>
-                <div>
-                  <p
-                    class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                  >
-                    Active Presets: {activePresets
-                      .map((p) => p.label)
-                      .join(", ")}
-                  </p>
-                  <p class="text-xs text-blue-700 dark:text-blue-300">
-                    {activePresets.length} preset{activePresets.length > 1
-                      ? "s"
-                      : ""} combined for enhanced filtering
-                  </p>
-                </div>
-              {/if}
-            </div>
-            <Tooltip text="Reset to custom configuration">
-              <button
-                type="button"
-                class="rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
-                onclick={(e) =>
-                  handleFilterClick(e, () => resetToActivePresets())}
-              >
-                Reset
-              </button>
-            </Tooltip>
-          </div>
-        {/if}
-
-        <!-- Active Filter Groups Section -->
-        {#if activeFilterGroups.length > 0}
-          <div
-            class={activePresets.length > 0
-              ? "mt-4 border-t border-blue-200 pt-4 dark:border-blue-700"
-              : ""}
-          >
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="mb-2 flex items-center gap-2">
+          <!-- Active Presets Section -->
+          {#if activePresets.length > 0}
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                {#if activePresets.length === 1}
                   <Icon
-                    icon="tabler:filter"
-                    class="h-4 w-4 text-blue-600 dark:text-blue-400"
+                    icon={activePresets[0].icon}
+                    class="h-5 w-5 text-blue-600 dark:text-blue-400"
                   />
-                  <p
-                    class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                  >
-                    Active Filter Groups ({activeFilterGroups.length})
+                  <div>
+                    <p
+                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
+                    >
+                      Active Preset: {activePresets[0].label}
+                    </p>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">
+                      {activePresets[0].tooltip}
+                    </p>
+                  </div>
+                {:else}
+                  <div class="flex -space-x-1">
+                    {#each activePresets.slice(0, 3) as preset}
+                      <Icon
+                        icon={preset.icon}
+                        class="h-4 w-4 rounded-full border border-blue-200 bg-white p-0.5 text-blue-600 dark:border-blue-700 dark:bg-gray-800 dark:text-blue-400"
+                      />
+                    {/each}
+                    {#if activePresets.length > 3}
+                      <div
+                        class="flex h-4 w-4 items-center justify-center rounded-full border border-blue-200 bg-blue-100 dark:border-blue-700 dark:bg-blue-800"
+                      >
+                        <span
+                          class="text-xs font-medium text-blue-600 dark:text-blue-400"
+                          >+{activePresets.length - 3}</span
+                        >
+                      </div>
+                    {/if}
+                  </div>
+                  <div>
+                    <p
+                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
+                    >
+                      Active Presets: {activePresets
+                        .map((p) => p.label)
+                        .join(", ")}
+                    </p>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">
+                      {activePresets.length} preset{activePresets.length > 1
+                        ? "s"
+                        : ""} combined for enhanced filtering
+                    </p>
+                  </div>
+                {/if}
+              </div>
+              <Tooltip text="Reset to custom configuration">
+                <button
+                  type="button"
+                  class="rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
+                  onclick={(e) =>
+                    handleFilterClick(e, () => resetToActivePresets())}
+                >
+                  Reset
+                </button>
+              </Tooltip>
+            </div>
+          {/if}
+
+          <!-- Active Filter Groups Section -->
+          {#if activeFilterGroups.length > 0}
+            <div
+              class={activePresets.length > 0
+                ? "mt-4 border-t border-blue-200 pt-4 dark:border-blue-700"
+                : ""}
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="mb-2 flex items-center gap-2">
+                    <Icon
+                      icon="tabler:filter"
+                      class="h-4 w-4 text-blue-600 dark:text-blue-400"
+                    />
+                    <p
+                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
+                    >
+                      Active Filter Groups ({activeFilterGroups.length})
+                    </p>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {#each activeFilterGroups as group}
+                      <div
+                        class="group/filter-group flex items-center gap-2 rounded-md bg-blue-100/50 px-2 py-1 dark:bg-blue-800/20"
+                      >
+                        <Icon
+                          icon={group.icon}
+                          class="h-3 w-3 flex-shrink-0 text-blue-600 dark:text-blue-400"
+                        />
+                        <div class="min-w-0 flex-1">
+                          <span
+                            class="block truncate text-xs font-medium text-blue-800 dark:text-blue-200"
+                          >
+                            {group.name}
+                          </span>
+                          <span
+                            class="text-xs text-blue-600 dark:text-blue-400"
+                          >
+                            {group.activeCount}{group.name !==
+                              "Custom Keywords" &&
+                            group.name !== "Content Similarity"
+                              ? `/${group.totalCount}`
+                              : ""} active
+                          </span>
+                        </div>
+                        <Tooltip text="Reset {group.name} filters">
+                          <button
+                            type="button"
+                            class="rounded p-0.5 opacity-0 transition-opacity duration-200 group-hover/filter-group:opacity-100 hover:bg-blue-200/50 dark:hover:bg-blue-700/30"
+                            onclick={(e) =>
+                              handleFilterClick(e, () =>
+                                resetFilterGroup(group.name),
+                              )}
+                            aria-label="Reset {group.name} filters"
+                          >
+                            <Icon
+                              icon="tabler:x"
+                              class="h-3 w-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                            />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    {/each}
+                  </div>
+
+                  <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                    {activeFilterGroups.reduce(
+                      (sum, group) => sum + group.activeCount,
+                      0,
+                    )} total filters active across {activeFilterGroups.length} group{activeFilterGroups.length >
+                    1
+                      ? "s"
+                      : ""}
                   </p>
                 </div>
 
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {#each activeFilterGroups as group}
-                    <div
-                      class="group/filter-group flex items-center gap-2 rounded-md bg-blue-100/50 px-2 py-1 dark:bg-blue-800/20"
-                    >
-                      <Icon
-                        icon={group.icon}
-                        class="h-3 w-3 flex-shrink-0 text-blue-600 dark:text-blue-400"
-                      />
-                      <div class="min-w-0 flex-1">
-                        <span
-                          class="block truncate text-xs font-medium text-blue-800 dark:text-blue-200"
-                        >
-                          {group.name}
-                        </span>
-                        <span class="text-xs text-blue-600 dark:text-blue-400">
-                          {group.activeCount}{group.name !==
-                            "Custom Keywords" &&
-                          group.name !== "Content Similarity"
-                            ? `/${group.totalCount}`
-                            : ""} active
-                        </span>
-                      </div>
-                      <Tooltip text="Reset {group.name} filters">
-                        <button
-                          type="button"
-                          class="rounded p-0.5 opacity-0 transition-opacity duration-200 group-hover/filter-group:opacity-100 hover:bg-blue-200/50 dark:hover:bg-blue-700/30"
-                          onclick={(e) =>
-                            handleFilterClick(e, () =>
-                              resetFilterGroup(group.name),
-                            )}
-                          aria-label="Reset {group.name} filters"
-                        >
-                          <Icon
-                            icon="tabler:x"
-                            class="h-3 w-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-                          />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  {/each}
-                </div>
-
-                <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                  {activeFilterGroups.reduce(
-                    (sum, group) => sum + group.activeCount,
-                    0,
-                  )} total filters active across {activeFilterGroups.length} group{activeFilterGroups.length >
-                  1
-                    ? "s"
-                    : ""}
-                </p>
-              </div>
-
-              {#if activePresets.length === 0}
-                <Tooltip
-                  text="Clear all active filters (no confirmation required)"
-                >
-                  <button
-                    type="button"
-                    class="ml-3 rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
-                    onclick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      clearAllFilters();
-                    }}
+                {#if activePresets.length === 0}
+                  <Tooltip
+                    text="Clear all active filters (no confirmation required)"
                   >
-                    Clear All
-                  </button>
-                </Tooltip>
-              {/if}
+                    <button
+                      type="button"
+                      class="ml-3 rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
+                      onclick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearAllFilters();
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  </Tooltip>
+                {/if}
+              </div>
             </div>
-          </div>
-        {/if}
-      </div>
+          {/if}
+        </div>
       {/if}
     </div>
 
@@ -1983,7 +1999,10 @@ const baseClasses =
           >
             <Icon
               icon="tabler:thumb-down"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences.filterLowQuality ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+              class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                .filterLowQuality
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'}"
             />
             <span class="text-sm font-medium">Low Quality</span>
             {#if smartContentFilter.preferences.filterLowQuality}
@@ -2009,7 +2028,10 @@ const baseClasses =
           >
             <Icon
               icon="tabler:ad"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences.filterPromotional ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+              class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                .filterPromotional
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'}"
             />
             <span class="text-sm font-medium">Promotional</span>
             {#if smartContentFilter.preferences.filterPromotional}
@@ -2035,7 +2057,9 @@ const baseClasses =
           >
             <Icon
               icon="tabler:message-circle"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences.filterOpinions ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+              class="mb-2 h-5 w-5 {smartContentFilter.preferences.filterOpinions
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'}"
             />
             <span class="text-sm font-medium">Opinions</span>
             {#if smartContentFilter.preferences.filterOpinions}
@@ -2061,7 +2085,10 @@ const baseClasses =
           >
             <Icon
               icon="tabler:repeat"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences.filterRepetitive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+              class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                .filterRepetitive
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 dark:text-gray-400'}"
             />
             <span class="text-sm font-medium">Repetitive</span>
             {#if smartContentFilter.preferences.filterRepetitive}
@@ -3662,7 +3689,9 @@ const baseClasses =
                 >
                   <Icon
                     icon="tabler:map-pin"
-class="mb-2 h-5 w-5 {isSimilarityPresetActive('local') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+                    class="mb-2 h-5 w-5 {isSimilarityPresetActive('local')
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400'}"
                   />
                   <span class="text-sm font-medium">Local Focus</span>
                   <span
@@ -3708,7 +3737,9 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('local') ? 'text-blue-600 dark:tex
                 >
                   <Icon
                     icon="tabler:world"
-class="mb-2 h-5 w-5 {isSimilarityPresetActive('global') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+                    class="mb-2 h-5 w-5 {isSimilarityPresetActive('global')
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400'}"
                   />
                   <span class="text-sm font-medium">Global Focus</span>
                   <span
@@ -3751,7 +3782,9 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('global') ? 'text-blue-600 dark:te
                 >
                   <Icon
                     icon="tabler:weight"
-class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}"
+                    class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced')
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400'}"
                   />
                   <span class="text-sm font-medium">Balanced</span>
                   <span
@@ -5379,7 +5412,7 @@ class="mb-2 h-5 w-5 {isSimilarityPresetActive('balanced') ? 'text-blue-600 dark:
 {/if}
 
 <style>
-.auto-rows-fr > * {
+  .auto-rows-fr > * {
     height: 100%;
   }
 

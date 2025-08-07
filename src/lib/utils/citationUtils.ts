@@ -3,6 +3,7 @@
  */
 
 import { mediaService } from '$lib/services/mediaService';
+import { iconService } from '$lib/services/iconService';
 
 // Cache for media data to avoid repeated API calls
 let mediaDataCache: any[] | null = null;
@@ -63,8 +64,9 @@ async function getMediaInfoForDomain(domain: string): Promise<any | null> {
  * Get high-quality favicon/logo URL for a domain (logo.dev first, then best quality from media_data.json)
  */
 export async function getFaviconUrl(domain: string, size: number = 32): Promise<string> {
-  // First, try logo.dev API (primary external source)
-  const logoDevUrl = getLogoDevUrl(domain, size, { format: 'png', retina: true });
+  // First, try logo.dev API if we have a valid token (primary external source) - prefer PNG for transparency
+  const theme = getThemePreference();
+  const logoDevUrl = hasValidLogoDevToken() ? getLogoDevUrl(domain, size, { format: 'png', retina: true, theme }) : null;
   
   // Check if we have higher quality options from media_data.json
   const mediaInfo = await getMediaInfoForDomain(domain);
@@ -86,8 +88,8 @@ export async function getFaviconUrl(domain: string, size: number = 32): Promise<
     }
   }
   
-  // Fall back to logo.dev (better than PNG/ICO)
-  return logoDevUrl;
+  // Fall back to logo.dev if available, otherwise use Google Favicons
+  return logoDevUrl || getGoogleFaviconUrl(domain, size);
 }
 
 /**
@@ -96,7 +98,8 @@ export async function getFaviconUrl(domain: string, size: number = 32): Promise<
  */
 export function getFaviconUrlSync(domain: string, size: number = 32): string {
   // Use logo.dev as preferred synchronous fallback
-  return getLogoDevUrl(domain, size, { format: 'png', retina: true });
+  const theme = getThemePreference();
+  return getLogoDevUrl(domain, size, { format: 'png', retina: true, theme });
 }
 
 /**
@@ -107,7 +110,18 @@ export function getGoogleFaviconUrl(domain: string, size: number = 16): string {
 }
 
 /**
- * Get logo.dev logo URL for a domain (uses :public_token by default, or .env token)
+ * Check if a valid Logo.dev API token is available
+ */
+function hasValidLogoDevToken(): boolean {
+  const token = typeof window !== 'undefined' 
+    ? import.meta.env.PUBLIC_LOGO_DEV_API_TOKEN 
+    : process.env.PUBLIC_LOGO_DEV_API_TOKEN;
+  
+  return !!(token && token.trim() && token !== ':public_token');
+}
+
+/**
+ * Get logo.dev logo URL for a domain (requires API token)
  */
 export function getLogoDevUrl(domain: string, size: number = 32, options: {
   format?: 'jpg' | 'png';
@@ -116,18 +130,15 @@ export function getLogoDevUrl(domain: string, size: number = 32, options: {
   retina?: boolean;
   fallback?: 'monogram' | '404';
 } = {}): string {
-  // Get token from environment if available, otherwise use :public_token
+  // Get token from environment if available
   const token = typeof window !== 'undefined' 
     ? import.meta.env.PUBLIC_LOGO_DEV_API_TOKEN 
     : process.env.PUBLIC_LOGO_DEV_API_TOKEN;
   
-  // Check if token exists and is not empty/whitespace
-  const finalToken = (token && token.trim()) || ':public_token';
-  
-  // Build URL with parameters
+  // Build URL with parameters - always include token
   const params = new URLSearchParams({
     size: size.toString(),
-    token: finalToken
+    token: token || ':public_token'
   });
   
   // Add optional parameters
@@ -135,23 +146,62 @@ export function getLogoDevUrl(domain: string, size: number = 32, options: {
   if (options.theme && options.theme !== 'auto') params.set('theme', options.theme);
   if (options.greyscale) params.set('greyscale', 'true');
   if (options.retina) params.set('retina', 'true');
+  
+  // Always suppress monogram fallbacks to let our cascading fallback system work
+  params.set('fallback', '404');
+  
+  // Allow override if explicitly specified
   if (options.fallback && options.fallback !== 'monogram') params.set('fallback', options.fallback);
   
   return `https://img.logo.dev/${domain}?${params.toString()}`;
 }
 
 /**
- * Get logo.dev ticker URL for a domain (uses :public_token by default, or .env token)
+ * Get logo.dev ticker URL for a domain (free tier or API token)
  */
 export function getLogoDevTickerUrl(domain: string): string {
-  // Get token from environment if available, otherwise use :public_token
+  // Get token from environment if available
   const token = typeof window !== 'undefined' 
     ? import.meta.env.PUBLIC_LOGO_DEV_API_TOKEN 
     : process.env.PUBLIC_LOGO_DEV_API_TOKEN;
   
-  // Check if token exists and is not empty/whitespace
-  const finalToken = (token && token.trim()) || ':public_token';
-  return `https://img.logo.dev/ticker/${domain}?token=${finalToken}`;
+  return `https://img.logo.dev/ticker/${domain}?token=${token || ':public_token'}`;
+}
+
+/**
+ * Get server-side favicon URL (eliminates client network overhead)
+ */
+function getServerFaviconUrl(domain: string, size: number): string {
+  const cleanDomain = domain.replace(/^https?:\/\//, '').split('/')[0];
+  return `/api/favicon/${encodeURIComponent(cleanDomain)}?size=${size}`;
+}
+
+/**
+ * Detect current theme preference for optimal logo visibility
+ * Integrates with the app's theme store for consistency
+ */
+function getThemePreference(): 'light' | 'dark' | 'auto' {
+  // Client-side theme detection
+  if (typeof window !== 'undefined') {
+    // Check the app's theme store first
+    const stored = localStorage.getItem('theme');
+    if (stored === 'dark' || stored === 'light') {
+      return stored as 'light' | 'dark';
+    }
+    
+    // If system theme, resolve to actual preference
+    if (stored === 'system' || !stored) {
+      const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return isDark ? 'dark' : 'light';
+    }
+    
+    // Check for dark mode class on document (fallback)
+    if (document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
+  }
+  
+  return 'auto'; // Let Logo.dev decide
 }
 
 /**
@@ -186,6 +236,12 @@ export async function getFaviconUrls(domain: string, size: number = 32): Promise
           return url.replace(/sz=\d+/, `sz=${size}`);
         }
         return url;
+      }).filter(url => {
+        // For small icons, filter out potentially problematic webp URLs
+        if (size <= 24 && url.includes('.webp')) {
+          return false;
+        }
+        return true;
       });
     }
     
@@ -200,26 +256,25 @@ export async function getFaviconUrls(domain: string, size: number = 32): Promise
     
     // 0. Iconify handled separately in SmartImage (experimental setting)
     
-    // 1. Logo.dev and logo.dev ticker
-    urls.push(getLogoDevUrl(domain, size, { format: 'png', retina: true }));
-    urls.push(getLogoDevTickerUrl(domain));
+    // 1. Reliable services first (fast CDN, high success rate)
+    const theme = getThemePreference();
     
-    // 2. Media data SVG / WebP (high quality vector/modern formats)
-    if (mediaInfo) {
-      if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
-        urls.push(mediaInfo.logo_url);
-      }
-      if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.webp')) {
-        urls.push(mediaInfo.logo_url);
-      }
+    // Only include Logo.dev URLs if we have a valid API token
+    if (hasValidLogoDevToken()) {
+      // Try both PNG and JPG formats from Logo.dev for better coverage
+      urls.push(getLogoDevUrl(domain, size, { format: 'png', retina: true, theme }));
+      urls.push(getLogoDevUrl(domain, size, { format: 'jpg', retina: true, theme }));
+      urls.push(getLogoDevTickerUrl(domain));
     }
     
-    // 3. Site's own SVG / WebP (high quality from direct site)
-    const cleanDomain = domain.replace(/^https?:\/\//, '').split('/')[0];
-    urls.push(`https://${cleanDomain}/favicon.svg`);
-    urls.push(`https://${cleanDomain}/favicon.webp`);
+    urls.push(getGoogleFaviconUrl(domain, size));
     
-    // 4. Media data all other formats (PNG/ICO/JPG)
+    // 2. Curated media data (known good sources)
+    if (mediaInfo && mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
+      urls.push(mediaInfo.logo_url);
+    }
+    
+    // 3. Fixed-size media data (PNG/ICO/JPG - good quality if size matches)
     if (mediaInfo && mediaInfo.logo_url && 
         (mediaInfo.logo_url.toLowerCase().includes('.png') || 
          mediaInfo.logo_url.toLowerCase().includes('.ico') ||
@@ -228,11 +283,8 @@ export async function getFaviconUrls(domain: string, size: number = 32): Promise
       urls.push(mediaInfo.logo_url);
     }
     
-    // 5. Google Favicons (reliable service)
-    urls.push(getGoogleFaviconUrl(domain, size));
-    
-    // 6. Site's own all types of formats (comprehensive fallback)
-    urls.push(...getDirectSiteFaviconUrls(domain, size));
+    // 4. Server-side favicon (eliminates client network overhead)
+    urls.push(getServerFaviconUrl(domain, size));
     
     // Remove duplicates and return
     return [...new Set(urls)];
@@ -252,15 +304,17 @@ export function getDirectSiteFaviconUrls(domain: string, size: number = 32): str
   // Modern scalable formats first
   urls.push(`${baseUrl}/favicon.svg`);
   
-  // Modern high-efficiency raster formats (WebP)
-  urls.push(`${baseUrl}/favicon.webp`);
-  if (size >= 192) {
-    urls.push(`${baseUrl}/android-chrome-192x192.webp`);
-    urls.push(`${baseUrl}/android-chrome-512x512.webp`);
-  }
-  if (size >= 180) {
-    urls.push(`${baseUrl}/apple-touch-icon.webp`);
-    urls.push(`${baseUrl}/apple-touch-icon-180x180.webp`);
+  // Modern high-efficiency raster formats (WebP) - only for larger icons
+  if (size > 24) {
+    urls.push(`${baseUrl}/favicon.webp`);
+    if (size >= 192) {
+      urls.push(`${baseUrl}/android-chrome-192x192.webp`);
+      urls.push(`${baseUrl}/android-chrome-512x512.webp`);
+    }
+    if (size >= 180) {
+      urls.push(`${baseUrl}/apple-touch-icon.webp`);
+      urls.push(`${baseUrl}/apple-touch-icon-180x180.webp`);
+    }
   }
   
   // High-quality raster formats (PNG)
@@ -284,11 +338,13 @@ export function getDirectSiteFaviconUrls(domain: string, size: number = 32): str
   urls.push(`${baseUrl}/images/favicon.svg`);
   urls.push(`${baseUrl}/img/favicon.svg`);
   
-  // Alternative WebP paths
-  urls.push(`${baseUrl}/assets/favicon.webp`);
-  urls.push(`${baseUrl}/static/favicon.webp`);
-  urls.push(`${baseUrl}/images/favicon.webp`);
-  urls.push(`${baseUrl}/img/favicon.webp`);
+  // Alternative WebP paths (only for larger icons)
+  if (size > 24) {
+    urls.push(`${baseUrl}/assets/favicon.webp`);
+    urls.push(`${baseUrl}/static/favicon.webp`);
+    urls.push(`${baseUrl}/images/favicon.webp`);
+    urls.push(`${baseUrl}/img/favicon.webp`);
+  }
   
   return urls;
 }
@@ -373,26 +429,25 @@ async function loadFaviconDataForDomain(domain: string): Promise<FaviconCacheEnt
     
     // 0. Iconify handled separately in SmartImage (experimental setting)
     
-    // 1. Logo.dev and logo.dev ticker
-    urls.push(getLogoDevUrl(domain, 32, { format: 'png', retina: true }));
-    urls.push(getLogoDevTickerUrl(domain));
+    // 1. Reliable services first (fast CDN, high success rate)
+    const theme = getThemePreference();
     
-    // 2. Media data SVG / WebP (high quality vector/modern formats)
-    if (mediaInfo) {
-      if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
-        urls.push(mediaInfo.logo_url);
-      }
-      if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.webp')) {
-        urls.push(mediaInfo.logo_url);
-      }
+    // Only include Logo.dev URLs if we have a valid API token
+    if (hasValidLogoDevToken()) {
+      // Try both PNG and JPG formats from Logo.dev for better coverage
+      urls.push(getLogoDevUrl(domain, 32, { format: 'png', retina: true, theme }));
+      urls.push(getLogoDevUrl(domain, 32, { format: 'jpg', retina: true, theme }));
+      urls.push(getLogoDevTickerUrl(domain));
     }
     
-    // 3. Site's own SVG / WebP (high quality from direct site)
-    const cleanDomain = domain.replace(/^https?:\/\//, '').split('/')[0];
-    urls.push(`https://${cleanDomain}/favicon.svg`);
-    urls.push(`https://${cleanDomain}/favicon.webp`);
+    urls.push(getGoogleFaviconUrl(domain, 32));
     
-    // 4. Media data all other formats (PNG/ICO/JPG)
+    // 2. Curated media data (known good sources)
+    if (mediaInfo && mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
+      urls.push(mediaInfo.logo_url);
+    }
+    
+    // 3. Fixed-size media data (PNG/ICO/JPG - good quality if size matches)
     if (mediaInfo && mediaInfo.logo_url && 
         (mediaInfo.logo_url.toLowerCase().includes('.png') || 
          mediaInfo.logo_url.toLowerCase().includes('.ico') ||
@@ -401,11 +456,8 @@ async function loadFaviconDataForDomain(domain: string): Promise<FaviconCacheEnt
       urls.push(mediaInfo.logo_url);
     }
     
-    // 5. Google Favicons (reliable service)
-    urls.push(getGoogleFaviconUrl(domain, 32));
-    
-    // 6. Site's own all types of formats (comprehensive fallback)
-    urls.push(...getDirectSiteFaviconUrls(domain, 32));
+    // 4. Server-side favicon (eliminates client network overhead)
+    urls.push(getServerFaviconUrl(domain, 32));
     
     const cacheEntry: FaviconCacheEntry = {
       urls: [...new Set(urls)], // Remove duplicates
@@ -425,7 +477,7 @@ async function loadFaviconDataForDomain(domain: string): Promise<FaviconCacheEnt
     // Return minimal fallback entry
     const fallbackEntry: FaviconCacheEntry = {
       urls: [
-        getLogoDevUrl(domain, 32, { format: 'png', retina: true }),
+        getLogoDevUrl(domain, 32, { format: 'png', retina: true, theme: getThemePreference() }),
         getGoogleFaviconUrl(domain, 32),
         `https://api.iconify.design/mdi/newspaper.svg`
       ],

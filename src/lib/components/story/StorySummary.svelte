@@ -3,7 +3,7 @@ import { s } from '$lib/client/localization.svelte';
 import { openMapLocation, getMapServiceName } from '$lib/utils/mapUtils';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import CitationText from './CitationText.svelte';
-import CitationTooltip from './CitationTooltip.svelte';
+import SourceTooltip from './SourceTooltip.svelte';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
 
@@ -16,7 +16,7 @@ interface Props {
 let { story, citationMapping }: Props = $props();
 
 // Shared tooltip reference
-let citationTooltip = $state<CitationTooltip | undefined>();
+let citationTooltip = $state<SourceTooltip | undefined>();
 
 
 
@@ -93,11 +93,12 @@ const allCitedArticles = $derived.by(() => {
 	{/if}
 </section>
 
-<!-- Shared Citation Tooltip -->
-<CitationTooltip 
+<!-- Shared Source Tooltip -->
+<SourceTooltip 
 	bind:this={citationTooltip} 
 	articles={allCitedArticles.citedArticles} 
 	citationNumbers={allCitedArticles.citedNumbers} 
 	hasCommonKnowledge={allCitedArticles.hasCommonKnowledge}
 	citedItems={allCitedArticles.citedItems}
-/> 
+	{citationMapping}
+/>

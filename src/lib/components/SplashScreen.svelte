@@ -2,9 +2,10 @@
 import { theme } from '$lib/stores/theme.svelte.js';
 import { s } from '$lib/client/localization.svelte';
 import { onMount } from 'svelte';
-import { preloadCommonNewsEmojis } from '$lib/utils/iconPreloader';
+import { preloadCommonIcons } from '$lib/utils/iconPreloader';
 import { mediaService } from '$lib/services/mediaService';
 import { language } from '$lib/stores/language.svelte.js';
+import type { Story } from '$lib/types';
 
 // Props
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 	isMaintenance?: boolean;
 	postMaintenance?: boolean;
 	onRetry?: () => void;
+	storiesToPreload?: Story[];  // New prop for stories to preload icons
 }
 
 const { 
@@ -34,12 +36,83 @@ const {
 	keepColor = false,
 	isMaintenance = false,
 	postMaintenance = false,
-	onRetry
+	onRetry,
+	storiesToPreload = []
 }: Props = $props();
 
 // Smooth animated progress counter
 let displayProgress = $state(0);
 let animationFrame: number;
+
+// Function to preload icons for stories
+async function preloadStoryIcons(stories: Story[]) {
+	if (!stories || stories.length === 0) return;
+	
+	console.log(`🎨 Preloading icons for ${stories.length} stories...`);
+	
+	// Extract unique domains from stories' articles and domains
+	const domains = new Set<string>();
+	stories.forEach(story => {
+		// Add domains from the domains field if present
+		if (story.domains && Array.isArray(story.domains)) {
+			story.domains.forEach(domain => {
+				if (domain.name) {
+					domains.add(domain.name);
+				}
+			});
+		}
+		// Also add domains from articles
+		if (story.articles && Array.isArray(story.articles)) {
+			story.articles.forEach(article => {
+				if (article.domain) {
+					domains.add(article.domain);
+				}
+			});
+		}
+	});
+	
+	if (domains.size === 0) {
+		console.log('No domains found to preload icons for');
+		return;
+	}
+	
+	console.log(`🎨 Found ${domains.size} unique domains to preload icons for`);
+	
+	// Import icon utilities to trigger icon preloading
+	try {
+		const { getIconifyIcon } = await import('$lib/utils/citationUtils');
+		const { iconService } = await import('$lib/services/iconService');
+		
+		// Create promises to preload each domain's icon
+		const iconPromises: Promise<any>[] = [];
+		
+		for (const domain of domains) {
+			// Try to get iconify icon first (this caches it)
+			const iconifyPromise = getIconifyIcon(domain).catch(() => null);
+			iconPromises.push(iconifyPromise);
+			
+			// Also try to preload the favicon URL
+			const faviconUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+			const faviconPromise = new Promise((resolve) => {
+				const img = new Image();
+				img.onload = () => resolve(true);
+				img.onerror = () => resolve(false);
+				img.src = faviconUrl;
+			});
+			iconPromises.push(faviconPromise);
+		}
+		
+		// Wait for all icons to preload (with timeout)
+		await Promise.race([
+			Promise.allSettled(iconPromises),
+			new Promise(resolve => setTimeout(resolve, 500)) // 500ms timeout
+		]);
+		
+		console.log(`✅ Icon preloading completed for active category`);
+	} catch (error) {
+		console.warn('Failed to preload story icons:', error);
+	}
+}
 
 // Animation loop that runs continuously
 onMount(() => {
@@ -64,10 +137,20 @@ onMount(() => {
 	
 	// Start preloading cached data in the background
 	// This runs independently and doesn't block the splash screen
-	// Note: Favicon preloading happens after story data is loaded
 	Promise.all([
-		preloadCommonNewsEmojis(),
-		mediaService.preloadMediaData(language.data)
+		preloadCommonIcons(),
+		mediaService.preloadMediaData(language.data),
+		// Preload iconify fallback icons only
+		import('$lib/services/iconService').then(({ iconService }) => {
+			// Only preload essential fallback icons
+			const fallbackIcons = [
+				'heroicons-outline:globe-alt', // Primary fallback
+				'mdi:newspaper' // Secondary fallback
+			];
+			iconService.preload(fallbackIcons, true); // Pass as array with high priority
+		}),
+		// Preload icons for stories if provided
+		...(storiesToPreload.length > 0 ? [preloadStoryIcons(storiesToPreload)] : [])
 	]).catch(error => {
 		console.warn('Failed to preload cached data:', error);
 	});

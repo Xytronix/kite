@@ -1,7 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
-import CitationTooltip from './CitationTooltip.svelte';
+import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
@@ -16,7 +16,7 @@ interface Props {
 let { actionItems, articles = [], citationMapping }: Props = $props();
 
 // Shared tooltip reference
-let citationTooltip = $state<CitationTooltip | undefined>();
+let citationTooltip = $state<SourceTooltip | undefined>();
 
 // Convert citations to numbered format if mapping is available
 const displayItems = $derived.by(() => {
@@ -51,11 +51,12 @@ const allCitedArticles = $derived.by(() => {
 	</ul>
 </section>
 
-<!-- Shared Citation Tooltip -->
-<CitationTooltip 
+<!-- Shared Source Tooltip -->
+<SourceTooltip 
 	bind:this={citationTooltip} 
 	articles={allCitedArticles.citedArticles} 
 	citationNumbers={allCitedArticles.citedNumbers} 
 	hasCommonKnowledge={allCitedArticles.hasCommonKnowledge}
 	citedItems={allCitedArticles.citedItems}
-/> 
+	{citationMapping}
+/>

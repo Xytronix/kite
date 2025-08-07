@@ -13,7 +13,7 @@ export interface CitationProps {
  * Props for components with shared citation tooltips
  */
 export interface SharedCitationProps extends CitationProps {
-	citationTooltip?: any; // CitationTooltip instance
+	citationTooltip?: any; // SourceTooltip instance
 }
 
 /**

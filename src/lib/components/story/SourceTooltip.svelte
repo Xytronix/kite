@@ -12,13 +12,25 @@ import CitationItem from './CitationItem.svelte';
 import type { Article } from '$lib/types';
 
 interface Props {
-	articles: Article[];
+	articles: Article[]; // All available articles
+	allArticles?: Article[]; // Additional articles that may not be cited but available for display
 	citationNumbers?: number[]; // The actual global citation numbers
 	hasCommonKnowledge?: boolean; // Whether [*] appears in the text
 	citedItems?: Array<{ article: Article | null; number: number; isCommon?: boolean }>; // All cited items including common knowledge
+	citationMapping?: any; // Global citation mapping
 }
 
-const { articles, citationNumbers, hasCommonKnowledge = false, citedItems = [] }: Props = $props();
+const { 
+	articles, 
+	allArticles = [], 
+	citationNumbers, 
+	hasCommonKnowledge = false, 
+	citedItems = [], 
+	citationMapping 
+}: Props = $props();
+
+// Derive combined articles list
+const combinedArticles = $derived([...articles, ...allArticles]);
 
 // State for dynamic sizing
 let tooltipMaxHeight = $state(300);
@@ -53,6 +65,7 @@ let currentTooltipId = $state('');
 let isMobile = $state(false);
 let highlightedNumber = $state<number | undefined>(undefined);
 let hideTimeout: number | null = null;
+let displayItems = $state<Array<{ article: Article | null; number: number; isCommon?: boolean; isCited?: boolean }>>([]);
 
 // Using any to avoid type issues with external typings
 let tooltipScrollbars: any | null = $state(null);
@@ -66,15 +79,15 @@ function detectMobile() {
 	return 'ontouchstart' in window || window.innerWidth < 768;
 }
 
-// Handle citation interaction
-export async function handleCitationInteraction(event: Event, domains: string[], highlightNumber?: number) {
+// Handle source interaction - renamed from handleCitationInteraction for broader usage
+export async function handleSourceInteraction(event: Event, domains: string[], highlightNumber?: number, overrideArticles?: Article[]) {
 	const target = event.target as HTMLElement;
 	
-	// Find the citation wrapper or use the target itself (for individual citation numbers)
-	const citationWrapper = target.closest('.citation-sources') || target;
+	// Find the citation wrapper or source wrapper, or use the target itself
+	const wrapper = target.closest('.citation-sources') || target.closest('.source-item') || target;
 	
-	if (citationWrapper) {
-		const tooltipId = `citations-${domains.join('-')}`;
+	if (wrapper) {
+		const tooltipId = `sources-${domains.join('-')}`;
 		
 		isMobile = detectMobile();
 		
@@ -94,8 +107,8 @@ export async function handleCitationInteraction(event: Event, domains: string[],
 			if (highlightNumber && highlightedNumber !== highlightNumber) {
 				highlightedNumber = highlightNumber;
 				setTimeout(() => {
-					scrollToHighlightedCitation(highlightNumber);
-				}, 50); // Faster scroll
+					scrollToHighlightedSource(highlightNumber);
+				}, 50);
 			}
 			return;
 		}
@@ -107,8 +120,80 @@ export async function handleCitationInteraction(event: Event, domains: string[],
 		}
 		
 		// Set reference element for floating UI
-		floating.elements.reference = citationWrapper;
+		floating.elements.reference = wrapper;
 		
+		// Prepare display items
+		if (overrideArticles && overrideArticles.length > 0) {
+			// Handle specific domain articles
+			const targetDomain = overrideArticles[0]?.domain;
+			
+			if (citationMapping && targetDomain) {
+				// Use citation mapping to find cited articles for this domain
+				displayItems = [];
+				const citedFromDomain = [];
+				const nonCitedFromDomain = [];
+				
+				// Find cited articles from this domain
+				for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
+					if (mappedArticle && mappedArticle.domain === targetDomain) {
+						citedFromDomain.push({
+							article: mappedArticle,
+							number: number,
+							isCommon: false,
+							isCited: true
+						});
+					}
+				}
+				
+				// Find non-cited articles from this domain
+				const citedArticleLinks = new Set(citedFromDomain.map(item => item.article?.link));
+				for (const article of combinedArticles) {
+					if (article.domain === targetDomain && !citedArticleLinks.has(article.link)) {
+						nonCitedFromDomain.push({
+							article,
+							number: -1, // No citation number
+							isCommon: false,
+							isCited: false
+						});
+					}
+				}
+				
+				// Combine and sort: cited first (by number), then non-cited
+				displayItems = [
+					...citedFromDomain.sort((a, b) => (a.number || 0) - (b.number || 0)),
+					...nonCitedFromDomain.sort((a, b) => a.article!.title.localeCompare(b.article!.title))
+				];
+			} else {
+				// Fallback: use provided articles
+				displayItems = overrideArticles.map((article, index) => ({
+					article,
+					number: index + 1,
+					isCommon: false,
+					isCited: false
+				}));
+			}
+		} else {
+			// Use cited items if available, otherwise show all articles
+			if (citedItems.length > 0) {
+				displayItems = citedItems.map(item => ({
+					...item,
+					isCited: true
+				}));
+			} else {
+				// Show all articles as non-cited
+				displayItems = combinedArticles.map((article, index) => ({
+					article,
+					number: index + 1,
+					isCommon: false,
+					isCited: false
+				}));
+			}
+		}
+		
+		// Only show tooltip if we have items to display
+		if (displayItems.length === 0) {
+			return; // Don't show empty tooltip
+		}
 		
 		// Set highlighted number
 		highlightedNumber = highlightNumber;
@@ -117,17 +202,17 @@ export async function handleCitationInteraction(event: Event, domains: string[],
 		currentTooltipId = tooltipId;
 		showTooltip = true;
 		
-		// Auto-scroll to highlighted citation after tooltip is rendered
+		// Auto-scroll to highlighted source after tooltip is rendered
 		if (highlightNumber) {
 			setTimeout(() => {
-				scrollToHighlightedCitation(highlightNumber);
-			}, 50); // Faster initial scroll
+				scrollToHighlightedSource(highlightNumber);
+			}, 50);
 		}
 	}
 }
 
-// Handle mouse leave from citation sources
-export function handleCitationLeave(event: Event) {
+// Handle mouse leave from sources
+export function handleSourceLeave(event: Event) {
 	if (isMobile) return;
 	
 	const relatedTarget = (event as MouseEvent).relatedTarget as Node;
@@ -139,9 +224,9 @@ export function handleCitationLeave(event: Event) {
 		return;
 	}
 	
-	// If we're moving to the same citation wrapper, don't hide
+	// If we're moving to the same wrapper, don't hide
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWrapper = relatedTarget.closest('.citation-sources');
+		const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
 		if (targetWrapper && targetWrapper === reference) {
 			return;
 		}
@@ -159,9 +244,9 @@ function handleTooltipLeave(event: MouseEvent) {
 	const relatedTarget = event.relatedTarget as Node;
 	const reference = floating.elements.reference;
 	
-	// If moving back to the citation sources, don't hide
+	// If moving back to the sources, don't hide
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWrapper = relatedTarget.closest('.citation-sources');
+		const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
 		if (targetWrapper && targetWrapper === reference) {
 			return;
 		}
@@ -185,10 +270,11 @@ function hideTooltip() {
 	showTooltip = false;
 	currentTooltipId = '';
 	highlightedNumber = undefined;
+	displayItems = [];
 }
 
-// Scroll to highlighted citation in tooltip
-function scrollToHighlightedCitation(citationNumber: number) {
+// Scroll to highlighted source in tooltip
+function scrollToHighlightedSource(citationNumber: number) {
 	if (!tooltipScrollbars?.osInstance || !showTooltip) return;
 	
 	// Find the highlighted citation element by its actual citation number
@@ -233,10 +319,67 @@ function hideTooltipOnScroll() {
 	}
 }
 
+// Get unique display items for rendering
+function getUniqueDisplayItems() {
+	const seen = new Set();
+	const unique = [];
+	
+	for (const item of displayItems) {
+		if (item.isCommon) {
+			// Only add common knowledge once
+			if (!seen.has('common')) {
+				seen.add('common');
+				unique.push(item);
+			}
+		} else if (item.article) {
+			// Only add each unique article once (by link as unique identifier)
+			const articleKey = item.article.link;
+			if (!seen.has(articleKey)) {
+				seen.add(articleKey);
+				unique.push(item);
+			}
+		}
+	}
+	
+	// Sort: cited articles first (by number), then non-cited (alphabetically)
+	return unique.sort((a, b) => {
+		if (a.isCommon && !b.isCommon) return 1;
+		if (!a.isCommon && b.isCommon) return -1;
+		if (a.isCommon && b.isCommon) return 0;
+		if (a.isCited && !b.isCited) return -1;
+		if (!a.isCited && b.isCited) return 1;
+		if (a.isCited && b.isCited) return (a.number || 0) - (b.number || 0);
+		return a.article!.title.localeCompare(b.article!.title);
+	});
+}
+
+// Calculate the highest citation number in current display items
+const maxCitationNumber = $derived.by(() => {
+	let maxNum = 0;
+	for (const item of displayItems) {
+		if (item.number && item.number > maxNum && item.number > 0) {
+			maxNum = item.number;
+		}
+	}
+	return maxNum;
+});
+
+// Determine tooltip title - standardized to 'Sources'
+function getTooltipTitle() {
+	return 'Sources';
+}
+
 // Setup scroll listener
 onMount(() => {
 	if (browser) {
 		window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
+	}
+});
+
+// Reset scroll position whenever displayItems changes to avoid jump
+$effect(() => {
+	if (showTooltip && tooltipScrollbars?.osInstance) {
+		tooltipScrollbars.osInstance()?.scroll({ y: 0 }, true);
 	}
 });
 
@@ -285,36 +428,15 @@ onDestroy(() => {
 					}}
 				>
 					<div class="p-3">
-						<h4 class="mb-3 font-semibold text-gray-800 dark:text-gray-200">Citations</h4>
+					<h4 class="mb-3 font-semibold text-gray-800 dark:text-gray-200">{getTooltipTitle()}</h4>
 						
-						<div class="space-y-2">
-							{#if citedItems.length > 0}
-								{@const uniqueItems = (() => {
-									const seen = new Set();
-									const unique = [];
-									
-									for (const item of citedItems) {
-										if (item.isCommon) {
-											// Only add common knowledge once
-											if (!seen.has('common')) {
-												seen.add('common');
-												unique.push(item);
-											}
-										} else if (item.article) {
-											// Only add each unique article once (by link as unique identifier)
-											const articleKey = item.article.link;
-											if (!seen.has(articleKey)) {
-												seen.add(articleKey);
-												unique.push(item);
-											}
-										}
-									}
-									
-									return unique;
-								})()}
-								{#each uniqueItems as item}
-									<CitationItem {item} {highlightedNumber} />
+						<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-2">
+							{#if displayItems.length > 0}
+								{#each getUniqueDisplayItems() as item}
+									<CitationItem {item} {highlightedNumber} showCitationNumber={item.isCited} {maxCitationNumber} />
 								{/each}
+							{:else}
+								<div class="text-sm text-gray-500 dark:text-gray-400">No sources available</div>
 							{/if}
 						</div>
 						
@@ -331,7 +453,7 @@ onDestroy(() => {
 				onkeydown={(e) => e.key === 'Escape' && closeMobileModal()}
 				role="dialog"
 				aria-modal="true"
-				aria-labelledby="citations-modal-title"
+				aria-labelledby="sources-modal-title"
 				tabindex="-1"
 			>
 				<div
@@ -351,8 +473,8 @@ onDestroy(() => {
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 							</svg>
 						</button>
-						<h3 id="citations-modal-title" class="flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-							Source Articles
+						<h3 id="sources-modal-title" class="flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+							{getTooltipTitle()}
 						</h3>
 					</div>
 
@@ -372,36 +494,15 @@ onDestroy(() => {
 						}}
 					>
 						<div class="p-4">
-							<h4 class="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">Citations</h4>
+						<h4 class="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">{getTooltipTitle()}</h4>
 							
-							<div class="space-y-3">
-								{#if citedItems.length > 0}
-									{@const uniqueItems = (() => {
-										const seen = new Set();
-										const unique = [];
-										
-										for (const item of citedItems) {
-											if (item.isCommon) {
-												// Only add common knowledge once
-												if (!seen.has('common')) {
-													seen.add('common');
-													unique.push(item);
-												}
-											} else if (item.article) {
-												// Only add each unique article once (by link as unique identifier)
-												const articleKey = item.article.link;
-												if (!seen.has(articleKey)) {
-													seen.add(articleKey);
-													unique.push(item);
-												}
-											}
-										}
-										
-										return unique;
-									})()}
-									{#each uniqueItems as item}
-										<CitationItem {item} {highlightedNumber} isMobile={true} />
-									{/each}
+							<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-3">
+							{#if displayItems.length > 0}
+								{#each getUniqueDisplayItems() as item}
+									<CitationItem {item} {highlightedNumber} isMobile={true} showCitationNumber={item.isCited} {maxCitationNumber} />
+								{/each}
+								{:else}
+									<div class="text-sm text-gray-500 dark:text-gray-400">No sources available</div>
 								{/if}
 							</div>
 							
@@ -412,4 +513,3 @@ onDestroy(() => {
 		</Portal>
 	{/if}
 {/if}
-

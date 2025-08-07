@@ -15,6 +15,7 @@ import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
 import '../styles/index.css';
 import type { PageData } from './$types';
+import { preloadCommonIcons } from '$lib/utils/iconPreloader';
 
 // Props from layout load
 let { data, children }: {data: PageData, children: Snippet } = $props();
@@ -229,6 +230,9 @@ onMount(async () => {
 	categories.init();
 	settings.init();
 	experimental.init();
+	
+	// Preload common icons immediately (critical icons already loaded in service constructor)
+	preloadCommonIcons();
 
 	// Clear stale local maintenance override if site is no longer in maintenance
 	if (browser) {

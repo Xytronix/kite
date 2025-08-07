@@ -5,11 +5,13 @@ import { language } from '$lib/stores/language.svelte.js';
 import type { MediaInfo } from '$lib/types';
 import { getTimeAgo, getMostRecentArticleDate } from '$lib/utils/getTimeAgo';
 import SmartImage from '../SmartImage.svelte';
+import SourceTooltip from './SourceTooltip.svelte';
 
 // Props
 interface Props {
 	domains: any[];
 	articles: any[];
+	citationMapping?: any;
 	showSourceOverlay?: boolean;
 	currentSource?: any;
 	sourceArticles?: any[];
@@ -20,6 +22,7 @@ interface Props {
 let { 
 	domains, 
 	articles, 
+	citationMapping,
 	showSourceOverlay = $bindable(false),
 	currentSource = $bindable(null),
 	sourceArticles = $bindable([]),
@@ -30,6 +33,9 @@ let {
 // State
 let showAllSources = $state(false);
 let visibleSources = $state(typeof window !== 'undefined' && window.innerWidth <= 768 ? 4 : 8);
+
+// Source tooltip reference
+let sourceTooltip: SourceTooltip;
 
 // Handle window resize
 if (typeof window !== 'undefined') {
@@ -58,6 +64,22 @@ async function handleSourceClick(domain: any) {
 	
 	isLoadingMediaInfo = false;
 	showSourceOverlay = true;
+}
+
+// Handle source hover for tooltip
+function handleSourceHover(event: Event, domain: any) {
+	if (!sourceTooltip) return;
+	
+	// Get all articles for this domain
+	const domainArticles = articles.filter(a => a.domain === domain?.name) || [];
+	
+	sourceTooltip.handleSourceInteraction(event, [domain?.name || 'unknown'], undefined, domainArticles);
+}
+
+// Handle source hover leave
+function handleSourceLeave(event: Event) {
+	if (!sourceTooltip) return;
+	sourceTooltip.handleSourceLeave(event);
 }
 </script>
 
@@ -94,26 +116,31 @@ async function handleSourceClick(domain: any) {
 	<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
 		{#each domains as domain, index}
 			{#if index < visibleSources || showAllSources}
-				<button type="button"
-					class="flex w-full flex-col items-start space-y-1 rounded-lg py-2 pl-2 text-left transition-colors hover:bg-gray-100 focus-visible-ring dark:hover:bg-gray-700"
-					onclick={(e) => { e.stopPropagation(); handleSourceClick(domain);} }
-					aria-label={`Show articles from ${domain?.name || 'Unknown'}`}
-					title={`Show articles from ${domain?.name || 'Unknown'}`}
+			<button type="button"
+				class="source-item flex w-full flex-col items-start space-y-1 rounded-lg py-2 pl-2 text-left transition-colors hover:bg-gray-100 focus-visible-ring dark:hover:bg-gray-700"
+				onclick={(e) => { e.stopPropagation(); handleSourceClick(domain);} }
+				onmouseenter={(e) => handleSourceHover(e, domain)}
+				onmouseleave={handleSourceLeave}
+				aria-label={`Show articles from ${domain?.name || 'Unknown'}`}
+				title={`Show articles from ${domain?.name || 'Unknown'}`}
 				>
-					<div class="flex w-full min-w-0 items-center space-x-2">
-						<SmartImage
-							domain={domain?.name}
-							alt={`${domain?.name || 'Unknown'} Favicon`}
-							class="h-5 w-5 rounded-full flex-shrink-0"
-							size={32}
-							loading="eager"
-							preferIconify={true}
-						/>
-						<span class="truncate text-sm font-semibold">
+					<div class="flex w-full min-w-0 items-center">
+						<div class="w-10 flex justify-center items-center flex-shrink-0">
+							<SmartImage
+								domain={domain?.name}
+								alt={`${domain?.name || 'Unknown'} Favicon`}
+								class="h-5 w-5 rounded-full"
+								size={32}
+								loading="eager"
+								preferIconify={true}
+								addBackground={true}
+							/>
+						</div>
+						<span class="truncate text-sm font-semibold ml-1">
 							{domain?.name || 'Unknown'}
 						</span>
 					</div>
-					<span class="ml-7 text-xs text-gray-500 dark:text-gray-400">
+					<span class="ml-11 text-xs text-gray-500 dark:text-gray-400">
 						{#if articles}
 							{@const articleCount = articles.filter(a => a.domain === domain?.name).length}
 							{@const mostRecentDate = getMostRecentArticleDate(articles, domain?.name)}
@@ -130,4 +157,12 @@ async function handleSourceClick(domain: any) {
 			{/if}
 		{/each}
 	</div>
-</section> 
+</section>
+
+<!-- Source Tooltip for source hover -->
+<SourceTooltip 
+	bind:this={sourceTooltip}
+	{articles}
+	{citationMapping}
+	citedItems={[]}
+/>

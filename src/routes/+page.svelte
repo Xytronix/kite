@@ -494,6 +494,38 @@ async function loadStoriesForCategory(categoryId: string, increment: boolean = f
 		return;
 	}
 	
+	// Preload icons for this category's stories
+	if (allCategoryStories[categoryId]) {
+		Promise.all([
+			import('$lib/utils/iconPreloader').then(({ preloadSourceIcons, preloadStoryIcons }) => {
+				// Preload source icons
+				const domains = new Set<string>();
+				allCategoryStories[categoryId].forEach((story: any) => {
+					if (story.articles) {
+						story.articles.forEach((article: any) => {
+							if (article.domain) domains.add(article.domain);
+						});
+					}
+				});
+				preloadSourceIcons(Array.from(domains));
+				
+				// Preload story emojis
+				preloadStoryIcons(allCategoryStories[categoryId]);
+			}),
+			import('$lib/services/iconService').then(({ iconService }) => {
+				// Preload common iconify icons
+				const commonIcons = [
+					'heroicons-outline:globe-alt',
+					'material-symbols:public',
+					'mdi:web'
+				];
+				iconService.preload(commonIcons, false); // Pass array of icons
+			})
+		]).catch(err => {
+			console.warn('Failed to preload icons for category:', err);
+		});
+	}
+	
 	// Compute requested limit
 	if (!categoryLimits[categoryId]) {
         categoryLimits[categoryId] = settings.storyCount;
@@ -1254,6 +1286,13 @@ function handleStoryToggle(storyId: string, updateUrl: boolean = false) {
             (s) => s.cluster_number?.toString() === storyId || s.title === storyId,
         );
         if (story) {
+            // Preload citation icons for this story immediately
+            import('$lib/utils/iconPreloader').then(({ preloadStoryCitations }) => {
+                preloadStoryCitations(story).catch(err => {
+                    console.warn('Failed to preload story citations:', err);
+                });
+            });
+            
             // Use the story ID for consistency instead of title
             const readStoryId = story.cluster_number?.toString() || story.title;
             readStories = { ...readStories, [readStoryId]: true };
