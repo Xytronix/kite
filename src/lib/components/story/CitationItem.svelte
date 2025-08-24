@@ -1,6 +1,7 @@
 <script lang="ts">
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
 import { s } from '$lib/client/localization.svelte';
+import { getOrganizationName } from '$lib/utils/domainUtils';
 import type { Article } from '$lib/types';
 import SmartImage from '../SmartImage.svelte';
 
@@ -13,6 +14,29 @@ interface Props {
 }
 
 let { item, highlightedNumber, isMobile = false, showCitationNumber = true, maxCitationNumber = 0 }: Props = $props();
+
+// Function to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+	if (typeof document === 'undefined') return text;
+	const textarea = document.createElement('textarea');
+	textarea.innerHTML = text;
+	return textarea.value;
+}
+
+// State for organization name
+let organizationName = $state<string>('');
+
+// Load organization name when article changes
+$effect(() => {
+	if (item.article?.domain) {
+		organizationName = item.article.domain; // Set fallback immediately
+		getOrganizationName(item.article.domain).then(name => {
+			organizationName = name;
+		}).catch(() => {
+			// Keep the fallback domain name if lookup fails
+		});
+	}
+});
 
 const isHighlighted = $derived(
 	item.isCommon ? highlightedNumber === -1 : highlightedNumber === item.number
@@ -28,8 +52,8 @@ const badgeClasses = $derived(
 
 const containerClasses = $derived(
     isHighlighted
-        ? 'rounded-md ring-1 ring-blue-400/40 dark:ring-blue-300/40 bg-blue-500/5 dark:bg-blue-400/10 transition-colors'
-        : ''
+        ? 'rounded-md ring-1 ring-blue-400/40 dark:ring-blue-300/40 bg-blue-500/5 dark:bg-blue-400/10 transition-colors p-2'
+        : 'p-2'
 );
 
 const paddingClasses = $derived(isMobile ? 'px-2 py-1' : 'px-1.5 py-0.5');
@@ -38,7 +62,7 @@ const iconSizeClasses = $derived(isMobile ? 'h-6 w-6' : 'h-4 w-4');
 // Consistent spacing between icon and text regardless of citation number digits
 const iconTextSpacing = $derived(() => {
 	if (isMobile) return 'space-x-2'; // Mobile stays the same
-	return 'space-x-1.5'; // Desktop: consistent spacing for all citations
+	return 'space-x-2'; // Desktop: increased spacing for better alignment
 });
 // Calculate margin to align with content, accounting for citation number slot width
 const marginClasses = $derived(() => {
@@ -81,10 +105,10 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
   </div>
 
   <!-- Column 2 – content -->
-  <div class="flex flex-col gap-y-1 min-w-0">
+  <div class="flex flex-col gap-y-1 min-w-0 flex-1">
     <!-- first line: favicon + domain   |   time -->
-    <div class="flex items-center justify-between min-w-0">
-      <div class="flex items-center {iconTextSpacing()} min-w-0">
+    <div class="flex items-center justify-between min-w-0 gap-2">
+      <div class="flex items-center {iconTextSpacing()} min-w-0 flex-1">
         <SmartImage
           domain={item.article.domain}
           alt="{item.article.domain} favicon"
@@ -94,12 +118,12 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
           preferIconify={true}
           addBackground={true}
         />
-        <span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none ml-1">
-          {item.article.domain}
+        <span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none">
+          {organizationName}
         </span>
       </div>
       {#if item.article.date}
-        <div class="text-gray-500 dark:text-gray-400 {dateClasses} flex-shrink-0 ml-2 whitespace-nowrap">
+        <div class="text-gray-500 dark:text-gray-400 {dateClasses} flex-shrink-0 whitespace-nowrap">
           {getTimeAgo(item.article.date)}
         </div>
       {/if}
@@ -110,10 +134,10 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
       href={item.article.link}
       target="_blank"
       rel="noopener noreferrer"
-      class="text-blue-600 dark:text-blue-400 hover:underline {linkClasses}"
-      title={item.article.title}
+      class="text-blue-600 dark:text-blue-400 hover:underline {linkClasses} break-words"
+      title={decodeHtmlEntities(item.article.title)}
     >
-      {item.article.title}
+      {decodeHtmlEntities(item.article.title)}
     </a>
   </div>
 </div>
@@ -133,8 +157,9 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 	width: 2.5rem;
 	margin-left: -0.25rem; /* shift badge 4px left */
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: center;
+	padding-top: 0.125rem; /* Align with first line of content */
 }
 
 .citation-number-slot-wide {
@@ -142,9 +167,10 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 	width: 3.5rem;
 }
 .citation-row {
-	grid-template-columns: 2.5rem 1fr;
+	grid-template-columns: 2.5rem minmax(0, 1fr);
+	align-items: start;
 }
 .double-digit .citation-row {
-	grid-template-columns: 3.5rem 1fr;
+	grid-template-columns: 3.5rem minmax(0, 1fr);
 }
 </style>

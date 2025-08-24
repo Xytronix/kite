@@ -250,29 +250,7 @@ $effect(() => {
 				<Icon icon="tabler:clock" class="text-gray-600 dark:text-gray-400 w-6 h-6" />
 			</button>
 			
-			<button
-				onclick={() => window.location.href = '/topics'}
-				title="Topic Trends"
-				aria-label="Topic Trends"
-				class="ml-2"
-				type="button"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					class="text-gray-600 dark:text-gray-400"
-				>
-					<polyline points="22,6 13.5,15.5 8.5,10.5 2,17"></polyline>
-					<polyline points="16,6 22,6 22,12"></polyline>
-				</svg>
-			</button>
+
 			
 			<button
 				onclick={() => settings.open()}

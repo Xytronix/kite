@@ -44,6 +44,10 @@ function toggleDisableStoryScrolling() {
 	experimental.toggleFeature('disableStoryScrolling');
 }
 
+function setSourceIconPosition(position: 'none' | 'inline' | 'section-end' | 'story-end') {
+	experimental.setFeature('sourceIconPosition', position);
+}
+
 // Article/Category display helper functions
 // Unified decoration style and target toggles
 type VisualMode = 'none' | 'icons' | 'emojis';
@@ -447,6 +451,93 @@ function toggleCategories() {
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
             Prevent automatic scrolling when clicking on story titles.
+        </p>
+    </div>
+
+    <!-- Source Icon Position -->
+    <div class="mb-6">
+        <div class="mb-3 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:sitemap" class="w-4 h-4 mr-2" />
+                Source Icon Position
+            </span>
+        </div>
+        <div class="flex w-full rounded-lg border border-gray-200 dark:border-gray-600" role="group">
+            <button
+                onclick={() => setSourceIconPosition('none')}
+                type="button"
+                class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-l-lg border-r border-gray-200 dark:border-gray-600"
+                class:bg-blue-600={experimental.sourceIconPosition === 'none'}
+                class:text-white={experimental.sourceIconPosition === 'none'}
+                class:bg-white={experimental.sourceIconPosition !== 'none'}
+                class:text-gray-700={experimental.sourceIconPosition !== 'none'}
+                class:hover:bg-gray-50={experimental.sourceIconPosition !== 'none'}
+                class:dark:bg-blue-600={experimental.sourceIconPosition === 'none'}
+                class:dark:text-white={experimental.sourceIconPosition === 'none'}
+                class:dark:bg-gray-800={experimental.sourceIconPosition !== 'none'}
+                class:dark:text-gray-300={experimental.sourceIconPosition !== 'none'}
+                class:dark:hover:bg-gray-700={experimental.sourceIconPosition !== 'none'}
+                aria-pressed={experimental.sourceIconPosition === 'none'}
+            >
+                None
+            </button>
+            <button
+                onclick={() => setSourceIconPosition('inline')}
+                type="button"
+                class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-r border-gray-200 dark:border-gray-600"
+                class:bg-blue-600={experimental.sourceIconPosition === 'inline'}
+                class:text-white={experimental.sourceIconPosition === 'inline'}
+                class:bg-white={experimental.sourceIconPosition !== 'inline'}
+                class:text-gray-700={experimental.sourceIconPosition !== 'inline'}
+                class:hover:bg-gray-50={experimental.sourceIconPosition !== 'inline'}
+                class:dark:bg-blue-600={experimental.sourceIconPosition === 'inline'}
+                class:dark:text-white={experimental.sourceIconPosition === 'inline'}
+                class:dark:bg-gray-800={experimental.sourceIconPosition !== 'inline'}
+                class:dark:text-gray-300={experimental.sourceIconPosition !== 'inline'}
+                class:dark:hover:bg-gray-700={experimental.sourceIconPosition !== 'inline'}
+                aria-pressed={experimental.sourceIconPosition === 'inline'}
+            >
+                Inline
+            </button>
+            <button
+                onclick={() => setSourceIconPosition('section-end')}
+                type="button"
+                class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-r border-gray-200 dark:border-gray-600"
+                class:bg-blue-600={experimental.sourceIconPosition === 'section-end'}
+                class:text-white={experimental.sourceIconPosition === 'section-end'}
+                class:bg-white={experimental.sourceIconPosition !== 'section-end'}
+                class:text-gray-700={experimental.sourceIconPosition !== 'section-end'}
+                class:hover:bg-gray-50={experimental.sourceIconPosition !== 'section-end'}
+                class:dark:bg-blue-600={experimental.sourceIconPosition === 'section-end'}
+                class:dark:text-white={experimental.sourceIconPosition === 'section-end'}
+                class:dark:bg-gray-800={experimental.sourceIconPosition !== 'section-end'}
+                class:dark:text-gray-300={experimental.sourceIconPosition !== 'section-end'}
+                class:dark:hover:bg-gray-700={experimental.sourceIconPosition !== 'section-end'}
+                aria-pressed={experimental.sourceIconPosition === 'section-end'}
+            >
+                Section End
+            </button>
+            <button
+                onclick={() => setSourceIconPosition('story-end')}
+                type="button"
+                class="relative flex-1 items-center justify-center px-3 py-2 text-sm font-medium transition-colors focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-r-lg"
+                class:bg-blue-600={experimental.sourceIconPosition === 'story-end'}
+                class:text-white={experimental.sourceIconPosition === 'story-end'}
+                class:bg-white={experimental.sourceIconPosition !== 'story-end'}
+                class:text-gray-700={experimental.sourceIconPosition !== 'story-end'}
+                class:hover:bg-gray-50={experimental.sourceIconPosition !== 'story-end'}
+                class:dark:bg-blue-600={experimental.sourceIconPosition === 'story-end'}
+                class:dark:text-white={experimental.sourceIconPosition === 'story-end'}
+                class:dark:bg-gray-800={experimental.sourceIconPosition !== 'story-end'}
+                class:dark:text-gray-300={experimental.sourceIconPosition !== 'story-end'}
+                class:dark:hover:bg-gray-700={experimental.sourceIconPosition !== 'story-end'}
+                aria-pressed={experimental.sourceIconPosition === 'story-end'}
+            >
+                Story End
+            </button>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Control where source icons appear: none (disabled), inline with content, at the end of each section, or only at the end of the story.
         </p>
     </div>
 </div> 

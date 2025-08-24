@@ -62,7 +62,7 @@ const allCitedArticles = $derived.by(() => {
 				<p class="text-gray-700 dark:text-gray-300">
                     <CitationText 
                         text={qa.answer} 
-                        showFavicons={false} 
+                        showFavicons={true} 
                         showNumbers={false} 
                         inline={false} 
                         articles={allCitedArticles.citedArticles} 

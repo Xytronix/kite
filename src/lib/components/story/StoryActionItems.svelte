@@ -42,7 +42,7 @@ const allCitedArticles = $derived.by(() => {
 			<li>
 				<CitationText 
 					text={item} 
-					showFavicons={false} 
+					showFavicons={true} 
 					showNumbers={false} 
 					inline={true} 
 					articles={allCitedArticles.citedArticles} 

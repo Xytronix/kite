@@ -1,6 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
+import SectionSources from './SectionSources.svelte';
 import { useCitationProcessing } from '$lib/utils/citationProcessing';
 import type { CitationProps } from '$lib/types/citation';
 import Icon from '@iconify/svelte';
@@ -19,6 +20,34 @@ const displayContent = $derived.by(() => {
 	// Ensure we return a string (content is always a string, but TypeScript needs assurance)
 	return typeof processed === 'string' ? processed : processed.join(' ');
 });
+
+// Extract only the articles that are actually cited in this section
+const sectionCitedArticles = $derived.by(() => {
+	if (!citationMapping) return [];
+	
+	const citationNumbers = new Set<number>();
+	// Look for citation patterns [1], [2], etc. in the display content
+	const citationMatches = displayContent.match(/\[(\d+)\]/g);
+	if (citationMatches) {
+		citationMatches.forEach((match) => {
+			const num = parseInt(match.replace(/[\[\]]/g, ''));
+			if (!isNaN(num)) {
+				citationNumbers.add(num);
+			}
+		});
+	}
+	
+	// Get articles for these specific citation numbers
+	const citedArticles: typeof articles = [];
+	citationNumbers.forEach((num) => {
+		const article = citationMapping.numberToArticle.get(num);
+		if (article) {
+			citedArticles.push(article);
+		}
+	});
+	
+	return citedArticles;
+});
 </script>
 
 <section class="mt-6 rounded-lg bg-[#CED8FB] p-4 dark:bg-[#2A3B5E]">
@@ -29,4 +58,6 @@ const displayContent = $derived.by(() => {
 	<p class="text-gray-700 dark:text-gray-200">
 		<CitationText text={displayContent} inline={false} {articles} {citationMapping} />
 	</p>
+	
+	<SectionSources articles={sectionCitedArticles} {citationMapping} sectionTitle="Did You Know?" />
 </section> 

@@ -35,13 +35,7 @@ const navigationParams = $derived.by(() => {
 	};
 });
 
-// Extract topicId from the query string when viewing topic feeds
-const topicId = $derived.by(() => {
-    if (navigationParams.categoryId === 'topics') {
-        return page.url.searchParams.get('topic');
-    }
-    return null;
-});
+
 
 // Build canonical link for reporting
 const reportUrl = $derived.by(() => {
@@ -53,7 +47,6 @@ const reportUrl = $derived.by(() => {
         categoryId: navigationParams.categoryId,
         storyIndex: navigationParams.storyIndex,
         dataLang: navigationParams.dataLang,
-        topicId,
         slug
     });
 });
@@ -69,7 +62,6 @@ const reportUrl = $derived.by(() => {
 			categoryId={navigationParams.categoryId}
 			storyIndex={navigationParams.storyIndex}
 			dataLang={navigationParams.dataLang}
-			topicId={topicId}
 			class="text-gray-600 transition-all duration-200 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700"
 		/>
 		<ReportButton

@@ -55,17 +55,12 @@ export function generateShareUrl(
   baseUrl: string,
   state: ShareableState
 ): string {
-  // Special handling for topic feeds
-  if (state.categoryId === 'topics' && state.topicId) {
-    let url = `${baseUrl}/topics?topic=${state.topicId}`;
-    if (state.dataLang && state.dataLang !== 'en') {
-      url += `&data_lang=${state.dataLang}`;
-    }
-    return url;
-  }
-
   const parts: string[] = [];
-  if (state.batchId) parts.push(state.batchId);
+  if (state.batchId) {
+    // For now, use the batch ID as-is (could be UUID or date)
+    // In the future, we could convert UUIDs to dates for prettier URLs
+    parts.push(state.batchId);
+  }
   if (state.categoryId) parts.push(state.categoryId);
 
   // Preferred format: include index+slug when both available for clarity & backward compatibility
@@ -88,13 +83,149 @@ export function generateShareUrl(
 }
 
 /**
- * Look up a shortened URL code and return the original URL.
- *
- * NOTE: The real implementation should query your persistence layer. This
- * stub simply returns null to indicate that a short-link could not be found.
+ * Resolve a date-based batch identifier to an actual batch UUID
+ * @param batchIdentifier - Either a date string (YYYY-MM-DD) or UUID
+ * @returns Promise<string | null> - The actual batch UUID, or null if not found
  */
-export async function getShortUrl(code: string): Promise<string | null> {
-  // TODO: replace with real lookup logic (e.g. database query)
-  console.warn('getShortUrl stub called — implement real lookup', code);
+export async function resolveBatchId(batchIdentifier: string): Promise<string | null> {
+  // If it's already a UUID, return as-is
+  if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(batchIdentifier)) {
+    return batchIdentifier;
+  }
+
+  // If it's a date format, try to resolve it
+  if (/^\d{4}-\d{2}-\d{2}$/.test(batchIdentifier)) {
+    try {
+      // Fetch batches for that date range
+      const targetDate = new Date(batchIdentifier);
+      const startDate = new Date(targetDate);
+      const endDate = new Date(targetDate);
+      endDate.setDate(endDate.getDate() + 1); // Next day
+
+      const response = await fetch(
+        `/api/batches?from=${startDate.toISOString()}&to=${endDate.toISOString()}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const batches = data.batches || [];
+
+        // Find all batches created on the target date
+        const batchesForDate = batches.filter((batch: any) => {
+          const batchDate = new Date(batch.createdAt);
+          const batchDateKey = batchDate.toISOString().split('T')[0];
+          return batchDateKey === batchIdentifier;
+        });
+
+        if (batchesForDate.length > 0) {
+          // If multiple batches exist for the same date, use the latest one (most recent createdAt)
+          const latestBatch = batchesForDate.reduce((latest: any, current: any) => {
+            return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+          });
+
+          console.log(`✅ Resolved date ${batchIdentifier} to batch ${latestBatch.id} (${batchesForDate.length} batches found for this date)`);
+          return latestBatch.id;
+        } else {
+          console.warn(`⚠️ No batch found for date ${batchIdentifier}`);
+          return null;
+        }
+      } else {
+        console.error(`❌ Failed to fetch batches for date resolution: ${response.status}`);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error resolving batch date:', error);
+      return null;
+    }
+  }
+
+  // Unknown format
+  console.warn(`⚠️ Unknown batch identifier format: ${batchIdentifier}`);
   return null;
 }
+
+/**
+ * Parse a URL to extract navigation parameters for state restoration
+ */
+export function parseShareUrl(url: string): ShareableState | null {
+  try {
+    const urlObj = new URL(url);
+    const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+
+    // Handle topics URLs
+    if (pathSegments[0] === 'topics') {
+      const topicId = urlObj.searchParams.get('topic');
+      const dataLang = urlObj.searchParams.get('data_lang');
+      return {
+        categoryId: 'topics',
+        topicId,
+        dataLang
+      };
+    }
+
+
+
+    const state: ShareableState = {};
+
+    // Extract data language from query params
+    const dataLang = urlObj.searchParams.get('data_lang');
+    if (dataLang) {
+      state.dataLang = dataLang;
+    }
+
+    if (pathSegments.length === 0) {
+      return state; // Root URL
+    }
+
+    // Check if first segment is a batch ID (date or UUID pattern)
+    const isBatchId = /^\d{4}-\d{2}-\d{2}/.test(pathSegments[0]) ||
+      /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(pathSegments[0]);
+
+    if (isBatchId) {
+      // Store the batch identifier (could be date or UUID)
+      // The navigation system will resolve dates to actual batch UUIDs
+      state.batchId = pathSegments[0];
+      state.categoryId = pathSegments[1] || null;
+
+      // Parse story segment (index-slug or just slug)
+      if (pathSegments[2]) {
+        const storySegment = pathSegments[2];
+        const match = storySegment.match(/^(\d+)(?:-(.*))?$/);
+        if (match) {
+          state.storyIndex = parseInt(match[1]);
+          if (match[2]) {
+            state.slug = match[2];
+          }
+        } else {
+          // Pure slug without index
+          state.slug = storySegment;
+        }
+      }
+    } else {
+      // No batch ID - latest batch
+      state.batchId = null;
+      state.categoryId = pathSegments[0];
+
+      // Parse story segment
+      if (pathSegments[1]) {
+        const storySegment = pathSegments[1];
+        const match = storySegment.match(/^(\d+)(?:-(.*))?$/);
+        if (match) {
+          state.storyIndex = parseInt(match[1]);
+          if (match[2]) {
+            state.slug = match[2];
+          }
+        } else {
+          // Pure slug without index
+          state.slug = storySegment;
+        }
+      }
+    }
+
+    return state;
+  } catch (error) {
+    console.error('Error parsing share URL:', error);
+    return null;
+  }
+}
+

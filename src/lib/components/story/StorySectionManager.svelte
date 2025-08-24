@@ -2,8 +2,10 @@
 	import { sections } from '$lib/stores/sections.svelte.js';
 	import { s } from '$lib/client/localization.svelte';
 	import { buildCitationMapping, replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
-	import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
+	import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
 	import CitationText from './CitationText.svelte';
+import SectionSources from './SectionSources.svelte';
+import StoryEndSources from './StoryEndSources.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
 	import StorySummary from './StorySummary.svelte';
 	import StoryHighlights from './StoryHighlights.svelte';
@@ -134,6 +136,25 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 
 		return aggregateCitationsFromTexts(texts, citationMapping, story.articles || []);
 	});
+
+	// Get paragraph-level citations for business angle
+	const businessAngleParagraphCitations = $derived.by(() => {
+		const paragraphs = [];
+		if (story.business_angle_text) {
+			paragraphs.push({ text: story.business_angle_text });
+		}
+		if (story.business_angle_points?.length > 0) {
+			story.business_angle_points.forEach((point: string) => {
+				paragraphs.push({ text: point });
+			});
+		}
+
+		const perParagraphCitations = aggregateCitationsPerPerspective(paragraphs, citationMapping, story.articles || []);
+		return perParagraphCitations.map((citation, index) => ({
+			articles: citation.citedArticles,
+			title: index === 0 && story.business_angle_text ? 'Main Text' : `Point ${index + (story.business_angle_text ? 0 : 1)}`
+		}));
+	});
 </script>
 
 <div class="story-sections">
@@ -190,40 +211,54 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 		/>
 	{:else if section.id === 'businessAngle'}
     <section class="mt-6">
-            <h3 class="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+            <h3 class="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
                 <Icon icon={getSectionIcon('businessAngle')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 <span>{s('section.businessAngle') || 'Business Angle'}</span>
             </h3>
-			{#if story.business_angle_text}
-				<p class="mb-4 text-gray-700 dark:text-gray-300">
-					<CitationText 
-						text={citationMapping ? replaceWithNumberedCitations(story.business_angle_text, citationMapping) : story.business_angle_text} 
-						showFavicons={false} 
-						showNumbers={false} 
-						inline={false} 
-						articles={businessAngleCitedArticles.citedArticles} 
-						{citationMapping}
-						citationTooltip={businessAngleCitationTooltip}
-					/>
-				</p>
-			{/if}
-			{#if story.business_angle_points?.length > 0}
-				<ul class="mb-4 list-inside list-disc space-y-2 text-gray-700 dark:text-gray-300">
-					{#each story.business_angle_points as point}
-						<li>
+			<div class="min-h-[200px] flex flex-col">
+				<div class="flex-grow pb-2 mb-2">
+					{#if story.business_angle_text}
+						<p class="mb-4 text-gray-700 dark:text-gray-300">
 							<CitationText 
-								text={citationMapping ? replaceWithNumberedCitations(point, citationMapping) : point} 
-								showFavicons={false} 
+								text={citationMapping ? replaceWithNumberedCitations(story.business_angle_text, citationMapping) : story.business_angle_text} 
+								showFavicons={true} 
 								showNumbers={false} 
-								inline={true} 
+								inline={false} 
 								articles={businessAngleCitedArticles.citedArticles} 
 								{citationMapping}
 								citationTooltip={businessAngleCitationTooltip}
 							/>
-						</li>
-					{/each}
-				</ul>
-			{/if}
+						</p>
+					{/if}
+					{#if story.business_angle_points?.length > 0}
+						<ul class="mb-4 list-inside list-disc space-y-2 text-gray-700 dark:text-gray-300">
+							{#each story.business_angle_points as point}
+								<li>
+									<CitationText 
+										text={citationMapping ? replaceWithNumberedCitations(point, citationMapping) : point} 
+										showFavicons={true} 
+										showNumbers={false} 
+										inline={true} 
+										articles={businessAngleCitedArticles.citedArticles} 
+										{citationMapping}
+										citationTooltip={businessAngleCitationTooltip}
+									/>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+				
+				<!-- Section-level sources -->
+				<div class="mt-auto">
+					<SectionSources 
+						articles={businessAngleCitedArticles.citedArticles} 
+						{citationMapping} 
+						sectionTitle={s('section.businessAngle') || 'Business Angle'}
+						paragraphCitations={businessAngleParagraphCitations}
+					/>
+				</div>
+			</div>
 			
 		<!-- Shared Source Tooltip for Business Angle -->
 			<SourceTooltip 
@@ -330,6 +365,17 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 		/>
 	{/if}
 {/each}
+
+<!-- Story-end sources (only shows when position is set to 'story-end') -->
+<StoryEndSources 
+  {story} 
+  {citationMapping}
+  bind:showSourceOverlay
+  bind:currentSource
+  bind:sourceArticles
+  bind:currentMediaInfo
+  bind:isLoadingMediaInfo
+/>
 </div>
 
 <style>

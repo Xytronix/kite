@@ -3,7 +3,6 @@ import { storiesService } from './storiesService';
 import { chaosIndexService } from './chaosIndexService';
 import { mediaService } from './mediaService';
 import { onThisDayService } from './onThisDayService';
-import { topicService } from './topicService';
 
 // Global reload event handlers
 let reloadCallbacks: (() => Promise<void>)[] = [];
@@ -88,24 +87,7 @@ class DataService {
 		return chaosIndexService.getChaosIndexHistory(language, days);
 	}
 
-	/**
-	 * Topic functionality
-	 */
-	async getTopics(language: string = "en") {
-		return topicService.getTopics(language);
-	}
 
-	async getTopicFeed(topicId: string, limit: number = 50, language: string = "en") {
-		return topicService.getTopicFeed(topicId, limit, language);
-	}
-
-	async searchTopics(query: string, language: string = "en") {
-		return topicService.searchTopics(query, language);
-	}
-
-	async getTrendingTopics(limit: number = 10, language: string = "en") {
-		return topicService.getTrendingTopics(limit, language);
-	}
 }
 
 // Export singleton instance

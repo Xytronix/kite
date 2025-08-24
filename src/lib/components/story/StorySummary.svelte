@@ -3,6 +3,7 @@ import { s } from '$lib/client/localization.svelte';
 import { openMapLocation, getMapServiceName } from '$lib/utils/mapUtils';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import CitationText from './CitationText.svelte';
+import SectionSources from './SectionSources.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
@@ -83,7 +84,7 @@ const allCitedArticles = $derived.by(() => {
 			<span>
                 <CitationText 
 					text={displayLocation} 
-					showFavicons={false} 
+					showFavicons={true} 
 					showNumbers={false} 
 					inline={true} 
                     articles={allCitedArticles.citedArticles} 
@@ -94,6 +95,9 @@ const allCitedArticles = $derived.by(() => {
 			</span>
 		</button>
 	{/if}
+	
+	<!-- Section-level sources -->
+	<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle="Summary" />
 
 </section>
 

@@ -15,6 +15,8 @@ export interface ExperimentalFeatures {
   preferIconifyIcons: boolean;
   /** When true, disable automatic scrolling when clicking on story titles. */
   disableStoryScrolling: boolean;
+  /** Controls where source icons appear: 'none' (disabled), 'inline' (within content), 'section-end' (at end of sections), or 'story-end' (at end of story) */
+  sourceIconPosition: 'none' | 'inline' | 'section-end' | 'story-end';
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -30,6 +32,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   disableWikiTooltipsInHeadlines: false,
   preferIconifyIcons: false,
   disableStoryScrolling: false,
+  sourceIconPosition: 'section-end',
 };
 
 // Initialize experimental features state
@@ -114,12 +117,18 @@ export const experimental = {
     return experimentalState.disableStoryScrolling;
   },
 
-  toggleFeature(featureName: keyof ExperimentalFeatures) {
-    experimentalState[featureName] = !experimentalState[featureName];
-    saveFeatures(experimentalState);
+  get sourceIconPosition() {
+    return experimentalState.sourceIconPosition;
   },
 
-  setFeature(featureName: keyof ExperimentalFeatures, value: boolean) {
+  toggleFeature(featureName: keyof ExperimentalFeatures) {
+    if (typeof experimentalState[featureName] === 'boolean') {
+      (experimentalState[featureName] as boolean) = !(experimentalState[featureName] as boolean);
+      saveFeatures(experimentalState);
+    }
+  },
+
+  setFeature<K extends keyof ExperimentalFeatures>(featureName: K, value: ExperimentalFeatures[K]) {
     experimentalState[featureName] = value;
     saveFeatures(experimentalState);
   },

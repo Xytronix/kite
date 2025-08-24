@@ -1,53 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { TopicExtractor } from '../topicExtraction';
 import { SmartContentFilter } from '../contentFilter';
 
 describe('Smart Filtering System', () => {
-  describe('TopicExtractor', () => {
-    it('should extract meaningful topics using TF-IDF', () => {
-      const extractor = new TopicExtractor();
-      const documents = [
-        'Trump announces new economic policy for manufacturing sector',
-        'Biden administration focuses on climate change initiatives',
-        'Federal Reserve adjusts interest rates amid economic uncertainty',
-        'Local community celebrates annual harvest festival with traditional music'
-      ];
-
-      const topics = extractor.extractTopicsWithTFIDF(documents, 5);
-      
-      expect(topics).toBeDefined();
-      expect(topics.length).toBeGreaterThan(0);
-      expect(topics[0]).toHaveProperty('term');
-      expect(topics[0]).toHaveProperty('score');
-      expect(topics[0]).toHaveProperty('confidence');
-    });
-
-    it('should detect named entities', () => {
-      const extractor = new TopicExtractor();
-      const text = 'President Biden met with Prime Minister Johnson in Washington to discuss trade policies.';
-      
-      const entities = extractor.extractNamedEntities(text);
-      
-      expect(entities).toBeDefined();
-      expect(entities.length).toBeGreaterThan(0);
-      
-      const entityNames = entities.map(e => e.term.toLowerCase());
-      expect(entityNames.some(name => name.includes('biden'))).toBe(true);
-    });
-
-    it('should classify entity types correctly', () => {
-      const extractor = new TopicExtractor();
-      const text = 'Apple Inc announced new iPhone features at their Cupertino headquarters.';
-      
-      const entities = extractor.extractNamedEntities(text);
-      const orgEntity = entities.find(e => e.term.includes('Inc'));
-      
-      if (orgEntity) {
-        expect(orgEntity.type).toBe('organization');
-      }
-    });
-  });
-
   describe('SmartContentFilter', () => {
     it('should score content quality correctly', () => {
       const filter = new SmartContentFilter();

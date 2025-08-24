@@ -6,11 +6,13 @@ import type { CitationMapping } from '$lib/utils/citationContext';
 import SourceTooltip from './SourceTooltip.svelte';
 import SmartImage from '../SmartImage.svelte';
 import Icon from '$lib/components/Icon.svelte';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
 	text: string;
 	showFavicons?: boolean;
+	forceShowFavicons?: boolean; // Force show favicons regardless of experimental setting
 	showNumbers?: boolean;
 	inline?: boolean; // Whether to render inline (for list items) or as block (for paragraphs)
 	articles?: Article[]; // Articles for citation tooltip
@@ -22,6 +24,7 @@ interface Props {
 let { 
 	text, 
 	showFavicons = false, // Changed default to false (most common usage)
+	forceShowFavicons = false,
 	showNumbers = false,
 	inline = true, // Changed default to true (most common usage)
     articles = [],
@@ -145,7 +148,19 @@ const uniqueDomains = $derived.by(() => {
 			domains.add(citation.domain);
 		}
 	});
-	return Array.from(domains);
+	const result = Array.from(domains);
+	// Debug log for favicon display
+	if (showFavicons && forceShowFavicons) {
+		console.log('CitationText debug:', {
+			showFavicons,
+			forceShowFavicons,
+			uniqueDomainsLength: result.length,
+			uniqueDomains: result,
+			citations: parsedData.citations,
+			experimental: experimental.sourceIconPosition
+		});
+	}
+	return result;
 });
 
 // State for showing citation sources
@@ -254,8 +269,8 @@ const allArticleDomains = $derived.by(() => {
 		{/if}
 	</div>
 
-	<!-- Citation sources with favicons (appears on next line for both inline and block) -->
-    {#if showFavicons && uniqueDomains.length > 0}
+	<!-- Citation sources with favicons - only show inline if position is set to 'inline' or forced -->
+    {#if showFavicons && uniqueDomains.length > 0 && (forceShowFavicons || experimental.sourceIconPosition === 'inline')}
         <div class="citation-sources flex items-center">
         <!-- Global sources icon that reveals ALL sources for this text block -->
         <button

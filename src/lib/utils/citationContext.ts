@@ -5,6 +5,8 @@ export interface CitationMapping {
   citationToNumber: Map<string, number>;
   // Maps global citation number to article
   numberToArticle: Map<number, Article>;
+  // Maps article to global citation number (reverse lookup)
+  articleToNumber: Map<Article, number>;
   // Total number of unique citations
   totalCitations: number;
 }
@@ -32,6 +34,7 @@ function extractCitations(text: string): string[] {
 export function buildCitationMapping(story: any, articles: Article[]): CitationMapping {
   const citationToNumber = new Map<string, number>();
   const numberToArticle = new Map<number, Article>();
+  const articleToNumber = new Map<Article, number>();
   let citationCounter = 1;
   
   
@@ -149,6 +152,7 @@ export function buildCitationMapping(story: any, articles: Article[]): CitationM
       // Assign a global citation number
       citationToNumber.set(citation, citationCounter);
       numberToArticle.set(citationCounter, article);
+      articleToNumber.set(article, citationCounter);
       citationCounter++;
     }
   };
@@ -249,6 +253,7 @@ export function buildCitationMapping(story: any, articles: Article[]): CitationM
   const mapping = {
     citationToNumber,
     numberToArticle,
+    articleToNumber,
     totalCitations: citationCounter - 1
   };
   

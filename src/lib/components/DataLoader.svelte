@@ -237,40 +237,61 @@
 			
 			// Check if we have a batch ID from URL
 			if (initialBatchId) {
-				// First, get the latest batch to compare
-				const latestResponse = await fetch(`/api/batches/latest?lang=${language.data}`);
-				if (latestResponse.ok) {
-					const latestBatch = await latestResponse.json();
-					
-					// Only set time travel mode if this is NOT the latest batch
-					if (initialBatchId !== latestBatch.id) {
-						console.log('🎯 Setting time travel mode for historical batch:', initialBatchId);
-						dataService.setTimeTravelBatch(initialBatchId);
-						isLatestBatch = false;
-						
-						// Also set the time travel UI state so the banner shows
-						// We need to get the batch info to set the correct date
-						try {
-							const batchResponse = await fetch(`/api/batches/${initialBatchId}`);
-							if (batchResponse.ok) {
-								const batchData = await batchResponse.json();
-								const batchDate = new Date(batchData.createdAt);
-								console.log('🎯 Setting time travel UI state for date:', batchDate);
-								timeTravel.selectDate(batchDate);
-								timeTravel.selectBatch(initialBatchId);
-								
-								// Store the batch info to pass to batchService
-								providedBatchInfo = { id: batchData.id, createdAt: batchData.createdAt, totalReadCount: batchData.totalReadCount };
-							}
-						} catch (error) {
-							console.warn('Failed to get batch info for time travel UI:', error);
-						}
+				// First, resolve the batch ID if it's a date format
+				let resolvedBatchId = initialBatchId;
+				if (/^\d{4}-\d{2}-\d{2}$/.test(initialBatchId)) {
+					console.log('🔍 Resolving date-based batch ID:', initialBatchId);
+					const { resolveBatchId } = await import('$lib/utils/urlShortener');
+					const resolved = await resolveBatchId(initialBatchId);
+					if (resolved) {
+						resolvedBatchId = resolved;
+						console.log('✅ Resolved to UUID:', resolvedBatchId);
 					} else {
-						console.log('🎯 Batch from URL is the latest batch, not setting time travel mode');
-						isLatestBatch = true;
-						// Store the latest batch info to avoid duplicate fetch
-						providedBatchInfo = { id: latestBatch.id, createdAt: latestBatch.createdAt, totalReadCount: latestBatch.totalReadCount };
+						console.warn('⚠️ Could not resolve batch date, falling back to latest');
+						resolvedBatchId = null;
 					}
+				}
+				
+				if (resolvedBatchId) {
+					// Get the latest batch to compare
+					const latestResponse = await fetch(`/api/batches/latest?lang=${language.data}`);
+					if (latestResponse.ok) {
+						const latestBatch = await latestResponse.json();
+						
+						// Only set time travel mode if this is NOT the latest batch
+						if (resolvedBatchId !== latestBatch.id) {
+							console.log('🎯 Setting time travel mode for historical batch:', resolvedBatchId);
+							dataService.setTimeTravelBatch(resolvedBatchId);
+							isLatestBatch = false;
+							
+							// Also set the time travel UI state so the banner shows
+							// We need to get the batch info to set the correct date
+							try {
+								const batchResponse = await fetch(`/api/batches/${resolvedBatchId}`);
+								if (batchResponse.ok) {
+									const batchData = await batchResponse.json();
+									const batchDate = new Date(batchData.createdAt);
+									console.log('🎯 Setting time travel UI state for date:', batchDate);
+									timeTravel.selectDate(batchDate);
+									timeTravel.selectBatch(resolvedBatchId);
+									
+									// Store the batch info to pass to batchService
+									providedBatchInfo = { id: batchData.id, createdAt: batchData.createdAt, totalReadCount: batchData.totalReadCount };
+								}
+							} catch (error) {
+								console.warn('Failed to get batch info for time travel UI:', error);
+							}
+						} else {
+							console.log('🎯 Batch from URL is the latest batch, not setting time travel mode');
+							isLatestBatch = true;
+							// Store the latest batch info to avoid duplicate fetch
+							providedBatchInfo = { id: latestBatch.id, createdAt: latestBatch.createdAt, totalReadCount: latestBatch.totalReadCount };
+						}
+					}
+				} else {
+					// resolvedBatchId is null (couldn't resolve date), fall back to latest
+					console.log('🎯 Could not resolve batch ID, falling back to latest');
+					isLatestBatch = true;
 				}
 			} else {
 				// No batch ID in URL means we're viewing the latest

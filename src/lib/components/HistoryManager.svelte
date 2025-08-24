@@ -19,9 +19,23 @@ const {
 	onNavigate
 }: Props = $props();
 
-// Track if we're restoring from history to prevent loops
-let isRestoringFromHistory = $state(false);
-let previousUrl = $state('');
+// Minimal state tracking
+let lastUrl = $state('');
+let initialized = $state(false);
+
+// Debug export for checking state
+export function getNavigationState() {
+	return {
+		lastUrl,
+		initialized,
+		currentPageUrl: browser ? window.location.href : ''
+	};
+}
+
+// Force reset navigation state (for debugging)
+export function resetNavigationState() {
+	console.log('🔧 HistoryManager navigation state reset');
+}
 
 // Build URL based on current state
 function buildUrl(params?: Partial<NavigationParams>): string {
@@ -37,124 +51,59 @@ function buildUrl(params?: Partial<NavigationParams>): string {
 
 // Update URL without triggering navigation
 export function updateUrl(params?: Partial<NavigationParams>) {
-	if (!browser || isRestoringFromHistory) return;
+	if (!browser) return;
 	
-	const newUrl = buildUrl(params);
-	
-	// Only update if URL actually changed
-	if (newUrl !== previousUrl) {
-		previousUrl = newUrl;
-		// Use the History API directly to update the address bar without triggering
-		// SvelteKit navigation. This avoids a full page reload / data fetch which
-		// previously caused the splash screen and redirect flashes when expanding
-		// or collapsing a story card.
-		skReplaceState(newUrl, { keepfocus: true, noscroll: true });
+	try {
+		const newUrl = buildUrl(params);
+		
+		// Only update if URL actually changed
+		if (newUrl !== lastUrl) {
+			lastUrl = newUrl;
+			skReplaceState(newUrl, { keepfocus: true, noscroll: true });
+		}
+	} catch (error) {
+		console.warn('HistoryManager updateUrl error:', error);
 	}
 }
 
 // Navigate to new URL with history entry
 export function navigateTo(params: Partial<NavigationParams>) {
-	if (!browser || isRestoringFromHistory) return;
+	if (!browser) return;
 	
-	const newUrl = buildUrl(params);
-	
-	// Only navigate if URL actually changed
-	if (newUrl !== previousUrl) {
-		previousUrl = newUrl;
-		// Use SvelteKit's goto with sensible defaults so navigation feels seamless
-		//  • keepfocus: prevent focus loss during internal navigation
-		//  • noscroll: retain the current scroll position unless the route explicitly handles it
-		//  • state: mirror the url parameters so we can read them in popstate events if needed later
-		goto(newUrl, {
-			keepfocus: true,
-			noscroll: true,
-			state: { restored: false }
-		});
+	try {
+		const newUrl = buildUrl(params);
+		
+		// Only navigate if URL actually changed
+		if (newUrl !== lastUrl) {
+			lastUrl = newUrl;
+			goto(newUrl, {
+				keepfocus: true,
+				noscroll: true,
+				state: { restored: false }
+			});
+		}
+	} catch (error) {
+		console.warn('HistoryManager navigateTo error:', error);
 	}
 }
 
-// Track if initial load has been processed
-let initialLoadProcessed = $state(false);
-
-// Handle initial page load and browser navigation
+// Simple initialization - only run once
 $effect(() => {
-	if (!browser) return;
+	if (!browser || initialized) return;
 	
-	// Parse current URL
-	const params = UrlNavigationService.parseUrl(page.url);
+	initialized = true;
 	const urlString = UrlNavigationService.getFullUrl(page.url);
+	lastUrl = urlString;
 	
-	// Handle initial page load state updates
-	if (!initialLoadProcessed) {
-		initialLoadProcessed = true;
-		previousUrl = urlString;
-		
-		// Only set navigation flag if we have actual URL parameters to process
-		const hasParams = params.batchId !== undefined || 
-		                 params.categoryId !== undefined || 
-		                 params.storyIndex !== undefined ||
-		                 params.dataLang !== undefined;
-		                 
-		if (hasParams) {
-			isRestoringFromHistory = true;
-		}
-		return;
-	}
-	
-	// Check if we need to restore state from URL (browser navigation)
-	if (UrlNavigationService.areUrlsDifferent(urlString, previousUrl) && !isRestoringFromHistory) {
-		isRestoringFromHistory = true;
-		previousUrl = urlString;
-	}
-});
-
-// Handle navigation side effects
-$effect(() => {
-	if (!browser || !onNavigate) return;
-	
-	// Parse current URL for navigation
+	// Parse URL and trigger navigation if we have parameters
 	const params = UrlNavigationService.parseUrl(page.url);
-	const urlString = UrlNavigationService.getFullUrl(page.url);
+	const hasParams = params.batchId || params.categoryId || params.storyIndex !== undefined || params.dataLang;
 	
-	// Handle initial navigation
-	if (initialLoadProcessed && isRestoringFromHistory && UrlNavigationService.areUrlsDifferent(urlString, '')) {
-		const hasParams = params.batchId !== undefined || 
-		                 params.categoryId !== undefined || 
-		                 params.storyIndex !== undefined ||
-		                 params.dataLang !== undefined;
-		
-		if (hasParams) {
+	if (hasParams && onNavigate) {
+		// Use setTimeout to avoid blocking the UI
+		setTimeout(() => {
 			onNavigate(params);
-			
-			// Reset flag after navigation
-			setTimeout(() => {
-				isRestoringFromHistory = false;
-			}, 100);
-		}
-	}
-});
-
-// Track previous props to detect actual changes
-let previousBatchId = $state<string>();
-let previousCategoryId = $state<string>();
-let previousStoryIndex = $state<number | null>();
-
-// Update URL when props change
-$effect(() => {
-	if (!browser || isRestoringFromHistory || !initialLoadProcessed) return;
-	
-	// Only update URL if props actually changed
-	const batchChanged = batchId !== previousBatchId;
-	const categoryChanged = categoryId !== previousCategoryId;
-	const storyChanged = storyIndex !== previousStoryIndex;
-	
-	if (batchChanged || categoryChanged || storyChanged) {
-		previousBatchId = batchId;
-		previousCategoryId = categoryId;
-		previousStoryIndex = storyIndex;
-		
-		// Update URL to reflect current state
-		updateUrl();
+		}, 0);
 	}
 });
 </script>

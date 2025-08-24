@@ -1,6 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
+import SectionSources from './SectionSources.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromPoints } from '$lib/utils/citationAggregator';
@@ -62,7 +63,7 @@ const allCitedArticles = $derived.by(() => {
 						<p class="-ml-10 text-gray-700 dark:text-gray-300">
                             <CitationText 
                                 text={parsed.content} 
-                                showFavicons={false}
+                                showFavicons={true}
                                 articles={allCitedArticles.citedArticles} 
                                 allArticles={articles}
                                 {citationMapping}
@@ -74,7 +75,7 @@ const allCitedArticles = $derived.by(() => {
 					<p class="text-gray-700 dark:text-gray-300">
                         <CitationText 
                             text={parsed.content} 
-                            showFavicons={false}
+                            showFavicons={true}
                             articles={allCitedArticles.citedArticles} 
                             allArticles={articles}
                             {citationMapping}
@@ -85,6 +86,9 @@ const allCitedArticles = $derived.by(() => {
 			</div>
 		{/each}
 	</div>
+	
+	<!-- Section-level sources -->
+	<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle={s('section.highlights') || 'Key Points'} />
 </section>
 
 <!-- Shared Source Tooltip -->

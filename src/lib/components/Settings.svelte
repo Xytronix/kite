@@ -299,7 +299,7 @@ const tabs = $derived([
 			<!-- Tab Content -->
 			<main 
 				bind:this={scrollableElement}
-				class="scrollbar-hide mt-6 flex-1 overflow-auto p-4 md:p-0 md:pr-2 md:max-h-[60vh]" 
+				class="scrollbar-hide mt-6 flex-1 overflow-auto p-4 md:p-0 md:pr-2" 
 				id="settings-content"
 				aria-labelledby="tab-{activeTab}"
 				data-overlayscrollbars-initialize

@@ -63,7 +63,7 @@ function parseReaction(reaction: string) {
                     <p class="text-gray-700 dark:text-gray-300">
                             <CitationText 
                             text={parsedReaction.response} 
-                            showFavicons={false} 
+                            showFavicons={true} 
                             showNumbers={false} 
                             inline={true} 
                             articles={allCitedArticles.citedArticles} 
@@ -76,7 +76,7 @@ function parseReaction(reaction: string) {
                     <p class="text-gray-700 dark:text-gray-300">
                         <CitationText 
                             text={parsedReaction.response} 
-                            showFavicons={false} 
+                            showFavicons={true} 
                             showNumbers={false} 
                             inline={true} 
                             articles={allCitedArticles.citedArticles} 

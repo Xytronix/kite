@@ -1200,6 +1200,7 @@ const handleIntroClose = () => settings.setShowIntro(false);
 
 // Handle category change
 function handleCategoryChange(category: string, updateUrl: boolean = true) {
+	console.log('🔄 handleCategoryChange called', { category, updateUrl, currentCategory });
 	persistentLogMain('🔄 handleCategoryChange called', {
 		category,
 		updateUrl,
@@ -1244,7 +1245,11 @@ function handleCategoryChange(category: string, updateUrl: boolean = true) {
 	loadStoriesForCategory(category);
 	
 	// Update URL to reflect new category (unless we're handling a URL change)
-	if (historyManager && updateUrl && !navigationHandlerService.isNavigating()) {
+	if (historyManager && updateUrl) {
+		console.log('🔄 About to call historyManager.updateUrl', { 
+			category, 
+			isNavigating: navigationHandlerService.isNavigating() 
+		});
 		persistentLogMain('🔄 About to call historyManager.updateUrl');
 		historyManager.updateUrl({ categoryId: category, storyIndex: null });
 	}
@@ -1264,6 +1269,7 @@ const closeWikipediaPopup = () => {
 // Clicking a story should expand/collapse it without triggering a full page navigation. 
 // We therefore disable the automatic URL update that caused SvelteKit to reload the page.
 function handleStoryToggle(storyId: string, updateUrl: boolean = false) {
+    console.log('🔄 handleStoryToggle called', { storyId, updateUrl });
     // Determine if clicked story is already expanded
     const currentlyExpanded = expandedStories[storyId];
 
@@ -1463,11 +1469,44 @@ $effect(() => {
 // Debug helper for testing (only in development)
 if (browser && typeof window !== 'undefined') {
 	(window as any).kiteDebug = {
+		// Navigation debugging
+		resetNavigationState: () => {
+			navigationHandlerService.resetNavigationState();
+			if (historyManager) {
+				historyManager.resetNavigationState();
+			}
+			console.log('✅ Navigation state reset');
+		},
+		checkNavigationState: () => {
+			const historyState = historyManager ? historyManager.getNavigationState() : null;
+			console.log('🔍 Navigation state:', {
+				navigationHandlerIsNavigating: navigationHandlerService.isNavigating(),
+				historyManagerState: historyState,
+				currentCategory,
+				expandedStories: Object.keys(expandedStories),
+				storiesCount: stories?.length || 0
+			});
+		},
 		getCacheStats: getImageCacheStats,
 		clearCache: clearImageCache,
 		preloadCurrentCategory: () => imagePreloadingService.preloadCategory(stories),
 		getCurrentStories: () => stories,
 		getCurrentCategory: () => currentCategory,
+		// Test handlers
+		testCategoryChange: (category: string) => {
+			console.log('🧪 Testing category change to:', category);
+			handleCategoryChange(category);
+		},
+		testStoryToggle: (storyIndex: number) => {
+			if (stories && stories[storyIndex]) {
+				const story = stories[storyIndex];
+				const storyId = story.cluster_number?.toString() || story.title;
+				console.log('🧪 Testing story toggle for:', storyId);
+				handleStoryToggle(storyId);
+			} else {
+				console.log('❌ Story not found at index:', storyIndex);
+			}
+		},
 		getAllCategoryStories: () => allCategoryStories,
 		getPreloadedCategories: () => Object.keys(allCategoryStories),
 		getImageUrls: () => {

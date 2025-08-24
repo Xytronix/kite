@@ -1,13 +1,17 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
-  import { page } from '$app/state';
-  import { generateShareUrl, slugify } from '$lib/utils/urlShortener';
-  import Icon from '@iconify/svelte';
-  import { s } from '$lib/client/localization.svelte';
-  import { useFloating, offset, flip, shift } from '@skeletonlabs/floating-ui-svelte';
-  import Portal from 'svelte-portal';
-  import { onMount, onDestroy } from 'svelte';
-  
+  import { browser } from "$app/environment";
+  import { s } from "$lib/client/localization.svelte";
+  import { generateShareUrl, slugify } from "$lib/utils/urlShortener";
+  import Icon from "@iconify/svelte";
+  import {
+    useFloating,
+    offset,
+    flip,
+    shift,
+  } from "@skeletonlabs/floating-ui-svelte";
+  import { onMount, onDestroy } from "svelte";
+  import Portal from "svelte-portal";
+
   interface Props {
     title?: string;
     description?: string;
@@ -15,40 +19,38 @@
     categoryId?: string | null;
     storyIndex?: number | null;
     dataLang?: string | null;
-    topicId?: string | null;
     class?: string;
   }
-  
-  const { 
-    title = s('article.shareDefaultTitle') || 'Check out this story',
-    description = '',
+
+  const {
+    title = s("article.shareDefaultTitle") || "Check out this story",
+    description = "",
     batchId,
-    categoryId, 
+    categoryId,
     storyIndex,
     dataLang,
-    topicId,
-    class: className = ''
+    class: className = "",
   }: Props = $props();
-  
+
   let showCopiedFeedback = $state(false);
   let isLoading = $state(false);
   let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
-  
+
   // Floating UI setup for the "Copied!" tooltip
   const floating = useFloating({
-    placement: 'left',
-    strategy: 'fixed',
+    placement: "left",
+    strategy: "fixed",
     middleware: [
       offset(8), // 8px gap from button
       flip({
-        fallbackPlacements: ['right', 'top', 'bottom']
+        fallbackPlacements: ["right", "top", "bottom"],
       }), // Flip if no space
-      shift({ 
-        padding: 8
-      }) // Keep within viewport
-    ]
+      shift({
+        padding: 8,
+      }), // Keep within viewport
+    ],
   });
-  
+
   // Hide tooltip on scroll
   function hideTooltipOnScroll() {
     if (showCopiedFeedback) {
@@ -59,23 +61,23 @@
       }
     }
   }
-  
+
   // Setup scroll listener
   onMount(() => {
     if (browser) {
-      window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
+      window.addEventListener("scroll", hideTooltipOnScroll, { passive: true });
     }
   });
-  
+
   onDestroy(() => {
     if (browser) {
-      window.removeEventListener('scroll', hideTooltipOnScroll);
+      window.removeEventListener("scroll", hideTooltipOnScroll);
     }
     if (feedbackTimer) {
       clearTimeout(feedbackTimer);
     }
   });
-  
+
   /**
    * Robustly copy text to the user clipboard.
    * 1. Prefer the modern Clipboard API (requires secure context)
@@ -92,24 +94,27 @@
       }
     } catch (err) {
       // Continue to fallback below
-      console.warn('Primary clipboard API failed – falling back to execCommand', err);
+      console.warn(
+        "Primary clipboard API failed – falling back to execCommand",
+        err,
+      );
     }
 
     // Fallback for Safari < 13 and other legacy browsers
     try {
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.top = '-9999px';
-      textArea.style.opacity = '0';
+      textArea.style.position = "fixed";
+      textArea.style.top = "-9999px";
+      textArea.style.opacity = "0";
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      const successful = document.execCommand('copy');
+      const successful = document.execCommand("copy");
       document.body.removeChild(textArea);
       return successful;
     } catch (err) {
-      console.error('Fallback clipboard copy failed', err);
+      console.error("Fallback clipboard copy failed", err);
       return false;
     }
   }
@@ -117,7 +122,7 @@
   async function handleShare(event?: MouseEvent) {
     event?.stopPropagation?.();
     if (!browser || isLoading || showCopiedFeedback) return;
-    
+
     // Generate full URL first (sync to preserve user-gesture context)
     const baseUrl = window.location.origin;
     const slug = title ? slugify(title) : undefined;
@@ -126,8 +131,7 @@
       categoryId,
       storyIndex,
       dataLang,
-      topicId,
-      slug
+      slug,
     });
 
     // Decide mobile vs desktop early
@@ -137,8 +141,14 @@
     try {
       if (isMobile && navigator.share) {
         const shareTitle = `${title} - Kite News`;
-        const shareText = description ? `${description}\n\nRead more on Kite:` : `${title}\n\nRead more on Kite:`;
-        await navigator.share({ title: shareTitle, text: shareText, url: fullUrl });
+        const shareText = description
+          ? `${description}\n\nRead more on Kite:`
+          : `${title}\n\nRead more on Kite:`;
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: fullUrl,
+        });
         return; // Native share handled
       }
 
@@ -149,39 +159,12 @@
         if (feedbackTimer) clearTimeout(feedbackTimer);
         feedbackTimer = setTimeout(() => (showCopiedFeedback = false), 2000);
       } else {
-        console.error('Clipboard copy failed (initial)');
+        console.error("Clipboard copy failed (initial)");
       }
     } catch (err) {
-      console.error('Initial share/copy failed:', err);
+      console.error("Initial share/copy failed:", err);
     }
-
-    // 🔗 Background: attempt to shorten URL and update clipboard (best effort)
-    ;(async () => {
-      try {
-        const response = await fetch('/api/shorten', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: fullUrl,
-            batchId,
-            categoryId,
-            storyIndex,
-            languageCode: dataLang
-          })
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const shortUrl = data?.shortUrl as string | undefined;
-          if (shortUrl && /^https?:\/\//.test(shortUrl)) {
-            await copyToClipboard(shortUrl).catch(() => {});
-          }
-        }
-      } catch (err) {
-        // Ignore background shortening errors
-      }
-    })();
   }
-  
 </script>
 
 <!-- Share Button (icon only) -->
@@ -190,19 +173,21 @@
   onclick={handleShare}
   type="button"
   class="group relative flex h-10 w-10 items-center justify-center rounded-lg {className}"
-  aria-label={s('article.shareStory') || 'Share story'}
-  title={s('article.shareStory') || 'Share story'}
+  aria-label={s("article.shareStory") || "Share story"}
+  title={s("article.shareStory") || "Share story"}
   disabled={isLoading}
 >
   {#if isLoading}
     <!-- Loading spinner -->
-    <Icon icon="tabler:loader-2" 
-      class="animate-spin text-gray-500 dark:text-gray-400 w-5 h-5"
+    <Icon
+      icon="tabler:loader-2"
+      class="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400"
     />
   {:else}
     <!-- Share icon -->
-    <Icon icon="tabler:share" 
-      class="transition-colors text-gray-600 group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200 w-5 h-5"
+    <Icon
+      icon="tabler:share"
+      class="h-5 w-5 text-gray-600 transition-colors group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200"
     />
   {/if}
 </button>
@@ -212,13 +197,13 @@
   <Portal>
     <div
       bind:this={floating.elements.floating}
-      class="absolute top-0 left-0 z-[2000] flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-200 dark:bg-green-700 {floating.isPositioned ? 'opacity-100' : 'opacity-0 invisible'}"
+      class="absolute top-0 left-0 z-[2000] flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-200 dark:bg-green-700 {floating.isPositioned
+        ? 'opacity-100'
+        : 'invisible opacity-0'}"
       style={floating.floatingStyles}
     >
-      <Icon icon="tabler:check" 
-        class="text-white w-4 h-4"
-      />
-      <span>{s('article.shareCopied') || 'Copied!'}</span>
+      <Icon icon="tabler:check" class="h-4 w-4 text-white" />
+      <span>{s("article.shareCopied") || "Copied!"}</span>
     </div>
   </Portal>
 {/if}

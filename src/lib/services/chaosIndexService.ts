@@ -23,7 +23,8 @@ class ChaosIndexService {
 			const response = await fetch(endpoint);
 			if (!response.ok) {
 				if (response.status === 404) {
-					// Chaos index not available
+					// Chaos index not available for this batch - this is normal
+					console.log(`ℹ️ Chaos index not available for batch ${currentBatchId || 'latest'}`);
 					return null;
 				}
 				throw new Error(`Failed to load chaos index: ${response.statusText}`);
@@ -31,6 +32,10 @@ class ChaosIndexService {
 			
 			return await response.json();
 		} catch (error) {
+			// Don't log 404s as errors since they're expected for some batches
+			if (error instanceof Error && error.message.includes('404')) {
+				return null;
+			}
 			console.error("Error loading chaos index:", error);
 			throw error;
 		}

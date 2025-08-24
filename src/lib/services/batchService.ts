@@ -246,16 +246,15 @@ class BatchService {
 			// Step 3: Load chaos index for this batch
 			let chaosData = null;
 			try {
-				const chaosResponse = await fetchWithRetry(
-					`${this.baseUrl}/batches/${batchId}/chaos?lang=${language}`,
-					{
-						timeout: 20000,
-						retries: 3,
-						retryDelay: 1000
-					}
-				);
+				// Use regular fetch for chaos index to avoid retries on 404s
+				const chaosResponse = await fetch(`${this.baseUrl}/batches/${batchId}/chaos?lang=${language}`);
 				if (chaosResponse.ok) {
 					chaosData = await chaosResponse.json();
+				} else if (chaosResponse.status === 404) {
+					console.log(`ℹ️ Chaos index not available for batch ${batchId}`);
+					// This is expected for some batches, don't treat as error
+				} else {
+					console.warn(`Failed to load chaos index: ${chaosResponse.status} ${chaosResponse.statusText}`);
 				}
 			} catch (error) {
 				console.warn('Failed to load chaos index:', error);

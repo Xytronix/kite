@@ -25,6 +25,35 @@ function handleKeydown(e: KeyboardEvent) {
 	}
 }
 
+function handleBackdropClick(e: MouseEvent) {
+	// Only close if clicking the backdrop itself, not the modal content
+	if (e.target === e.currentTarget) {
+		handleClose();
+	}
+}
+
+function handleBackdropKeydown(e: KeyboardEvent) {
+	// Handle keyboard interaction for backdrop
+	if (e.key === 'Enter' || e.key === ' ') {
+		e.preventDefault();
+		if (e.target === e.currentTarget) {
+			handleClose();
+		}
+	}
+}
+
+function handleWheel(e: WheelEvent) {
+	// Allow scrolling within the modal content, but prevent it from bubbling to the background
+	const target = e.currentTarget as HTMLElement;
+	const { scrollTop, scrollHeight, clientHeight } = target;
+	
+	// If we're at the top and trying to scroll up, or at the bottom and trying to scroll down,
+	// prevent the event to stop background scrolling
+	if ((scrollTop === 0 && e.deltaY < 0) || (scrollTop + clientHeight >= scrollHeight && e.deltaY > 0)) {
+		e.preventDefault();
+	}
+}
+
 // Close on escape key and toggle body scroll lock
 $effect(() => {
 	if (!browser) return;
@@ -52,12 +81,19 @@ $effect(() => {
 		bind:this={scrollableElement}
 		class="fixed inset-0 z-[3000] overflow-y-auto" 
 		data-overlayscrollbars-initialize
+		onclick={handleBackdropClick}
+		onkeydown={handleBackdropKeydown}
+		onwheel={handleWheel}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="intro-title"
+		tabindex="0"
 	>
 		<div class="flex min-h-full items-center justify-center p-4 sm:p-8">
 			<div class="w-full max-w-3xl rounded-lg bg-white p-8 dark:bg-gray-800">
 				<div class="mb-8 flex items-start justify-between">
 					<div class="w-full">
-						<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+						<h1 id="intro-title" class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
 							{s('app.title') || 'Kite'}
 						</h1>
 						<p class="text-gray-600 dark:text-gray-300">

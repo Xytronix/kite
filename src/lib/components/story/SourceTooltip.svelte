@@ -4,10 +4,9 @@ import { browser } from '$app/environment';
 import { useFloating, offset, flip, shift, size } from '@skeletonlabs/floating-ui-svelte';
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-svelte';
 import SmartImage from '../SmartImage.svelte';
-// Reference component in a runtime variable so the import is treated as value usage (avoids `useImportType` false-positive)
-const _OverlayScrollbarsComponentRuntime = OverlayScrollbarsComponent;
 import Portal from 'svelte-portal';
 import { scrollLock } from '$lib/utils/scrollLock';
+import { getOrganizationNames } from '$lib/utils/domainUtils';
 import { s } from '$lib/client/localization.svelte';
 import CitationItem from './CitationItem.svelte';
 import type { Article } from '$lib/types';
@@ -24,8 +23,6 @@ interface Props {
 const { 
 	articles, 
 	allArticles = [], 
-	citationNumbers, 
-	hasCommonKnowledge = false, 
 	citedItems = [], 
 	citationMapping 
 }: Props = $props();
@@ -33,27 +30,99 @@ const {
 // Derive combined articles list
 const combinedArticles = $derived([...articles, ...allArticles]);
 
+// Helpers to normalize links and build robust dedupe keys
+function normalizeUrl(url: string): string {
+	try {
+		const u = new URL(url);
+		u.hostname = u.hostname.replace(/^www\./, '').toLowerCase();
+		u.protocol = u.protocol.toLowerCase();
+		// remove common tracking params and sort remaining
+		const tracking = new Set(['utm_source','utm_medium','utm_campaign','utm_term','utm_content','utm_id','utm_name','utm_reader','utm_place','utm_brand','utm_social','utm_social-type','fbclid','gclid','mc_cid','mc_eid','ref','ref_src','ref_url','irclickid','cmp','ncid','mbid','campaign','cid']);
+		const kept: Array<[string,string]> = [];
+		u.searchParams.forEach((v, k) => { if (!tracking.has(k)) kept.push([k, v]); });
+		kept.sort((a,b) => a[0].localeCompare(b[0]));
+		u.search = kept.length ? `?${kept.map(([k,v]) => `${k}=${v}`).join('&')}` : '';
+		u.hash = '';
+		if (u.pathname !== '/' && u.pathname.endsWith('/')) u.pathname = u.pathname.slice(0, -1);
+		return u.toString();
+	} catch {
+		return (url || '').trim();
+	}
+}
+
+function getArticleKey(a: Article | null | undefined): string {
+	if (!a) return 'null';
+	if (a.link) return normalizeUrl(a.link);
+	return `${a.domain || ''}::${(a.title || '').trim()}`;
+}
+
 // State for dynamic sizing
 let tooltipMaxHeight = $state(300);
+
+// Check if scrollbar is needed
+const needsScrollbar = $derived.by(() => {
+	if (!showTooltip || displayItems.length === 0) return false;
+	
+	// Estimate content height based on number of items
+	const itemHeight = isMobile ? 80 : 60; // Approximate height per item
+	const headerHeight = 40; // Header height
+	const padding = 24; // Top and bottom padding
+	const estimatedContentHeight = (displayItems.length * itemHeight) + headerHeight + padding;
+	
+	return estimatedContentHeight > tooltipMaxHeight;
+});
 
 // Floating UI setup
 const floating = useFloating({
 	placement: 'bottom-start',
 	strategy: 'fixed',
 	middleware: [
-		offset(8),
-		flip({
-			fallbackPlacements: ['top-start', 'bottom-end', 'top-end']
+		offset(({ placement, rects, elements }) => {
+			// Detect if this is likely an inline citation or small element like favicon
+			const referenceRect = elements.reference?.getBoundingClientRect();
+			const isInlineCitation = referenceRect && referenceRect.height < 30;
+			const isSmallElement = referenceRect && (referenceRect.width < 32 || referenceRect.height < 32);
+			const needsExtraSpace = isInlineCitation || isSmallElement;
+			
+			// Consistent offset regardless of placement to maintain same gap
+			const baseOffset = needsExtraSpace ? 12 : 8;
+			return baseOffset;
 		}),
-		shift({ 
-			padding: 8,
+		flip({
+			fallbackPlacements: ['top-start', 'bottom-end', 'top-end'],
+			padding: ({ elements }) => {
+				// Use much larger padding for inline citations and small elements
+				const referenceRect = elements.reference?.getBoundingClientRect();
+				const isInlineCitation = referenceRect && referenceRect.height < 30;
+				const isSmallElement = referenceRect && (referenceRect.width < 32 || referenceRect.height < 32);
+				const needsExtraSpace = isInlineCitation || isSmallElement;
+				return needsExtraSpace ? 16 : 12;
+			}
+		}),
+		shift({
+			padding: ({ elements }) => {
+				// Use larger padding for inline citations
+				const referenceRect = elements.reference?.getBoundingClientRect();
+				const isInlineCitation = referenceRect && referenceRect.height < 30;
+				return isInlineCitation ? 14 : 10;
+			},
 			crossAxis: false
 		}),
+		// Size middleware for height calculation
 		size({
-			apply({ availableHeight }) {
-				const minHeight = 200;
-				const maxHeight = Math.min(400, window.innerHeight * 0.6);
-				const optimalHeight = Math.min(Math.max(minHeight, availableHeight - 16), maxHeight);
+			apply({ availableHeight, availableWidth, placement, elements }) {
+				const minHeight = 150;
+				const maxHeight = Math.min(400, window.innerHeight * 0.7);
+				
+				// Detect inline citations and use larger buffer
+				const referenceRect = elements.reference?.getBoundingClientRect();
+				const isInlineCitation = referenceRect && referenceRect.height < 30;
+				
+				// Use consistent buffer regardless of placement
+				const buffer = isInlineCitation ? 24 : 16;
+				
+				const safeHeight = availableHeight - buffer;
+				const optimalHeight = Math.min(Math.max(minHeight, safeHeight), maxHeight);
 				tooltipMaxHeight = optimalHeight;
 			}
 		})
@@ -70,10 +139,6 @@ let displayItems = $state<Array<{ article: Article | null; number: number; isCom
 
 // Using any to avoid type issues with external typings
 let tooltipScrollbars: any | null = $state(null);
-// Dummy helper to illustrate variable reassignment (used by tests / devtools)
-function __resetTooltipScrollbars() {
-  tooltipScrollbars = null;
-}
 
 // Detect mobile device
 function detectMobile() {
@@ -84,8 +149,8 @@ function detectMobile() {
 export async function handleSourceInteraction(event: Event, domains: string[], highlightNumber?: number, overrideArticles?: Article[]) {
 	const target = event.target as HTMLElement;
 	
-	// Find the citation wrapper or source wrapper, or use the target itself
-	const wrapper = target.closest('.citation-sources') || target.closest('.source-item') || target;
+	// Find the most specific reference element - prioritize individual favicon buttons
+	const wrapper = target.closest('.section-favicon') || target.closest('.favicon-wrapper') || target.closest('.source-item') || target.closest('button[aria-label*="View citations"]') || target.closest('.section-sources') || target.closest('.citation-sources') || target;
 	
 	if (wrapper) {
 		const tooltipId = `sources-${domains.join('-')}`;
@@ -103,6 +168,10 @@ export async function handleSourceInteraction(event: Event, domains: string[], h
 				clearTimeout(hideTimeout);
 				hideTimeout = null;
 			}
+			
+			// Update reference element and recalculate position for new hover target
+			floating.elements.reference = wrapper;
+			floating.update();
 			
 			// Update highlighted number and scroll if needed
 			if (highlightNumber && highlightedNumber !== highlightNumber) {
@@ -123,46 +192,62 @@ export async function handleSourceInteraction(event: Event, domains: string[], h
 		// Set reference element for floating UI
 		floating.elements.reference = wrapper;
 		
+		// Force immediate position recalculation when switching reference elements
+		if (showTooltip) {
+			floating.update();
+		}
+		
+		// Ensure the reference element is properly positioned and force fresh calculations
+		if (wrapper && wrapper instanceof HTMLElement) {
+			// Force a layout recalculation and get fresh positioning
+			const rect = wrapper.getBoundingClientRect();
+			
+			// For small elements like favicons, add extra safety margin
+			const isSmallElement = rect.width < 32 || rect.height < 32;
+			if (isSmallElement) {
+				// Force a complete recalculation for small elements after scroll
+				setTimeout(() => {
+					floating.update();
+				}, 0);
+			}
+		}
+		
 		// Prepare display items
     if (overrideArticles && overrideArticles.length > 0) {
-            // Handle a custom list of articles, possibly across multiple domains
-            const domainSet = new Set(overrideArticles.map(a => a.domain));
+            // Handle a custom list of articles (section-specific) - only show articles from the provided context
+            const overrideArticleLinks = new Set(overrideArticles.map(a => getArticleKey(a)));
             const seenLinks = new Set<string>();
 
             if (citationMapping) {
                 const cited: Array<{ article: Article; number: number; isCommon?: boolean; isCited?: boolean }>= [];
-                // Collect cited articles that match the provided domains
+                // Only include cited articles that are BOTH in the citation mapping AND in the override list
                 for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
-                    if (mappedArticle && domainSet.has(mappedArticle.domain)) {
-                        if (!seenLinks.has(mappedArticle.link)) {
+                    if (mappedArticle && overrideArticleLinks.has(getArticleKey(mappedArticle))) {
+                        const key = getArticleKey(mappedArticle);
+                        if (!seenLinks.has(key)) {
                             cited.push({ article: mappedArticle, number, isCommon: false, isCited: true });
-                            seenLinks.add(mappedArticle.link);
+                            seenLinks.add(key);
                         }
                     }
                 }
 
-                // Add remaining non-cited from override list
-                const nonCited: typeof cited = [];
-                for (const article of overrideArticles) {
-                    if (!seenLinks.has(article.link)) {
-                        nonCited.push({ article, number: -1, isCommon: false, isCited: false });
-                        seenLinks.add(article.link);
-                    }
+                // Only show cited articles from the context - don't show non-cited articles
+                // This ensures we only show articles that are actually referenced in this specific context
+                displayItems = cited.sort((a, b) => (a.number || 0) - (b.number || 0));
+                
+                // If no cited articles found in the context, don't show anything
+                if (displayItems.length === 0) {
+                    return; // Don't show empty tooltip
                 }
-
-                // Prefer cited items first, then non-cited; remove duplicates by link
-                displayItems = [
-                    ...cited.sort((a, b) => (a.number || 0) - (b.number || 0)),
-                    ...nonCited.sort((a, b) => a.article.title.localeCompare(b.article.title))
-                ];
             } else {
-                // No mapping: just unique articles in given order
+                // No mapping: just unique articles in given order, but only if they seem relevant
                 displayItems = overrideArticles
                     .filter(a => {
-                        if (seenLinks.has(a.link)) return false;
-                        seenLinks.add(a.link); return true;
+                        const k = getArticleKey(a);
+                        if (seenLinks.has(k)) return false;
+                        seenLinks.add(k); return true;
                     })
-                    .map((article, idx) => ({ article, number: idx + 1, isCommon: false, isCited: false }));
+                    .map((article) => ({ article, number: -1, isCommon: false, isCited: false }));
             }
         } else {
             // Use cited items if available; otherwise prefer articles that have citation mapping numbers first
@@ -170,18 +255,30 @@ export async function handleSourceInteraction(event: Event, domains: string[], h
                 // Deduplicate by link
                 const seen = new Set<string>();
                 displayItems = citedItems.filter(it => {
-                    const key = it.article?.link || `${it.isCommon ? 'common' : ''}-${it.number}`;
+                    const key = it.article ? getArticleKey(it.article) : `${it.isCommon ? 'common' : ''}-${it.number}`;
                     if (seen.has(key)) return false; seen.add(key); return true;
                 }).map(item => ({ ...item, isCited: true }));
             } else if (citationMapping) {
                 const citedFromMapping: Array<{ article: Article | null; number: number; isCommon?: boolean; isCited?: boolean }> = [];
+                const seenCited = new Set<string>();
                 for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
-                    if (mappedArticle) citedFromMapping.push({ article: mappedArticle, number, isCommon: false, isCited: true });
+                    if (mappedArticle) {
+                        const k = getArticleKey(mappedArticle);
+                        if (!seenCited.has(k)) {
+                            seenCited.add(k);
+                            citedFromMapping.push({ article: mappedArticle, number, isCommon: false, isCited: true });
+                        }
+                    }
                 }
-                const citedLinks = new Set(citedFromMapping.map(i => i.article?.link));
+                const citedLinks = new Set(Array.from(seenCited));
+                const seenNon = new Set<string>();
                 const nonCited = combinedArticles
-                    .filter(a => !citedLinks.has(a.link))
-                    .map((a, idx) => ({ article: a, number: -1, isCommon: false, isCited: false }));
+                    .filter(a => {
+                        const k = getArticleKey(a);
+                        if (citedLinks.has(k)) return false;
+                        if (seenNon.has(k)) return false; seenNon.add(k); return true;
+                    })
+                    .map((a) => ({ article: a, number: -1, isCommon: false, isCited: false }));
                 displayItems = [
                     ...citedFromMapping.sort((a, b) => (a.number || 0) - (b.number || 0)),
                     ...nonCited.sort((a, b) => a.article!.title.localeCompare(b.article!.title))
@@ -206,6 +303,24 @@ export async function handleSourceInteraction(event: Event, domains: string[], h
 		// Set initial state
 		currentTooltipId = tooltipId;
 		showTooltip = true;
+		
+		// Preload organization names for better performance
+		const domainsToPreload = displayItems
+			.map(item => item.article?.domain)
+			.filter((domain): domain is string => Boolean(domain));
+		
+		if (domainsToPreload.length > 0) {
+			getOrganizationNames(domainsToPreload).catch(error => {
+				console.warn('Failed to preload organization names:', error);
+			});
+		}
+		
+		// Force floating UI to recalculate positioning with double RAF for better positioning
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				floating.update();
+			});
+		});
 		
 		// Auto-scroll to highlighted source after tooltip is rendered
 		if (highlightNumber) {
@@ -234,7 +349,7 @@ export function handleSourceLeave(event: Event) {
         if (relatedTarget.closest('.citation-number')) {
             return;
         }
-        const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
+        const targetWrapper = relatedTarget.closest('.section-favicon') || relatedTarget.closest('.favicon-wrapper') || relatedTarget.closest('.section-sources') || relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
 		if (targetWrapper && targetWrapper === reference) {
 			return;
 		}
@@ -242,7 +357,7 @@ export function handleSourceLeave(event: Event) {
 	
     hideTimeout = window.setTimeout(() => {
 		hideTooltip();
-    }, 220);
+    }, 100);
 }
 
 // Handle tooltip mouse leave
@@ -254,7 +369,7 @@ function handleTooltipLeave(event: MouseEvent) {
 	
 	// If moving back to the sources, don't hide
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
+		const targetWrapper = relatedTarget.closest('.section-favicon') || relatedTarget.closest('.favicon-wrapper') || relatedTarget.closest('.section-sources') || relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
 		if (targetWrapper && targetWrapper === reference) {
 			return;
 		}
@@ -262,7 +377,7 @@ function handleTooltipLeave(event: MouseEvent) {
 	
     hideTimeout = window.setTimeout(() => {
 		hideTooltip();
-    }, 220);
+    }, 100);
 }
 
 // Handle tooltip mouse enter (cancel hide timeout)
@@ -270,6 +385,42 @@ function handleTooltipEnter() {
 	if (hideTimeout) {
 		clearTimeout(hideTimeout);
 		hideTimeout = null;
+	}
+}
+
+// Check for tooltip overlap with reference element
+function checkForOverlap() {
+	if (!showTooltip || !floating.elements.floating || !floating.elements.reference) return;
+	
+	const tooltipRect = floating.elements.floating.getBoundingClientRect();
+	const referenceRect = floating.elements.reference.getBoundingClientRect();
+	
+	// Check if tooltip overlaps with reference element
+	const overlaps = !(
+		tooltipRect.right < referenceRect.left ||
+		tooltipRect.left > referenceRect.right ||
+		tooltipRect.bottom < referenceRect.top ||
+		tooltipRect.top > referenceRect.bottom
+	);
+	
+	if (overlaps) {
+		// Force tooltip to a safe position
+		const tooltip = floating.elements.floating;
+		const isInlineCitation = referenceRect.height < 30;
+		
+		if (isInlineCitation) {
+			// For inline citations, position well below or above
+			const spaceBelow = window.innerHeight - referenceRect.bottom;
+			const spaceAbove = referenceRect.top;
+			
+			if (spaceBelow > 200) {
+				// Position below with large gap
+				tooltip.style.top = `${referenceRect.bottom + 50}px`;
+			} else if (spaceAbove > 200) {
+				// Position above with large gap
+				tooltip.style.top = `${referenceRect.top - tooltipRect.height - 50}px`;
+			}
+		}
 	}
 }
 
@@ -281,9 +432,13 @@ function hideTooltip() {
 	displayItems = [];
 }
 
-// Allow external callers (e.g., StorySources) to force hide
+// Force hide tooltip (public method)
 export function forceHide() {
-    hideTooltip();
+	if (hideTimeout) {
+		clearTimeout(hideTimeout);
+		hideTimeout = null;
+	}
+	hideTooltip();
 }
 
 // Scroll to highlighted source in tooltip
@@ -325,11 +480,71 @@ $effect(() => {
 	}
 });
 
+// Update scrollbars when tooltip shows to fix alignment issues
+$effect(() => {
+	if (showTooltip && tooltipScrollbars?.osInstance) {
+		// Reset scroll position and update scrollbars
+		tooltipScrollbars.osInstance()?.scroll({ y: 0 }, true);
+		setTimeout(() => {
+			tooltipScrollbars.osInstance()?.update(true);
+		}, 50);
+	}
+});
+
+// Update floating UI positioning when tooltip visibility changes
+$effect(() => {
+	if (showTooltip && floating.elements.reference && !isMobile) {
+		// Small delay to ensure DOM is updated
+		setTimeout(() => {
+			floating.update();
+		}, 10);
+	}
+});
+
+// Check for overlaps after tooltip is positioned
+$effect(() => {
+	if (showTooltip && floating.isPositioned) {
+		// Small delay to ensure positioning is complete
+		setTimeout(() => {
+			checkForOverlap();
+		}, 50);
+	}
+});
+
 // Hide tooltip on scroll (desktop only)
 function hideTooltipOnScroll() {
 	if (!isMobile && showTooltip) {
 		hideTooltip();
 	}
+}
+
+// Handle viewport resize - recalculate positioning
+let resizeTimeout: number | null = null;
+function handleResize() {
+	// Debounce resize events
+	if (resizeTimeout) {
+		clearTimeout(resizeTimeout);
+	}
+	
+	resizeTimeout = window.setTimeout(() => {
+		if (showTooltip && floating.elements.reference && floating.elements.floating) {
+			// Update mobile detection
+			const wasMobile = isMobile;
+			isMobile = detectMobile();
+			
+			// If switching between mobile/desktop, hide tooltip to avoid positioning issues
+			if (wasMobile !== isMobile) {
+				hideTooltip();
+				return;
+			}
+			
+			// For desktop, recalculate positioning
+			if (!isMobile) {
+				floating.update();
+			}
+		}
+		resizeTimeout = null;
+	}, 100);
 }
 
 // Get unique display items for rendering
@@ -345,8 +560,8 @@ function getUniqueDisplayItems() {
 				unique.push(item);
 			}
 		} else if (item.article) {
-			// Only add each unique article once (by link as unique identifier)
-			const articleKey = item.article.link;
+			// Only add each unique article once (by normalized link as unique identifier)
+			const articleKey = getArticleKey(item.article);
 			if (!seen.has(articleKey)) {
 				seen.add(articleKey);
 				unique.push(item);
@@ -377,8 +592,13 @@ const maxCitationNumber = $derived.by(() => {
 	return maxNum;
 });
 
-// Determine tooltip title - standardized to 'Sources'
+// Determine tooltip title - context-aware
 function getTooltipTitle() {
+	// If showing articles from a single domain, show domain-specific title
+	const uniqueDomains = Array.from(new Set(displayItems.filter(i => i.article).map(i => i.article!.domain)));
+	if (uniqueDomains.length === 1) {
+		return `${uniqueDomains[0]} Sources`;
+	}
 	return 'Sources';
 }
 
@@ -386,6 +606,7 @@ function getTooltipTitle() {
 onMount(() => {
 	if (browser) {
 		window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
+		window.addEventListener('resize', handleResize, { passive: true });
 	}
     // Global guards: hide if pointer leaves both reference and tooltip
     function isInside(el: Node | null): boolean {
@@ -428,8 +649,12 @@ onDestroy(() => {
 	if (hideTimeout) {
 		clearTimeout(hideTimeout);
 	}
+	if (resizeTimeout) {
+		clearTimeout(resizeTimeout);
+	}
 	if (browser) {
 		window.removeEventListener('scroll', hideTooltipOnScroll);
+		window.removeEventListener('resize', handleResize);
 	}
 	// Make sure scroll is unlocked
 	if (showTooltip) {
@@ -483,7 +708,7 @@ $effect(() => {
 		<Portal>
 			<div
 				bind:this={floating.elements.floating}
-				class="absolute top-0 left-0 z-[2000] w-80 max-w-[min(320px,calc(100vw-16px))] rounded-lg border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700 {floating.isPositioned ? 'opacity-100' : 'opacity-0 invisible'}"
+				class="absolute top-0 left-0 z-[2000] min-w-[280px] w-96 max-w-[min(420px,calc(100vw-32px))] rounded-lg border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-700 {floating.isPositioned ? 'opacity-100' : 'opacity-0 invisible'}"
 				style={floating.floatingStyles}
 				onmouseenter={handleTooltipEnter}
 				onmouseleave={handleTooltipLeave}
@@ -492,16 +717,17 @@ $effect(() => {
 				<!-- Content -->
 				<OverlayScrollbarsComponent
 					bind:this={tooltipScrollbars}
-					class="w-full overflow-hidden transition-[max-height] duration-200"
+					class="w-full overflow-hidden transition-[max-height] duration-200 rounded-lg"
 					style="max-height: {tooltipMaxHeight}px"
 					defer
 					options={{
 						overflow: {
 							x: 'hidden',
-							y: 'scroll'
+							y: needsScrollbar ? 'scroll' : 'hidden'
 						},
 						scrollbars: {
-							autoHide: 'leave',
+							visibility: needsScrollbar ? 'auto' : 'hidden',
+							autoHide: needsScrollbar ? 'leave' : 'never',
 							autoHideDelay: 300
 						}
 					}}
@@ -516,7 +742,7 @@ $effect(() => {
 					{/if}
 					<h4 class="mb-3 font-semibold text-gray-800 dark:text-gray-200">{getTooltipTitle()}</h4>
 						
-						<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-3">
+						<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-0">
 							{#if displayItems.length > 0}
 								{#each getUniqueDisplayItems() as item}
 									<CitationItem {item} {highlightedNumber} showCitationNumber={item.isCited} {maxCitationNumber} />
@@ -534,7 +760,7 @@ $effect(() => {
 		<!-- Mobile Modal -->
 		<Portal>
 			<div
-				class="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 dark:bg-black/80"
+				class="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 dark:bg-black/80"
 				onclick={closeMobileModal}
 				onkeydown={(e) => e.key === 'Escape' && closeMobileModal()}
 				role="dialog"
@@ -571,10 +797,11 @@ $effect(() => {
 						options={{
 							overflow: {
 								x: 'hidden',
-								y: 'scroll'
+								y: needsScrollbar ? 'scroll' : 'hidden'
 							},
 							scrollbars: {
-								autoHide: 'leave',
+								visibility: needsScrollbar ? 'auto' : 'hidden',
+								autoHide: needsScrollbar ? 'leave' : 'never',
 								autoHideDelay: 300
 							}
 						}}
@@ -582,7 +809,7 @@ $effect(() => {
 						<div class="p-4">
 						<h4 class="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">{getTooltipTitle()}</h4>
 							
-							<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-3">
+							<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-1">
 							{#if displayItems.length > 0}
 								{#each getUniqueDisplayItems() as item}
 									<CitationItem {item} {highlightedNumber} isMobile={true} showCitationNumber={item.isCited} {maxCitationNumber} />

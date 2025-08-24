@@ -98,34 +98,7 @@ export interface Category {
   feeds?: string[];
 }
 
-// Entity-based topic (different from RSS feed categories)
-export interface Topic {
-  id: string;
-  name: string;
-  type: 'organization' | 'person' | 'technology' | 'event' | 'location' | 'concept';
-  aliases: string[]; // Alternative names/spellings
-  keywords: string[]; // Related terms
-  description?: string;
-  created_at: string;
-  article_count: number;
-  last_mentioned?: string; // Last time this entity appeared in news
-}
 
-export interface TopicFeed {
-  topic: Topic;
-  articles: Article[];
-  stories: Story[];
-  total_count: number;
-  date_range: {
-    earliest: string;
-    latest: string;
-  };
-  related_entities: Topic[]; // Other entities frequently mentioned together
-  mention_frequency: {
-    daily: { date: string; count: number }[];
-    weekly_trend: 'up' | 'down' | 'stable';
-  };
-}
 
 export interface CategoryData {
   category: string;

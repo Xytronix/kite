@@ -178,3 +178,92 @@ export function aggregateCitationsFromPerspectives(
 	const texts = perspectives.map(p => p.text);
 	return aggregateCitationsFromTexts(texts, citationMapping, articles);
 }
+
+/**
+ * Helper function to aggregate citations from individual perspective paragraphs
+ * Returns an array of citation data for each perspective
+ */
+export function aggregateCitationsPerPerspective(
+	perspectives: Array<{ text: string }>,
+	citationMapping?: CitationMapping,
+	articles: Article[] = []
+): Array<AggregatedCitations & { perspectiveIndex: number }> {
+	return perspectives.map((perspective, index) => ({
+		...aggregateCitationsFromTexts([perspective.text], citationMapping, articles),
+		perspectiveIndex: index
+	}));
+}
+
+/**
+ * Create a local citation mapping for paragraph-level context
+ * This remaps global citation numbers to local paragraph numbers
+ */
+export function createLocalCitationMapping(
+	text: string,
+	globalCitationMapping?: CitationMapping,
+	articles: Article[] = []
+): CitationMapping | undefined {
+	if (!globalCitationMapping) return undefined;
+
+	const localNumberToArticle = new Map<number, Article>();
+	const localArticleToNumber = new Map<Article, number>();
+	let localNumber = 1;
+
+	// Parse citations from the text
+	const citationPattern = /\[(\d+|\*)\]/g;
+	const seenArticles = new Set<string>();
+	let match;
+
+	while ((match = citationPattern.exec(text)) !== null) {
+		const citationText = match[1];
+		
+		if (citationText !== '*') {
+			const globalNumber = parseInt(citationText);
+			const article = globalCitationMapping.numberToArticle.get(globalNumber);
+			
+			if (article && !seenArticles.has(article.link)) {
+				seenArticles.add(article.link);
+				localNumberToArticle.set(localNumber, article);
+				localArticleToNumber.set(article, localNumber);
+				localNumber++;
+			}
+		}
+	}
+
+	return {
+		citationToNumber: new Map<string, number>(), // Not used in local context
+		numberToArticle: localNumberToArticle,
+		articleToNumber: localArticleToNumber,
+		totalCitations: localNumber - 1
+	};
+}
+
+/**
+ * Replace global citation numbers with local paragraph numbers
+ */
+export function replaceWithLocalCitations(
+	text: string,
+	globalCitationMapping?: CitationMapping
+): string {
+	if (!globalCitationMapping) return text;
+
+	const localMapping = createLocalCitationMapping(text, globalCitationMapping);
+	if (!localMapping) return text;
+
+	// Create a mapping from global numbers to local numbers
+	const globalToLocal = new Map<number, number>();
+	
+	globalCitationMapping.numberToArticle.forEach((article, globalNumber) => {
+		const localNumber = localMapping.articleToNumber.get(article);
+		if (localNumber) {
+			globalToLocal.set(globalNumber, localNumber);
+		}
+	});
+
+	// Replace citations in text
+	return text.replace(/\[(\d+)\]/g, (match, globalNum) => {
+		const globalNumber = parseInt(globalNum);
+		const localNumber = globalToLocal.get(globalNumber);
+		return localNumber ? `[${localNumber}]` : match;
+	});
+}

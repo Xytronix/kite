@@ -40,8 +40,11 @@ export function getCategoryElement(categoryId: string): HTMLElement | null {
 
 // Handle category click
 function handleCategoryClick(categoryId: string) {
+	console.log('🔄 CategoryNavigation handleCategoryClick called', { categoryId });
 	if (onCategoryChange) {
 		onCategoryChange(categoryId);
+	} else {
+		console.log('❌ No onCategoryChange handler provided');
 	}
 }
 

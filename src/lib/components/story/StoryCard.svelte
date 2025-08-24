@@ -102,35 +102,39 @@ let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Handle story click
 function handleStoryClick(event?: Event) {
-    // Only allow root click toggling when story is blurred (privacy filter).
-    // For expanded stories, toggling is handled by explicit header/close buttons.
-    if (event && !isBlurred) {
-        return;
-    }
-
-    // Ignore clicks originating from interactive elements even when blurred
+    console.log('🔄 StoryCard handleStoryClick called', { isBlurred, isExpanded, hasEvent: !!event });
+    
+    // Ignore clicks originating from interactive elements
     if (event) {
         const target = event.target as HTMLElement;
         const interactiveSelector = 'a, button, input, textarea, select, label, [role="switch"], [data-no-toggle], .horizontal-scroll-container';
         if (target.closest(interactiveSelector)) {
+            console.log('🚫 Click ignored - interactive element');
             return;
         }
     }
+    
 	// If blurred, reveal and expand
 	if (isBlurred) {
+		console.log('🔓 Unblurring story');
 		isBlurred = false;
 		// Small delay to let the unblur animation start before expanding
 		setTimeout(() => {
-			if (onToggle) onToggle();
+			if (onToggle) {
+				console.log('🔄 Calling onToggle after unblur');
+				onToggle();
+			}
 		}, 100);
 		return;
 	}
 	
 	// Prevent rapid clicking that could cause duplicate calls
 	if (scrollTimeout) {
+		console.log('🚫 Click ignored - scroll timeout active');
 		return;
 	}
 	
+	console.log('🔄 Calling onToggle');
 	if (onToggle) onToggle();
 }
 
@@ -293,11 +297,11 @@ $effect(() => {
 	class:border-gray-200={!isExpanded && !isBlurred}
 	class:dark:border-gray-700={!isExpanded && !isBlurred}
 	class:border-transparent={isExpanded || isBlurred}
-	onmouseenter={(e) => { hoverPreloader.handleMouseEnter(e); preloadCitations(); }}
+	onmouseenter={() => { hoverPreloader.handleMouseEnter(); preloadCitations(); }}
 	onmouseleave={hoverPreloader.handleMouseLeave}
-	onfocus={(e) => { hoverPreloader.handleMouseEnter(e); preloadCitations(); }}
-	onclick={handleStoryClick}
-	onkeydown={(e) => e.key === 'Enter' && handleStoryClick()}
+	onfocus={() => { hoverPreloader.handleMouseEnter(); preloadCitations(); }}
+	onclick={isBlurred ? handleStoryClick : undefined}
+	onkeydown={isBlurred ? (e) => e.key === 'Enter' && handleStoryClick() : undefined}
 	role={isBlurred ? "button" : null}
 	tabindex={isBlurred ? 0 : -1}
 >

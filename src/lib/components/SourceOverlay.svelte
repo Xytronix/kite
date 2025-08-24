@@ -1,6 +1,7 @@
 <script lang="ts">
 import { s } from '$lib/client/localization.svelte';
 import { scrollLock } from '$lib/utils/scrollLock';
+import { getOrganizationName } from '$lib/utils/domainUtils';
 import Icon from '$lib/components/Icon.svelte';
 import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
 import 'overlayscrollbars/overlayscrollbars.css';
@@ -20,6 +21,14 @@ interface Props {
 
 let { isOpen = false, currentSource, sourceArticles = [], currentMediaInfo, isLoadingMediaInfo = false, onClose }: Props = $props();
 
+// Function to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+	if (typeof document === 'undefined') return text;
+	const textarea = document.createElement('textarea');
+	textarea.innerHTML = text;
+	return textarea.value;
+}
+
 // State for showing source info
 let showSourceInfo = $state(false);
 
@@ -33,6 +42,21 @@ let focusManagementInitialized = $state(false);
 // Use the fetched media info
 const mediaInfo = $derived.by(() => {
 	return currentMediaInfo || null;
+});
+
+// State for organization name
+let organizationName = $state<string>('');
+
+// Load organization name when currentSource changes
+$effect(() => {
+	if (currentSource?.name) {
+		organizationName = currentSource.name; // Set fallback immediately
+		getOrganizationName(currentSource.name).then(name => {
+			organizationName = name;
+		}).catch(() => {
+			// Keep the fallback domain name if lookup fails
+		});
+	}
 });
 
 // OverlayScrollbars setup
@@ -266,7 +290,7 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
                         />
 					{/if}
 					<h3 id="source-overlay-title" class="dark:text-dark-text text-xl font-bold">
-						{currentSource?.name || 'Unknown Source'}
+						{organizationName || 'Unknown Source'}
 					</h3>
 				</div>
 				<button
@@ -340,7 +364,7 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 								onclick={(e) => e.stopPropagation()}
 							>
 								<h4 class="dark:text-dark-text font-semibold">
-									{article.title}
+									{decodeHtmlEntities(article.title)}
 								</h4>
 							</a>
 							<p class="text-sm text-gray-500 dark:text-gray-400">

@@ -59,6 +59,12 @@ export class NavigationHandlerService {
 		this.isHandlingNavigation = true;
 		this.lastHandledUrl = navigationKey;
 		
+		// Safety timeout to prevent getting stuck
+		const safetyTimeout = setTimeout(() => {
+			console.warn('Navigation handler timeout - resetting state');
+			this.isHandlingNavigation = false;
+		}, 5000);
+		
 		const updates: Partial<NavigationState> = {};
 		
 		try {
@@ -180,7 +186,8 @@ export class NavigationHandlerService {
 			
 			return updates;
 		} finally {
-			// Reset flag after a delay to allow state to settle
+			// Clear safety timeout and reset flag after a delay to allow state to settle
+			clearTimeout(safetyTimeout);
 			setTimeout(() => {
 				this.isHandlingNavigation = false;
 				callbacks.onNavigationComplete?.();
@@ -193,6 +200,15 @@ export class NavigationHandlerService {
 	 */
 	isNavigating(): boolean {
 		return this.isHandlingNavigation;
+	}
+	
+	/**
+	 * Force reset navigation state (for debugging/recovery)
+	 */
+	resetNavigationState(): void {
+		console.log('🔧 Forcing reset of navigation state');
+		this.isHandlingNavigation = false;
+		this.lastHandledUrl = '';
 	}
 }
 
