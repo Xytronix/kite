@@ -28,6 +28,7 @@
   let showBasicPresets = $state(true);
   let showSpecializedPresets = $state(true);
   let showContentQuality = $state(false);
+  let showFilters = $state(true);
   let showTopicsSubjects = $state(false);
   let showNewsTypes = $state(false);
   let showGeographicScope = $state(false);
@@ -37,7 +38,68 @@
   let showFilterScope = $state(false);
   let showAdvancedWeights = $state(false);
   let showSystemControls = $state(false);
+  let showGlobalWeights = $state(true);
+  let showPerCategoryOverrides = $state(true);
+  let showPresets = $state(true);
 
+  // Auto-collapse/expand section flags based on active filters (mirrors old SettingsSmartFilter behavior)
+  const hasContentQualityFilters = $derived(
+    smartContentFilter.preferences.filterLowQuality ||
+      smartContentFilter.preferences.filterPromotional ||
+      smartContentFilter.preferences.filterOpinions ||
+      smartContentFilter.preferences.filterRepetitive ||
+      smartContentFilter.preferences.filterSocialMediaDrama,
+  );
+
+  const hasTopicsSubjectsFilters = $derived(
+    smartContentFilter.preferences.filterPolitics ||
+      smartContentFilter.preferences.filterSports ||
+      smartContentFilter.preferences.filterFinancial ||
+      smartContentFilter.preferences.filterTechnology ||
+      smartContentFilter.preferences.filterEntertainment ||
+      smartContentFilter.preferences.filterCelebrity ||
+      smartContentFilter.preferences.filterWeather,
+  );
+
+  const hasNewsTypesFilters = $derived(
+    smartContentFilter.preferences.filterBreakingNews ||
+      smartContentFilter.preferences.filterLocalNews ||
+      smartContentFilter.preferences.filterInternationalNews,
+  );
+
+  const hasWellnessFilters = $derived(
+    smartContentFilter.preferences.filterNegativeNews ||
+      smartContentFilter.preferences.filterViolence ||
+      smartContentFilter.preferences.filterAnxietyInducing ||
+      smartContentFilter.preferences.filterEconomicPessimism,
+  );
+
+  const hasContentSimilarityActive = $derived(
+    smartContentFilter.preferences.filterContentSimilarity &&
+      smartContentFilter.preferences.contentSimilarityThreshold > 0,
+  );
+
+  // Automatic expand/collapse when filters become active/inactive
+  $effect(() => {
+    if (hasContentQualityFilters && !showContentQuality)
+      showContentQuality = true;
+    if (hasTopicsSubjectsFilters && !showTopicsSubjects)
+      showTopicsSubjects = true;
+    if (hasNewsTypesFilters && !showNewsTypes) showNewsTypes = true;
+    if (hasWellnessFilters && !showWellnessMental) showWellnessMental = true;
+    if (hasContentSimilarityActive && !showAdvancedSimilarity)
+      showAdvancedSimilarity = true;
+
+    if (!hasContentQualityFilters && showContentQuality)
+      showContentQuality = false;
+    if (!hasTopicsSubjectsFilters && showTopicsSubjects)
+      showTopicsSubjects = false;
+    if (!hasNewsTypesFilters && showNewsTypes) showNewsTypes = false;
+    if (!hasWellnessFilters && showWellnessMental)
+      showWellnessMental = false;
+    if (!hasContentSimilarityActive && showAdvancedSimilarity)
+      showAdvancedSimilarity = false;
+  });
   // Performance optimizations - Memoized computations with reduced re-calculations
   let memoizedFilterCounts = $state(new Map<string, number>());
   let lastPreferencesUpdate = $state(0);
@@ -1657,199 +1719,37 @@
     </div>
   </section>
 
-  <!-- Quick Setup Section with improved spacing -->
-  <div class="flex flex-col space-y-2">
-    <div class="mb-1 flex items-center gap-2">
-      <Icon
-        icon="tabler:settings"
-        class="h-4 w-4 text-gray-600 dark:text-gray-400"
-      />
-      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-        {s("settings.contentFilter.basicPresets.label") || "Quick Setup"}
-      </span>
-    </div>
-    <p class="text-xs text-gray-500 dark:text-gray-400">
-      {s("settings.contentFilter.basicPresets.description") ||
-        "Choose from preset configurations to quickly set up your content filters"}
-    </p>
+  <!-- Presets divider (collapsible) -->
+  <button
+    type="button"
+    class="my-3 flex w-full items-center text-left"
+    onclick={() => (showPresets = !showPresets)}
+    aria-expanded={showPresets}
+    aria-controls="presets-section"
+  >
+    <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+    <span class="px-2 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      {s("settings.contentFilter.presets.parent") || "Presets"}
+    </span>
+    <Icon
+      icon="tabler:chevron-right"
+      class="ml-2 h-4 w-4 text-gray-400 transition-transform duration-200 {showPresets ? 'rotate-90' : ''}"
+      aria-hidden="true"
+    />
+    <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+  </button>
 
-    <!-- Active Filters & Presets Indicator - Smooth transitions without layout shift -->
-    <div class="mb-6">
-      {#if activePresets.length > 0 || activeFilterGroups.length > 0}
-        <div
-          class="rounded-lg border border-blue-200 bg-blue-50 p-4 transition-all duration-300 ease-in-out dark:border-blue-800 dark:bg-blue-900/20"
-        >
-          <!-- Active Presets Section -->
-          {#if activePresets.length > 0}
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                {#if activePresets.length === 1}
-                  <Icon
-                    icon={activePresets[0].icon}
-                    class="h-5 w-5 text-blue-600 dark:text-blue-400"
-                  />
-                  <div>
-                    <p
-                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                    >
-                      Active Preset: {activePresets[0].label}
-                    </p>
-                    <p class="text-xs text-blue-700 dark:text-blue-300">
-                      {activePresets[0].tooltip}
-                    </p>
-                  </div>
-                {:else}
-                  <div class="flex -space-x-1">
-                    {#each activePresets.slice(0, 3) as preset}
-                      <Icon
-                        icon={preset.icon}
-                        class="h-4 w-4 rounded-full border border-blue-200 bg-white p-0.5 text-blue-600 dark:border-blue-700 dark:bg-gray-800 dark:text-blue-400"
-                      />
-                    {/each}
-                    {#if activePresets.length > 3}
-                      <div
-                        class="flex h-4 w-4 items-center justify-center rounded-full border border-blue-200 bg-blue-100 dark:border-blue-700 dark:bg-blue-800"
-                      >
-                        <span
-                          class="text-xs font-medium text-blue-600 dark:text-blue-400"
-                          >+{activePresets.length - 3}</span
-                        >
-                      </div>
-                    {/if}
-                  </div>
-                  <div>
-                    <p
-                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                    >
-                      Active Presets: {activePresets
-                        .map((p) => p.label)
-                        .join(", ")}
-                    </p>
-                    <p class="text-xs text-blue-700 dark:text-blue-300">
-                      {activePresets.length} preset{activePresets.length > 1
-                        ? "s"
-                        : ""} combined for enhanced filtering
-                    </p>
-                  </div>
-                {/if}
-              </div>
-              <Tooltip text="Reset to custom configuration">
-                <button
-                  type="button"
-                  class="rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
-                  onclick={(e) =>
-                    handleFilterClick(e, () => resetToActivePresets())}
-                >
-                  Reset
-                </button>
-              </Tooltip>
-            </div>
-          {/if}
-
-          <!-- Active Filter Groups Section -->
-          {#if activeFilterGroups.length > 0}
-            <div
-              class={activePresets.length > 0
-                ? "mt-4 border-t border-blue-200 pt-4 dark:border-blue-700"
-                : ""}
-            >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="mb-2 flex items-center gap-2">
-                    <Icon
-                      icon="tabler:filter"
-                      class="h-4 w-4 text-blue-600 dark:text-blue-400"
-                    />
-                    <p
-                      class="text-sm font-medium text-blue-900 dark:text-blue-100"
-                    >
-                      Active Filter Groups ({activeFilterGroups.length})
-                    </p>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {#each activeFilterGroups as group}
-                      <div
-                        class="group/filter-group flex items-center gap-2 rounded-md bg-blue-100/50 px-2 py-1 dark:bg-blue-800/20"
-                      >
-                        <Icon
-                          icon={group.icon}
-                          class="h-3 w-3 flex-shrink-0 text-blue-600 dark:text-blue-400"
-                        />
-                        <div class="min-w-0 flex-1">
-                          <span
-                            class="block truncate text-xs font-medium text-blue-800 dark:text-blue-200"
-                          >
-                            {group.name}
-                          </span>
-                          <span
-                            class="text-xs text-blue-600 dark:text-blue-400"
-                          >
-                            {group.activeCount}{group.name !==
-                              "Custom Keywords" &&
-                            group.name !== "Content Similarity"
-                              ? `/${group.totalCount}`
-                              : ""} active
-                          </span>
-                        </div>
-                        <Tooltip text="Reset {group.name} filters">
-                          <button
-                            type="button"
-                            class="rounded p-0.5 opacity-0 transition-opacity duration-200 group-hover/filter-group:opacity-100 hover:bg-blue-200/50 dark:hover:bg-blue-700/30"
-                            onclick={(e) =>
-                              handleFilterClick(e, () =>
-                                resetFilterGroup(group.name),
-                              )}
-                            aria-label="Reset {group.name} filters"
-                          >
-                            <Icon
-                              icon="tabler:x"
-                              class="h-3 w-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-                            />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    {/each}
-                  </div>
-
-                  <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
-                    {activeFilterGroups.reduce(
-                      (sum, group) => sum + group.activeCount,
-                      0,
-                    )} total filters active across {activeFilterGroups.length} group{activeFilterGroups.length >
-                    1
-                      ? "s"
-                      : ""}
-                  </p>
-                </div>
-
-                {#if activePresets.length === 0}
-                  <Tooltip
-                    text="Clear all active filters (no confirmation required)"
-                  >
-                    <button
-                      type="button"
-                      class="ml-3 rounded border border-blue-300 px-3 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-800/30 dark:hover:text-blue-200"
-                      onclick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        clearAllFilters();
-                      }}
-                    >
-                      Clear All
-                    </button>
-                  </Tooltip>
-                {/if}
-              </div>
-            </div>
-          {/if}
-        </div>
-      {/if}
-    </div>
+  {#if showPresets}
+  <div id="presets-section">
 
     <!-- Basic Presets -->
     <div class="mb-6">
-      <div class="mb-3 flex items-center gap-2">
+    <button
+      type="button"
+      class="flex w-full items-center justify-between text-left mb-3"
+      onclick={() => (showBasicPresets = !showBasicPresets)}
+    >
+      <div class="flex items-center gap-2">
         <Icon
           icon="tabler:layout-grid"
           class="h-4 w-4 text-gray-600 dark:text-gray-400"
@@ -1858,6 +1758,12 @@
           {s("settings.contentFilter.basicPresets.title") || "Basic Presets"}
         </h5>
       </div>
+      <Icon
+        icon="tabler:chevron-right"
+        class="h-4 w-4 text-gray-400 transition-transform duration-200 {showBasicPresets ? 'rotate-90' : ''}"
+      />
+    </button>
+    {#if showBasicPresets}
       <div class={getGridClasses(basicPresets.length)}>
         {#each basicPresets as preset}
           {@const isActive = isPresetActive(preset.id)}
@@ -1900,19 +1806,31 @@
           </Tooltip>
         {/each}
       </div>
+    {/if}
     </div>
-
+ 
     <!-- Specialized Presets -->
-    <div>
-      <div class="mb-3 flex items-center gap-2">
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => (showSpecializedPresets = !showSpecializedPresets)}
+      >
+        <div class="flex items-center gap-2">
+          <Icon
+            icon="tabler:tools"
+            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          />
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.presets.label") || "Specialized Presets"}
+          </h5>
+        </div>
         <Icon
-          icon="tabler:tools"
-          class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showSpecializedPresets ? 'rotate-90' : ''}"
         />
-        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {s("settings.contentFilter.presets.label") || "Specialized Presets"}
-        </h5>
-      </div>
+      </button>
+      {#if showSpecializedPresets}
       <div class={getGridClasses(specializedPresets.length)}>
         {#each specializedPresets as preset}
           {@const isActive = isPresetActive(preset.id)}
@@ -1955,9 +1873,33 @@
           </Tooltip>
         {/each}
       </div>
+      {/if}
     </div>
+  </div>
+  {/if}
+  <!-- Filters divider (collapsible) -->
+  <button
+    type="button"
+    class="my-3 flex w-full items-center text-left"
+    onclick={() => (showFilters = !showFilters)}
+    aria-expanded={showFilters}
+    aria-controls="filters-section"
+  >
+    <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+    <span class="px-2 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      {s("settings.contentFilter.filters.parent") || "Filters"}
+    </span>
+    <Icon
+      icon="tabler:chevron-right"
+      class="ml-2 h-4 w-4 text-gray-400 transition-transform duration-200 {showFilters ? 'rotate-90' : ''}"
+      aria-hidden="true"
+    />
+    <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+  </button>
 
-    <!-- Content Quality Section -->
+  <div id="filters-section" class={showFilters ? '' : 'hidden'}>
+
+  <!-- Content Quality Section -->
     <div class="flex flex-col space-y-2">
       <div class="mb-1 flex items-center gap-2">
         <Icon
@@ -2148,7 +2090,7 @@
           </button>
         </Tooltip>
       </div>
-    </div>
+      </div>
 
     <!-- Topics & Subjects Section -->
     <div class="flex flex-col space-y-2">
@@ -2367,7 +2309,7 @@
           </button>
         </Tooltip>
       </div>
-    </div>
+      </div>
 
     <!-- News Types Section -->
     <div class="flex flex-col space-y-2">
@@ -2624,7 +2566,9 @@
               {/if}
             </button>
           </Tooltip>
-        </div>
+      </div>
+      </div>
+
       </div>
 
       <!-- Custom Keywords Section -->
@@ -2738,8 +2682,8 @@
                     </button>
                   </div>
                 {/each}
-              </div>
-            </div>
+      </div>
+      </div>
           {:else}
             <div
               class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700/50"
@@ -2758,7 +2702,7 @@
               </p>
             </div>
           {/if}
-        </div>
+      </div>
       </div>
 
       <!-- Filter Scope and Mode Controls Section -->
@@ -2867,8 +2811,8 @@
                   {s("settings.contentFilter.filterScope.all.help") ||
                     "Analyze all available content including full articles. Most comprehensive but slower."}
                 {/if}
-              </div>
-            </div>
+      </div>
+      </div>
 
             <!-- Filter Mode Selection -->
             <div>
@@ -2935,8 +2879,8 @@
                   {s("settings.contentFilter.filterMode.blur.help") ||
                     "Show filtered content with a blur effect. You can still access it if needed."}
                 {/if}
-              </div>
-            </div>
+      </div>
+      </div>
 
             <!-- Show Filtered Count Toggle -->
             <div>
@@ -3077,10 +3021,10 @@
                   {s("settings.contentFilter.sensitivity.strict.help") ||
                     "Aggressive filtering for maximum content quality and relevance."}
                 {/if}
-              </div>
-            </div>
-          </div>
-        </div>
+      </div>
+      </div>
+      </div>
+      </div>
       </div>
 
       <!-- Advanced Similarity Section -->
@@ -3155,8 +3099,8 @@
                     : 'translate-x-1'}"
                 ></span>
               </button>
-            </div>
-          </div>
+      </div>
+      </div>
 
           <p class="mb-6 text-sm text-gray-600 dark:text-gray-400">
             {s("settings.contentFilter.advancedSimilarity.description") ||
@@ -3202,8 +3146,8 @@
                 <span>10% (Very Loose)</span>
                 <span>50% (Balanced)</span>
                 <span>95% (Very Strict)</span>
-              </div>
-            </div>
+      </div>
+      </div>
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
               {s("settings.contentFilter.similarityThreshold.help") ||
                 "Higher values require more similarity to filter content. Lower values catch more duplicates but may filter unique stories."}
@@ -3255,8 +3199,8 @@
                       {s(
                         "settings.contentFilter.detectionMode.today.description",
                       ) || "Compare only with stories from today"}
-                    </div>
-                  </div>
+      </div>
+      </div>
                 </div>
                 {#if smartContentFilter.preferences.contentSimilarityMode === "today"}
                   <Icon
@@ -3297,8 +3241,8 @@
                       {s(
                         "settings.contentFilter.detectionMode.historical.description",
                       ) || "Compare with stories from previous days"}
-                    </div>
-                  </div>
+      </div>
+      </div>
                 </div>
                 {#if smartContentFilter.preferences.contentSimilarityMode === "historical"}
                   <Icon
@@ -3307,8 +3251,8 @@
                   />
                 {/if}
               </button>
-            </div>
-          </div>
+      </div>
+      </div>
 
           <!-- Memory Duration Controls (only show for historical mode) -->
           {#if smartContentFilter.preferences.contentSimilarityMode === "historical"}
@@ -3354,8 +3298,8 @@
                   <span>1 day</span>
                   <span>7 days</span>
                   <span>30 days</span>
-                </div>
-              </div>
+      </div>
+      </div>
               <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 {s("settings.contentFilter.memoryDuration.help") ||
                   "How many days back to compare stories for similarity detection. Longer periods catch more duplicates but use more memory."}
@@ -3412,8 +3356,8 @@
                       {s(
                         "settings.contentFilter.detectionScope.withinCategory.description",
                       ) || "Compare only stories in the same category"}
-                    </div>
-                  </div>
+      </div>
+      </div>
                 </div>
                 {#if smartContentFilter.preferences.contentSimilarityScope === "within-category"}
                   <Icon
@@ -3457,8 +3401,8 @@
                       {s(
                         "settings.contentFilter.detectionScope.acrossCategories.description",
                       ) || "Compare stories across all categories"}
-                    </div>
-                  </div>
+      </div>
+      </div>
                 </div>
                 {#if smartContentFilter.preferences.contentSimilarityScope === "across-categories"}
                   <Icon
@@ -3467,8 +3411,8 @@
                   />
                 {/if}
               </button>
-            </div>
-          </div>
+      </div>
+      </div>
 
           <!-- Algorithm Weight Controls -->
           <div class="mb-6">
@@ -3645,10 +3589,10 @@
                           .similarityEntityWeight)) *
                       100,
                   )}%
-                </div>
-              </div>
-            </div>
-          </div>
+      </div>
+      </div>
+      </div>
+      </div>
 
           <!-- Preset Buttons for Common Similarity Scenarios -->
           <div class="mb-6">
@@ -3802,9 +3746,9 @@
                   {/if}
                 </button>
               </Tooltip>
-            </div>
-          </div>
-        </div>
+      </div>
+      </div>
+      </div>
       </div>
       <div class="flex flex-col space-y-2">
         <div class="mb-1 flex items-center gap-2">
@@ -3973,10 +3917,10 @@
                   <div class="text-sm text-gray-600 dark:text-gray-400">
                     {s("settings.contentFilter.stats.totalProcessed") ||
                       "Total Processed"}
-                  </div>
-                </div>
-              </div>
-            </div>
+      </div>
+      </div>
+      </div>
+      </div>
 
             <!-- Filtered Count -->
             <div
@@ -3996,10 +3940,10 @@
                   <div class="text-sm text-gray-600 dark:text-gray-400">
                     {s("settings.contentFilter.stats.filtered") ||
                       "Stories Filtered"}
-                  </div>
-                </div>
-              </div>
-            </div>
+      </div>
+      </div>
+      </div>
+      </div>
 
             <!-- Filter Rate -->
             <div
@@ -4019,10 +3963,10 @@
                   <div class="text-sm text-gray-600 dark:text-gray-400">
                     {s("settings.contentFilter.stats.filterRate") ||
                       "Filter Rate"}
-                  </div>
-                </div>
-              </div>
-            </div>
+      </div>
+      </div>
+      </div>
+      </div>
           </div>
 
           <!-- Filter Rate Progress Bar -->
@@ -4057,8 +4001,8 @@
               {:else}
                 Very high filtering - strict content standards
               {/if}
-            </div>
-          </div>
+      </div>
+      </div>
 
           <!-- Top Filter Reasons -->
           {#if smartContentFilter.stats.topFilterReasons.length > 0}
@@ -4104,8 +4048,8 @@
                         </div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">
                           {percentage.toFixed(1)}% of total stories
-                        </div>
-                      </div>
+      </div>
+      </div>
                     </div>
                     <div class="flex items-center space-x-2">
                       <div
@@ -4115,12 +4059,12 @@
                           class="h-1.5 rounded-full bg-blue-600"
                           style="width: {Math.min(percentage, 100)}%"
                         ></div>
-                      </div>
-                    </div>
+      </div>
+      </div>
                   </div>
                 {/each}
-              </div>
-            </div>
+      </div>
+      </div>
           {/if}
 
           <!-- Category Breakdown -->
@@ -4153,8 +4097,8 @@
                       </div>
                       <div class="text-xs text-gray-500 dark:text-gray-400">
                         {(filterRate * 100).toFixed(0)}%
-                      </div>
-                    </div>
+      </div>
+      </div>
                     <div
                       class="mb-2 h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700"
                     >
@@ -4191,7 +4135,7 @@
         </div>
       {/if}
 
-      <!-- Advanced Category Weight Overrides Section -->
+      <!-- Advanced Category Weight Overrides Section (with nested collapses) -->
       <div class="flex flex-col space-y-2">
         <div class="mb-1 flex items-center gap-2">
           <Icon
@@ -4219,18 +4163,29 @@
               "Fine-tune how different aspects of content are weighted when detecting similarity and relevance. Global settings apply to all categories unless overridden."}
           </p>
 
-          <!-- Global Weight Settings -->
-          <div class="mb-8">
-            <div class="mb-4 flex items-center gap-3">
+          <!-- Global Weight Settings (collapsible) -->
+          <div class="mb-2">
+            <button
+              type="button"
+              class="mb-2 flex w-full items-center justify-between text-left"
+              onclick={() => (showGlobalWeights = !showGlobalWeights)}
+            >
+              <div class="flex items-center gap-3">
+                <Icon
+                  icon="tabler:world"
+                  class="h-5 w-5 text-gray-500 dark:text-gray-400"
+                />
+                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {s("settings.contentFilter.globalWeights") ||
+                    "Global Weight Settings"}
+                </h5>
+              </div>
               <Icon
-                icon="tabler:world"
-                class="h-5 w-5 text-gray-500 dark:text-gray-400"
+                icon="tabler:chevron-right"
+                class="h-4 w-4 text-gray-400 transition-transform duration-200 {showGlobalWeights ? 'rotate-90' : ''}"
               />
-              <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {s("settings.contentFilter.globalWeights") ||
-                  "Global Weight Settings"}
-              </h5>
-            </div>
+            </button>
+            {#if showGlobalWeights}
             <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">
               {s("settings.contentFilter.globalWeights.description") ||
                 "These weights determine how much importance is given to different parts of content when analyzing relevance and quality."}
@@ -4410,11 +4365,16 @@
                 </div>
               </div>
             </div>
+            {/if}
           </div>
 
-          <!-- Per-Category Weight Overrides -->
+          <!-- Per-Category Weight Overrides (collapsible) -->
           <div class="mb-8">
-            <div class="mb-4 flex items-center justify-between">
+            <button
+              type="button"
+              class="mb-4 flex w-full items-center justify-between text-left"
+              onclick={() => (showPerCategoryOverrides = !showPerCategoryOverrides)}
+            >
               <div class="flex items-center gap-3">
                 <Icon
                   icon="tabler:category"
@@ -4427,6 +4387,13 @@
                     "Per-Category Weight Overrides"}
                 </h5>
               </div>
+              <Icon
+                icon="tabler:chevron-right"
+                class="h-4 w-4 text-gray-400 transition-transform duration-200 {showPerCategoryOverrides ? 'rotate-90' : ''}"
+              />
+            </button>
+            {#if showPerCategoryOverrides}
+            <div class="mb-4 flex items-center justify-between">
               {#if smartContentFilter.preferences.categoryWeightOverrides && Object.keys(smartContentFilter.preferences.categoryWeightOverrides).length > 0}
                 <button
                   type="button"
@@ -4763,6 +4730,7 @@
             {/snippet}
 
             {@render categoryOverrideControls()}
+            {/if}
           </div>
 
           <!-- Sensitivity Override Controls -->
@@ -5293,8 +5261,7 @@
         </div>
       </div>
     </div>
-  </div>
-</main>
+
 
 <!-- Import Confirmation Dialog -->
 {#if showImportConfirmation}
@@ -5410,6 +5377,9 @@
     </div>
   </div>
 {/if}
+
+<!-- End of main content area -->
+</main>
 
 <style>
   .auto-rows-fr > * {

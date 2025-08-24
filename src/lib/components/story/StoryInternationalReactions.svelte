@@ -6,6 +6,8 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
+import Icon from '@iconify/svelte';
+import { getSectionIcon } from '$lib/constants/sections';
 
 // Props
 interface Props {
@@ -46,8 +48,9 @@ function parseReaction(reaction: string) {
 </script>
 
 <section class="mt-6">
-	<h3 class="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
-		{s('section.internationalReactions') || 'International Reactions'}
+	<h3 class="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+		<Icon icon={getSectionIcon('internationalReactions')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+		<span>{s('section.internationalReactions') || 'International Reactions'}</span>
 	</h3>
 	<div class="space-y-2">
 		{#each displayReactions as reaction}
@@ -57,28 +60,30 @@ function parseReaction(reaction: string) {
 					<h4 class="font-semibold text-gray-800 dark:text-gray-200">
 						{parsedReaction.country}
 					</h4>
-					<p class="text-gray-700 dark:text-gray-300">
-						<CitationText 
-							text={parsedReaction.response} 
-							showFavicons={false} 
-							showNumbers={false} 
-							inline={true} 
-							articles={allCitedArticles.citedArticles} 
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+                    <p class="text-gray-700 dark:text-gray-300">
+                            <CitationText 
+                            text={parsedReaction.response} 
+                            showFavicons={false} 
+                            showNumbers={false} 
+                            inline={true} 
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
+                            {citationMapping}
+                            citationTooltip={citationTooltip}
+                        />
 					</p>
 				{:else}
-					<p class="text-gray-700 dark:text-gray-300">
-						<CitationText 
-							text={parsedReaction.response} 
-							showFavicons={false} 
-							showNumbers={false} 
-							inline={true} 
-							articles={allCitedArticles.citedArticles} 
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <CitationText 
+                            text={parsedReaction.response} 
+                            showFavicons={false} 
+                            showNumbers={false} 
+                            inline={true} 
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
+                            {citationMapping}
+                            citationTooltip={citationTooltip}
+                        />
 					</p>
 				{/if}
 			</div>

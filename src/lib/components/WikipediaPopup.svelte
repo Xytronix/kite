@@ -21,6 +21,7 @@ let { visible, title, content, imageUrl, wikiUrl, onClose }: Props = $props();
 	size="md"
 	position="center"
 	ariaLabel="Wikipedia article information"
+    closeOnBackdrop={true}
 >
 	<div class="p-6">
 		{#if imageUrl}

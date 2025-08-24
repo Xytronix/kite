@@ -4,6 +4,7 @@
 	import { s } from '$lib/client/localization.svelte';
 	import { sections } from '$lib/stores/sections.svelte.js';
 	import type { SectionConfig } from '$lib/constants/sections';
+	import { getSectionIcon } from '$lib/constants/sections';
 	import Icon from '@iconify/svelte';
 
 	// Local state for sections with required ID field
@@ -77,39 +78,7 @@
 	// Check if there are any enabled sections
 	const hasEnabledSections = $derived(sectionItems.some(section => section.enabled));
 
-	// Section icon mapping
-	const sectionIcons: Record<string, string> = {
-		summary: 'tabler:file-text',
-		primaryImage: 'tabler:photo',
-		highlights: 'tabler:highlight',
-		quotes: 'tabler:quote',
-		secondaryImage: 'tabler:photo-plus',
-		perspectives: 'tabler:eye',
-		historicBackground: 'tabler:history',
-		humanitarianImpact: 'tabler:heart',
-		technicalDetails: 'tabler:tool',
-		businessAngle: 'tabler:briefcase',
-		scientificSignificance: 'tabler:flask',
-		travelAdvisory: 'tabler:map-pin',
-		performanceStatistics: 'tabler:chart-bar',
-		leagueStandings: 'tabler:trophy',
-		designPrinciples: 'tabler:palette',
-		userExperienceImpact: 'tabler:user',
-		gameplayMechanics: 'tabler:device-gamepad',
-		industryImpact: 'tabler:building-factory',
-		technicalSpecifications: 'tabler:list-details',
-		timeline: 'tabler:clock',
-		internationalReactions: 'tabler:world',
-		suggestedQnA: 'tabler:help',
-		actionItems: 'tabler:checklist',
-		didYouKnow: 'tabler:bulb',
-		sources: 'tabler:link'
-	};
-
-	// Get icon for section
-	function getSectionIcon(sectionId: string): string {
-		return sectionIcons[sectionId] || 'tabler:file';
-	}
+	// Icon resolution moved to centralized mapping in `$lib/constants/sections.ts`
 </script>
 
 <div class="space-y-4">

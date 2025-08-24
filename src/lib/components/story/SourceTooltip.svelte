@@ -3,6 +3,7 @@ import { onMount, onDestroy } from 'svelte';
 import { browser } from '$app/environment';
 import { useFloating, offset, flip, shift, size } from '@skeletonlabs/floating-ui-svelte';
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-svelte';
+import SmartImage from '../SmartImage.svelte';
 // Reference component in a runtime variable so the import is treated as value usage (avoids `useImportType` false-positive)
 const _OverlayScrollbarsComponentRuntime = OverlayScrollbarsComponent;
 import Portal from 'svelte-portal';
@@ -123,72 +124,76 @@ export async function handleSourceInteraction(event: Event, domains: string[], h
 		floating.elements.reference = wrapper;
 		
 		// Prepare display items
-		if (overrideArticles && overrideArticles.length > 0) {
-			// Handle specific domain articles
-			const targetDomain = overrideArticles[0]?.domain;
-			
-			if (citationMapping && targetDomain) {
-				// Use citation mapping to find cited articles for this domain
-				displayItems = [];
-				const citedFromDomain = [];
-				const nonCitedFromDomain = [];
-				
-				// Find cited articles from this domain
-				for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
-					if (mappedArticle && mappedArticle.domain === targetDomain) {
-						citedFromDomain.push({
-							article: mappedArticle,
-							number: number,
-							isCommon: false,
-							isCited: true
-						});
-					}
-				}
-				
-				// Find non-cited articles from this domain
-				const citedArticleLinks = new Set(citedFromDomain.map(item => item.article?.link));
-				for (const article of combinedArticles) {
-					if (article.domain === targetDomain && !citedArticleLinks.has(article.link)) {
-						nonCitedFromDomain.push({
-							article,
-							number: -1, // No citation number
-							isCommon: false,
-							isCited: false
-						});
-					}
-				}
-				
-				// Combine and sort: cited first (by number), then non-cited
-				displayItems = [
-					...citedFromDomain.sort((a, b) => (a.number || 0) - (b.number || 0)),
-					...nonCitedFromDomain.sort((a, b) => a.article!.title.localeCompare(b.article!.title))
-				];
-			} else {
-				// Fallback: use provided articles
-				displayItems = overrideArticles.map((article, index) => ({
-					article,
-					number: index + 1,
-					isCommon: false,
-					isCited: false
-				}));
-			}
-		} else {
-			// Use cited items if available, otherwise show all articles
-			if (citedItems.length > 0) {
-				displayItems = citedItems.map(item => ({
-					...item,
-					isCited: true
-				}));
-			} else {
-				// Show all articles as non-cited
-				displayItems = combinedArticles.map((article, index) => ({
-					article,
-					number: index + 1,
-					isCommon: false,
-					isCited: false
-				}));
-			}
-		}
+    if (overrideArticles && overrideArticles.length > 0) {
+            // Handle a custom list of articles, possibly across multiple domains
+            const domainSet = new Set(overrideArticles.map(a => a.domain));
+            const seenLinks = new Set<string>();
+
+            if (citationMapping) {
+                const cited: Array<{ article: Article; number: number; isCommon?: boolean; isCited?: boolean }>= [];
+                // Collect cited articles that match the provided domains
+                for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
+                    if (mappedArticle && domainSet.has(mappedArticle.domain)) {
+                        if (!seenLinks.has(mappedArticle.link)) {
+                            cited.push({ article: mappedArticle, number, isCommon: false, isCited: true });
+                            seenLinks.add(mappedArticle.link);
+                        }
+                    }
+                }
+
+                // Add remaining non-cited from override list
+                const nonCited: typeof cited = [];
+                for (const article of overrideArticles) {
+                    if (!seenLinks.has(article.link)) {
+                        nonCited.push({ article, number: -1, isCommon: false, isCited: false });
+                        seenLinks.add(article.link);
+                    }
+                }
+
+                // Prefer cited items first, then non-cited; remove duplicates by link
+                displayItems = [
+                    ...cited.sort((a, b) => (a.number || 0) - (b.number || 0)),
+                    ...nonCited.sort((a, b) => a.article.title.localeCompare(b.article.title))
+                ];
+            } else {
+                // No mapping: just unique articles in given order
+                displayItems = overrideArticles
+                    .filter(a => {
+                        if (seenLinks.has(a.link)) return false;
+                        seenLinks.add(a.link); return true;
+                    })
+                    .map((article, idx) => ({ article, number: idx + 1, isCommon: false, isCited: false }));
+            }
+        } else {
+            // Use cited items if available; otherwise prefer articles that have citation mapping numbers first
+            if (citedItems.length > 0) {
+                // Deduplicate by link
+                const seen = new Set<string>();
+                displayItems = citedItems.filter(it => {
+                    const key = it.article?.link || `${it.isCommon ? 'common' : ''}-${it.number}`;
+                    if (seen.has(key)) return false; seen.add(key); return true;
+                }).map(item => ({ ...item, isCited: true }));
+            } else if (citationMapping) {
+                const citedFromMapping: Array<{ article: Article | null; number: number; isCommon?: boolean; isCited?: boolean }> = [];
+                for (const [number, mappedArticle] of citationMapping.numberToArticle.entries()) {
+                    if (mappedArticle) citedFromMapping.push({ article: mappedArticle, number, isCommon: false, isCited: true });
+                }
+                const citedLinks = new Set(citedFromMapping.map(i => i.article?.link));
+                const nonCited = combinedArticles
+                    .filter(a => !citedLinks.has(a.link))
+                    .map((a, idx) => ({ article: a, number: -1, isCommon: false, isCited: false }));
+                displayItems = [
+                    ...citedFromMapping.sort((a, b) => (a.number || 0) - (b.number || 0)),
+                    ...nonCited.sort((a, b) => a.article!.title.localeCompare(b.article!.title))
+                ];
+            } else {
+                // Fallback: show all as non-cited
+                const seen = new Set<string>();
+                displayItems = combinedArticles.filter(a => {
+                    if (seen.has(a.link)) return false; seen.add(a.link); return true;
+                }).map((article, index) => ({ article, number: index + 1, isCommon: false, isCited: false }));
+            }
+        }
 		
 		// Only show tooltip if we have items to display
 		if (displayItems.length === 0) {
@@ -224,17 +229,20 @@ export function handleSourceLeave(event: Event) {
 		return;
 	}
 	
-	// If we're moving to the same wrapper, don't hide
+    // If we're moving to the same wrapper or another citation number, don't hide
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
+        if (relatedTarget.closest('.citation-number')) {
+            return;
+        }
+        const targetWrapper = relatedTarget.closest('.citation-sources') || relatedTarget.closest('.source-item');
 		if (targetWrapper && targetWrapper === reference) {
 			return;
 		}
 	}
 	
-	hideTimeout = window.setTimeout(() => {
+    hideTimeout = window.setTimeout(() => {
 		hideTooltip();
-	}, 150);
+    }, 220);
 }
 
 // Handle tooltip mouse leave
@@ -252,9 +260,9 @@ function handleTooltipLeave(event: MouseEvent) {
 		}
 	}
 	
-	hideTimeout = window.setTimeout(() => {
+    hideTimeout = window.setTimeout(() => {
 		hideTooltip();
-	}, 150);
+    }, 220);
 }
 
 // Handle tooltip mouse enter (cancel hide timeout)
@@ -273,6 +281,11 @@ function hideTooltip() {
 	displayItems = [];
 }
 
+// Allow external callers (e.g., StorySources) to force hide
+export function forceHide() {
+    hideTooltip();
+}
+
 // Scroll to highlighted source in tooltip
 function scrollToHighlightedSource(citationNumber: number) {
 	if (!tooltipScrollbars?.osInstance || !showTooltip) return;
@@ -280,13 +293,13 @@ function scrollToHighlightedSource(citationNumber: number) {
 	// Find the highlighted citation element by its actual citation number
 	const highlightedElement = floating.elements.floating?.querySelector(`[data-citation-number="${citationNumber}"]`);
 	
-	if (highlightedElement) {
-		// Scroll the highlighted element into view within the tooltip
-		highlightedElement.scrollIntoView({
-			behavior: 'smooth',
-			block: 'center',
-			inline: 'nearest'
-		});
+    if (highlightedElement) {
+        // Scroll the highlighted element into view within the tooltip viewport only
+        highlightedElement.scrollIntoView({
+            behavior: 'auto',
+            block: 'nearest',
+            inline: 'nearest'
+        });
 		
 		// Also update the OverlayScrollbars instance
 		setTimeout(() => {
@@ -374,13 +387,41 @@ onMount(() => {
 	if (browser) {
 		window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
 	}
-});
-
-// Reset scroll position whenever displayItems changes to avoid jump
-$effect(() => {
-	if (showTooltip && tooltipScrollbars?.osInstance) {
-		tooltipScrollbars.osInstance()?.scroll({ y: 0 }, true);
-	}
+    // Global guards: hide if pointer leaves both reference and tooltip
+    function isInside(el: Node | null): boolean {
+        const tooltip = floating.elements.floating as HTMLElement | undefined;
+        const reference = floating.elements.reference as HTMLElement | undefined;
+        if (!el || !(el instanceof Element)) return false;
+        // Consider ANY valid trigger wrapper as inside to avoid hiding while transitioning
+        const anyWrapper = el.closest('.citation-sources, .source-item, .citation-number');
+        return !!(
+            (tooltip && tooltip.contains(el)) ||
+            (reference && reference.contains(el)) ||
+            anyWrapper
+        );
+    }
+    function handleGlobalPointerMove(e: PointerEvent) {
+        if (isMobile || !showTooltip) return;
+        if (!isInside(e.target as Node)) {
+            if (!hideTimeout) hideTimeout = window.setTimeout(() => hideTooltip(), 180);
+        } else if (hideTimeout) {
+            clearTimeout(hideTimeout); hideTimeout = null;
+        }
+    }
+    function handleGlobalClick(e: Event) {
+        if (isMobile || !showTooltip) return;
+        if (!isInside(e.target as Node)) hideTooltip();
+    }
+    if (browser) {
+        window.addEventListener('pointermove', handleGlobalPointerMove, { passive: true });
+        window.addEventListener('click', handleGlobalClick, true);
+    }
+    onDestroy(() => {
+        if (browser) {
+            window.removeEventListener('pointermove', handleGlobalPointerMove as any);
+            window.removeEventListener('click', handleGlobalClick as any, true as any);
+        }
+    });
 });
 
 onDestroy(() => {
@@ -395,6 +436,44 @@ onDestroy(() => {
 		scrollLock.unlock();
 	}
 });
+
+function adjustViewportToElement(el: HTMLElement) {
+    try {
+        const os = tooltipScrollbars?.osInstance?.();
+        const viewport = os?.elements().viewport as HTMLElement | undefined;
+        const root = viewport ?? (floating.elements.floating as HTMLElement | undefined);
+        if (!root) return;
+
+        // Compute positions relative to root scroll
+        const rootRect = root.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const elTop = elRect.top - rootRect.top + root.scrollTop;
+        const elBottom = elTop + el.offsetHeight;
+        const viewTop = root.scrollTop;
+        const viewBottom = viewTop + root.clientHeight;
+        const margin = 10;
+
+        if (elTop < viewTop + margin) {
+            root.scrollTop = Math.max(0, elTop - margin);
+        } else if (elBottom > viewBottom - margin) {
+            root.scrollTop = Math.max(0, elBottom - root.clientHeight + margin);
+        }
+        os?.update(true);
+    } catch {}
+}
+
+$effect(() => {
+    if (!showTooltip || highlightedNumber == null) return;
+    const os = tooltipScrollbars?.osInstance?.();
+    const viewport = os?.elements().viewport as HTMLElement | undefined;
+    const root = viewport ?? (floating.elements.floating as HTMLElement | undefined);
+    if (!root) return;
+    const el = root.querySelector(`[data-citation-number="${highlightedNumber}"]`) as HTMLElement | null;
+    if (!el) return;
+    adjustViewportToElement(el);
+});
+
+// Remove older center-scrolling effect to avoid sudden jumps
 
 </script>
 
@@ -428,9 +507,16 @@ onDestroy(() => {
 					}}
 				>
 					<div class="p-3">
+					{#if displayItems.length > 0}
+						<div class="flex items-center -space-x-3 mb-2">
+                            {#each Array.from(new Set(displayItems.filter(i => i.article).map(i=>i.article.domain))).slice(0,6) as dom}
+                            <SmartImage domain={dom} alt={dom} class="w-4 h-4 rounded-full" size={16} loading="eager" preferIconify={true} addBackground={true} backgroundMode="transparent-only" />
+							{/each}
+						</div>
+					{/if}
 					<h4 class="mb-3 font-semibold text-gray-800 dark:text-gray-200">{getTooltipTitle()}</h4>
 						
-						<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-2">
+						<div class="citation-list {maxCitationNumber >= 10 ? 'double-digit' : ''} space-y-3">
 							{#if displayItems.length > 0}
 								{#each getUniqueDisplayItems() as item}
 									<CitationItem {item} {highlightedNumber} showCitationNumber={item.isCited} {maxCitationNumber} />

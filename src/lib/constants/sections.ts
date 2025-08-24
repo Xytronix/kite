@@ -84,3 +84,37 @@ export const DEFAULT_SECTIONS: SectionConfig[] = [
   { id: "didYouKnow", name: "Did You Know", enabled: true, order: 24 },
   { id: "sources", name: "Sources", enabled: true, order: 25 },
 ];
+
+// Centralized section icon mapping (used across settings and story UIs)
+export const SECTION_ICONS: Record<string, string> = {
+  summary: "tabler:file-text",
+  primaryImage: "tabler:photo",
+  highlights: "tabler:highlight",
+  quotes: "tabler:quote",
+  secondaryImage: "tabler:photo-plus",
+  perspectives: "tabler:eye",
+  // Note: Ensure key matches section id used throughout app
+  historicalBackground: "tabler:history",
+  humanitarianImpact: "tabler:heart",
+  technicalDetails: "tabler:tool",
+  businessAngle: "tabler:briefcase",
+  scientificSignificance: "tabler:flask",
+  travelAdvisory: "tabler:map-pin",
+  performanceStatistics: "tabler:chart-bar",
+  leagueStandings: "tabler:trophy",
+  designPrinciples: "tabler:palette",
+  userExperienceImpact: "tabler:user",
+  gameplayMechanics: "tabler:device-gamepad",
+  industryImpact: "tabler:building-factory",
+  technicalSpecifications: "tabler:list-details",
+  timeline: "tabler:clock",
+  internationalReactions: "tabler:world",
+  suggestedQnA: "tabler:help",
+  actionItems: "tabler:checklist",
+  didYouKnow: "tabler:bulb",
+  sources: "tabler:link",
+};
+
+export function getSectionIcon(sectionId: string): string {
+  return SECTION_ICONS[sectionId] || "tabler:file";
+}

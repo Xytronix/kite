@@ -18,6 +18,8 @@ import SourceTooltip from './SourceTooltip.svelte';
 	import StoryDidYouKnow from './StoryDidYouKnow.svelte';
 	import StoryListSection from './StoryListSection.svelte';
 	import StoryTextSection from './StoryTextSection.svelte';
+  import { getSectionIcon } from '$lib/constants/sections';
+  import Icon from '@iconify/svelte';
 
 	// Props
 	interface Props {
@@ -163,31 +165,35 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 	{:else if section.id === 'perspectives'}
 		<StoryPerspectives perspectives={story.perspectives} articles={story.articles} {citationMapping} />
 	{:else if section.id === 'historicalBackground'}
-		<StoryTextSection 
+        <StoryTextSection 
 			title={s('section.historicalBackground') || 'Historical Background'}
 			content={story.historical_background}
 			articles={story.articles}
-			{citationMapping}
+            {citationMapping}
+            icon={getSectionIcon('historicalBackground')}
 		/>
 	{:else if section.id === 'humanitarianImpact'}
-		<StoryTextSection 
+        <StoryTextSection 
 			title={s('section.humanitarianImpact') || 'Humanitarian Impact'}
 			content={story.humanitarian_impact}
 			articles={story.articles}
-			{citationMapping}
+            {citationMapping}
+            icon={getSectionIcon('humanitarianImpact')}
 		/>
 	{:else if section.id === 'technicalDetails'}
-		<StoryListSection 
+        <StoryListSection 
 			title={s('section.technicalDetails') || 'Technical Details'}
 			items={story.technical_details}
 			articles={story.articles}
-			{citationMapping}
+            {citationMapping}
+            icon={getSectionIcon('technicalDetails')}
 		/>
 	{:else if section.id === 'businessAngle'}
-		<section class="mt-6">
-			<h3 class="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
-				{s('section.businessAngle') || 'Business Angle'}
-			</h3>
+    <section class="mt-6">
+            <h3 class="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+                <Icon icon={getSectionIcon('businessAngle')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <span>{s('section.businessAngle') || 'Business Angle'}</span>
+            </h3>
 			{#if story.business_angle_text}
 				<p class="mb-4 text-gray-700 dark:text-gray-300">
 					<CitationText 
@@ -229,79 +235,88 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 				{citationMapping}
 			/>
 		</section>
-	{:else if section.id === 'scientificSignificance'}
-		<StoryListSection 
-			title={s('section.scientificSignificance') || 'Scientific Significance'}
-			items={story.scientific_significance}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'travelAdvisory'}
-		<StoryListSection 
-			title={s('section.travelAdvisory') || 'Travel Advisory'}
-			items={story.travel_advisory}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'performanceStatistics'}
-		<StoryListSection 
-			title={s('section.performanceStatistics') || 'Performance Statistics'}
-			items={story.performance_statistics}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'leagueStandings'}
-		<StoryTextSection 
-			title={s('section.leagueStandings') || 'League Standings'}
-			content={story.league_standings}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'designPrinciples'}
-		<StoryTextSection 
-			title={s('section.designPrinciples') || 'Design Principles'}
-			content={story.design_principles}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'userExperienceImpact'}
-		<StoryListSection 
-			title={s('section.userExperienceImpact') || 'User Experience Impact'}
-			items={story.user_experience_impact}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'gameplayMechanics'}
-		<StoryListSection 
-			title={s('section.gameplayMechanics') || 'Gameplay Mechanics'}
-			items={story.gameplay_mechanics}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'industryImpact'}
-		<StoryListSection 
-			title={s('section.industryImpact') || 'Industry Impact'}
-			items={story.gaming_industry_impact}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'technicalSpecifications'}
-		<StoryTextSection 
-			title={s('section.technicalSpecifications') || 'Technical Specifications'}
-			content={story.technical_specifications}
-			articles={story.articles}
-			{citationMapping}
-		/>
-	{:else if section.id === 'timeline'}
-		<StoryTimeline timeline={story.timeline} articles={story.articles} {citationMapping} />
-	{:else if section.id === 'internationalReactions'}
-		<StoryInternationalReactions reactions={story.international_reactions} articles={story.articles} {citationMapping} />
-	{:else if section.id === 'suggestedQnA'}
-		<StorySuggestedQnA qna={story.suggested_qna} articles={story.articles} {citationMapping} />
-	{:else if section.id === 'actionItems'}
-		<StoryActionItems actionItems={story.user_action_items} articles={story.articles} {citationMapping} />
-	{:else if section.id === 'didYouKnow'}
-		<StoryDidYouKnow content={story.did_you_know} articles={story.articles} {citationMapping} />
+    {:else if section.id === 'scientificSignificance'}
+        <StoryListSection 
+            title={s('section.scientificSignificance') || 'Scientific Significance'}
+            items={story.scientific_significance}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('scientificSignificance')}
+        />
+    {:else if section.id === 'travelAdvisory'}
+        <StoryListSection 
+            title={s('section.travelAdvisory') || 'Travel Advisory'}
+            items={story.travel_advisory}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('travelAdvisory')}
+        />
+    {:else if section.id === 'performanceStatistics'}
+        <StoryListSection 
+            title={s('section.performanceStatistics') || 'Performance Statistics'}
+            items={story.performance_statistics}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('performanceStatistics')}
+        />
+    {:else if section.id === 'leagueStandings'}
+        <StoryTextSection 
+            title={s('section.leagueStandings') || 'League Standings'}
+            content={story.league_standings}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('leagueStandings')}
+        />
+    {:else if section.id === 'designPrinciples'}
+        <StoryTextSection 
+            title={s('section.designPrinciples') || 'Design Principles'}
+            content={story.design_principles}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('designPrinciples')}
+        />
+    {:else if section.id === 'userExperienceImpact'}
+        <StoryListSection 
+            title={s('section.userExperienceImpact') || 'User Experience Impact'}
+            items={story.user_experience_impact}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('userExperienceImpact')}
+        />
+    {:else if section.id === 'gameplayMechanics'}
+        <StoryListSection 
+            title={s('section.gameplayMechanics') || 'Gameplay Mechanics'}
+            items={story.gameplay_mechanics}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('gameplayMechanics')}
+        />
+    {:else if section.id === 'industryImpact'}
+        <StoryListSection 
+            title={s('section.industryImpact') || 'Industry Impact'}
+            items={story.gaming_industry_impact}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('industryImpact')}
+        />
+    {:else if section.id === 'technicalSpecifications'}
+        <StoryTextSection 
+            title={s('section.technicalSpecifications') || 'Technical Specifications'}
+            content={story.technical_specifications}
+            articles={story.articles}
+            {citationMapping}
+            icon={getSectionIcon('technicalSpecifications')}
+        />
+    {:else if section.id === 'timeline'}
+        <StoryTimeline timeline={story.timeline} articles={story.articles} {citationMapping} />
+    {:else if section.id === 'internationalReactions'}
+        <StoryInternationalReactions reactions={story.international_reactions} articles={story.articles} {citationMapping} />
+    {:else if section.id === 'suggestedQnA'}
+        <StorySuggestedQnA qna={story.suggested_qna} articles={story.articles} {citationMapping} />
+    {:else if section.id === 'actionItems'}
+        <StoryActionItems actionItems={story.user_action_items} articles={story.articles} {citationMapping} />
+    {:else if section.id === 'didYouKnow'}
+        <StoryDidYouKnow content={story.did_you_know} articles={story.articles} {citationMapping} />
 	{:else if section.id === 'sources'}
 		<StorySources 
 			domains={story.domains}

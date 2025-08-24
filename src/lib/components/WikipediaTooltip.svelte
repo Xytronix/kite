@@ -313,6 +313,39 @@ onMount(() => {
 	if (browser) {
 		window.addEventListener('scroll', hideTooltipOnScroll, { passive: true });
 	}
+
+    function isInside(el: Node | null): boolean {
+        const tooltip = floating.elements.floating as HTMLElement | undefined;
+        const reference = floating.elements.reference as HTMLElement | undefined;
+        if (!el || !(el instanceof Element)) return false;
+        return !!((tooltip && tooltip.contains(el)) || (reference && reference.contains(el)));
+    }
+
+    function handleGlobalPointerMove(e: PointerEvent) {
+        if (isMobile || !showTooltip) return;
+        if (!isInside(e.target as Node)) {
+            if (!hideTimeout) hideTimeout = window.setTimeout(() => hideTooltip(), 180);
+        } else if (hideTimeout) {
+            clearTimeout(hideTimeout); hideTimeout = null;
+        }
+    }
+
+    function handleGlobalClick(e: Event) {
+        if (isMobile || !showTooltip) return;
+        if (!isInside(e.target as Node)) hideTooltip();
+    }
+
+    if (browser) {
+        window.addEventListener('pointermove', handleGlobalPointerMove, { passive: true });
+        window.addEventListener('click', handleGlobalClick, true);
+    }
+
+    onDestroy(() => {
+        if (browser) {
+            window.removeEventListener('pointermove', handleGlobalPointerMove as any);
+            window.removeEventListener('click', handleGlobalClick as any, true as any);
+        }
+    });
 });
 
 onDestroy(() => {

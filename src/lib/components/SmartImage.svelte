@@ -17,7 +17,8 @@
 		loading?: 'lazy' | 'eager';
 		fallbackUrls?: string[];
 		preferIconify?: boolean; // When true, prioritize iconify icons over image URLs
-		addBackground?: boolean; // Add white background for transparent icons
+		addBackground?: boolean; // Request background behind icons
+		backgroundMode?: 'always' | 'transparent-only'; // When addBackground, choose whether to always show or only for transparent icons
 	}
 
 	let { 
@@ -29,7 +30,8 @@
 		loading = 'lazy',
 		fallbackUrls = [],
 		preferIconify = false,
-		addBackground = false
+		addBackground = false,
+		backgroundMode = 'always'
 	}: Props = $props();
 
 
@@ -42,6 +44,7 @@
 	let useIconify = $state(false);
 	let imageLoaded = $state(false);
 	let isLoading = $state(true); // Track loading state
+    let hasTransparency = $state<boolean>(false); // Default to opaque until proven transparent
 	
 	// Track last loaded props to prevent unnecessary reloads
 	let lastLoadedDomain = $state<string | undefined>(undefined);
@@ -247,12 +250,53 @@
 		}
 	}
 
+    function isGoogleS2(url: string | undefined): boolean {
+        if (!url) return false;
+        return /https?:\/\/www\.google\.com\/s2\/favicons/i.test(url);
+    }
+
+    function isGoogleStaticFavicon(url: string | undefined): boolean {
+        if (!url) return false;
+        return /https?:\/\/.*\.gstatic\.com\/faviconV2/i.test(url);
+    }
+
+    function detectTransparency(img: HTMLImageElement): boolean {
+		try {
+			const canvas = document.createElement('canvas');
+			const sample = Math.min(16, Math.max(8, Math.round(size)));
+			canvas.width = sample;
+			canvas.height = sample;
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return true;
+			ctx.clearRect(0, 0, sample, sample);
+			ctx.drawImage(img, 0, 0, sample, sample);
+			const data = ctx.getImageData(0, 0, sample, sample).data;
+			for (let i = 3; i < data.length; i += 4) {
+				if (data[i] < 250) { // allow slight antialiasing
+					return true;
+				}
+			}
+            return false;
+        } catch {
+            // On CORS-tainted canvas, treat as opaque per policy
+            return false;
+		}
+	}
+
 	function handleLoad() {
 		hasError = false;
 		imageLoaded = true;
 		isLoading = false; // Done loading
-		if (imgElement) {
+        if (imgElement) {
 			imgElement.style.display = 'block';
+            // Transparency detection only for bitmap images
+            if (backgroundMode === 'always') {
+                hasTransparency = true;
+            } else {
+                const currentUrl = (imgElement as HTMLImageElement).currentSrc || imgElement.src;
+                // Treat Google S2 and gstatic faviconV2 as transparent by default (apply bg)
+                hasTransparency = (isGoogleS2(currentUrl) || isGoogleStaticFavicon(currentUrl)) ? true : detectTransparency(imgElement);
+            }
 		}
 	}
 
@@ -267,7 +311,7 @@
 	});
 </script>
 
-<!-- Conditionally wrap with background -->
+	<!-- Conditionally wrap with background -->
 <!-- Debug: addBackground={addBackground} -->
 {#if addBackground}
 	{#key componentId}
@@ -289,7 +333,7 @@
 			</div>
 		{:else if imageLoaded && imgElement}
 			<!-- IMAGE LOADED -->
-			<div class="{className} relative bg-white rounded-full flex items-center justify-center">
+			<div class="{className} relative {backgroundMode === 'always' || hasTransparency ? 'bg-white' : ''} dark:{backgroundMode === 'always' || hasTransparency ? 'bg-white' : ''} rounded-full flex items-center justify-center">
 				<img
 					bind:this={imgElement}
 					alt={alt}

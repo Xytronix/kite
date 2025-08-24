@@ -731,6 +731,10 @@
     "text": "Active Filters",
     "translationContext": "Label for active filters section"
   },
+  "settings.contentFilter.activeFilters.description": {
+    "text": "Currently active content filters. Click on any filter tag to remove it individually.",
+    "translationContext": "Description for active filters section"
+  },
   "settings.contentFilter.advanced": {
     "text": "Advanced Settings",
     "translationContext": "Label for advanced settings section"
@@ -738,6 +742,14 @@
   "settings.contentFilter.advancedDescription": {
     "text": "Fine-tune the algorithmic scoring thresholds. Higher values = stricter filtering.",
     "translationContext": "Description for advanced settings"
+  },
+  "settings.contentFilter.advancedParameters": {
+    "text": "Advanced Parameter Controls",
+    "translationContext": "Label for advanced parameter controls section"
+  },
+  "settings.contentFilter.advancedParameters.description": {
+    "text": "Fine-tune the filtering algorithm with detailed parameter controls. These settings affect how content quality, relevance, and sentiment are evaluated.",
+    "translationContext": "Description for advanced parameter controls"
   },
   "settings.contentFilter.advancedSimilarity": {
     "text": "Advanced Content Similarity",
@@ -755,6 +767,14 @@
     "text": "Fine-tune filtering sensitivity for each category",
     "translationContext": "Description for advanced weights section"
   },
+  "settings.contentFilter.algorithmWeights": {
+    "text": "Algorithm Weight Controls",
+    "translationContext": "Label for algorithm weight controls section"
+  },
+  "settings.contentFilter.algorithmWeights.description": {
+    "text": "Adjust how different aspects of content are weighted when calculating similarity. The algorithm automatically normalizes these weights.",
+    "translationContext": "Description for algorithm weight controls"
+  },
   "settings.contentFilter.backupDescription": {
     "text": "Export your content filter settings to a file or import from a previous backup",
     "translationContext": "Description for backup and restore"
@@ -771,6 +791,10 @@
     "text": "Quick Presets",
     "translationContext": "Label for basic filter presets section"
   },
+  "settings.contentFilter.basicPresets.title": {
+    "text": "Basic Presets",
+    "translationContext": "Title for basic presets section"
+  },
   "settings.contentFilter.breakingNews": {
     "text": "Breaking News",
     "translationContext": "Label for breaking news filter"
@@ -778,6 +802,10 @@
   "settings.contentFilter.breakingNews.description": {
     "text": "Urgent alerts, breaking news notifications, live updates",
     "translationContext": "Description for breaking news filter"
+  },
+  "settings.contentFilter.categoryOverrides": {
+    "text": "Per-Category Weight Overrides",
+    "translationContext": "Label for category overrides section"
   },
   "settings.contentFilter.categoryOverrides.custom": {
     "text": "Custom",
@@ -791,9 +819,17 @@
     "text": "Override global sensitivity for specific categories. Leave blank to use global settings. Categories with custom settings will override global settings.",
     "translationContext": "Description for category sensitivity overrides"
   },
+  "settings.contentFilter.categoryOverrides.enableFilters": {
+    "text": "Enable category filters above to customize their weight settings.",
+    "translationContext": "Instructions to enable category filters for overrides"
+  },
   "settings.contentFilter.categoryOverrides.label": {
     "text": "Advanced Category Sensitivity",
     "translationContext": "Label for category-specific sensitivity overrides"
+  },
+  "settings.contentFilter.categoryOverrides.noActive": {
+    "text": "No category filters are currently active.",
+    "translationContext": "Message when no categories are active for overrides"
   },
   "settings.contentFilter.categoryOverrides.sliderLabels.balanced": {
     "text": "50% (Balanced)",
@@ -831,6 +867,34 @@
     "text": "Clear all filters",
     "translationContext": "Button to clear all active filters"
   },
+  "settings.contentFilter.clearAll.confirm.cancel": {
+    "text": "Cancel",
+    "translationContext": "Cancel button for clear all confirmation"
+  },
+  "settings.contentFilter.clearAll.confirm.confirm": {
+    "text": "Clear All Filters",
+    "translationContext": "Confirm button for clear all"
+  },
+  "settings.contentFilter.clearAll.confirm.description": {
+    "text": "Are you sure you want to remove all active filters and reset all settings to their defaults? This will:",
+    "translationContext": "Description for clear all confirmation dialog"
+  },
+  "settings.contentFilter.clearAll.confirm.subtitle": {
+    "text": "This action cannot be undone",
+    "translationContext": "Subtitle for clear all confirmation dialog"
+  },
+  "settings.contentFilter.clearAll.confirm.title": {
+    "text": "Clear All Filters",
+    "translationContext": "Title for clear all confirmation dialog"
+  },
+  "settings.contentFilter.clearAll.description": {
+    "text": "Remove all active filters and reset to defaults",
+    "translationContext": "Description for clear all filters button"
+  },
+  "settings.contentFilter.contentImportance": {
+    "text": "Content Importance",
+    "translationContext": "Label for content importance weight"
+  },
   "settings.contentFilter.contentQuality": {
     "text": "Content Quality",
     "translationContext": "Label for content quality section"
@@ -842,6 +906,14 @@
   "settings.contentFilter.contentQuality.label": {
     "text": "Content Quality",
     "translationContext": "Label for content quality section"
+  },
+  "settings.contentFilter.contentSimilarity": {
+    "text": "Content Similarity Detection",
+    "translationContext": "Label for content similarity detection"
+  },
+  "settings.contentFilter.contentSimilarity.description": {
+    "text": "Enable intelligent detection of duplicate and similar stories",
+    "translationContext": "Description for content similarity detection"
   },
   "settings.contentFilter.contentSimilarity.expiry": {
     "text": "Story Memory Duration",
@@ -903,6 +975,18 @@
     "text": "Higher values = stricter similarity detection",
     "translationContext": "Description for similarity threshold"
   },
+  "settings.contentFilter.contentWeight": {
+    "text": "Content Similarity Weight",
+    "translationContext": "Label for content similarity weight"
+  },
+  "settings.contentFilter.contentWeight.help": {
+    "text": "How much weight to give to content body similarity when comparing stories",
+    "translationContext": "Help text for content weight"
+  },
+  "settings.contentFilter.contextEvidence": {
+    "text": "Context Evidence",
+    "translationContext": "Label for context evidence weight"
+  },
   "settings.contentFilter.contribute": {
     "text": "Add more filters",
     "translationContext": "Link to contribute new filter presets on GitHub"
@@ -910,10 +994,6 @@
   "settings.contentFilter.customKeywords": {
     "text": "Custom Keywords",
     "translationContext": "Label for custom keywords section"
-  },
-  "settings.contentFilter.customKeywords.description": {
-    "text": "Add custom keywords to filter content containing specific terms or phrases",
-    "translationContext": "Description for custom keywords section"
   },
   "settings.contentFilter.customKeywords.add": {
     "text": "Add",
@@ -947,6 +1027,10 @@
     "text": "Current Keywords",
     "translationContext": "Label for current keywords section"
   },
+  "settings.contentFilter.customKeywords.description": {
+    "text": "Add custom keywords to filter content containing specific terms or phrases",
+    "translationContext": "Description for custom keywords section"
+  },
   "settings.contentFilter.customKeywords.duplicate": {
     "text": "Keyword already exists",
     "translationContext": "Error message for duplicate keyword"
@@ -959,6 +1043,10 @@
     "text": "Add keywords above to filter content containing specific terms",
     "translationContext": "Help text when no keywords are added"
   },
+  "settings.contentFilter.customKeywords.help": {
+    "text": "Enter a single keyword or multiple keywords separated by commas. Duplicates will be ignored.",
+    "translationContext": "Help text for keyword input"
+  },
   "settings.contentFilter.customKeywords.invalid": {
     "text": "Invalid keyword (must be 1-50 characters)",
     "translationContext": "Error message for invalid keyword"
@@ -967,9 +1055,45 @@
     "text": "Enter keyword or keywords separated by commas...",
     "translationContext": "Placeholder for keyword input"
   },
-  "settings.contentFilter.customKeywords.help": {
-    "text": "Enter a single keyword or multiple keywords separated by commas. Duplicates will be ignored.",
-    "translationContext": "Help text for keyword input"
+  "settings.contentFilter.detectionMode": {
+    "text": "Detection Mode",
+    "translationContext": "Label for detection mode setting"
+  },
+  "settings.contentFilter.detectionMode.historical": {
+    "text": "Historical",
+    "translationContext": "Historical detection mode option"
+  },
+  "settings.contentFilter.detectionMode.historical.description": {
+    "text": "Compare with stories from previous days",
+    "translationContext": "Description for historical detection mode"
+  },
+  "settings.contentFilter.detectionMode.today": {
+    "text": "Today Only",
+    "translationContext": "Today only detection mode option"
+  },
+  "settings.contentFilter.detectionMode.today.description": {
+    "text": "Compare only with stories from today",
+    "translationContext": "Description for today only detection mode"
+  },
+  "settings.contentFilter.detectionScope": {
+    "text": "Detection Scope",
+    "translationContext": "Label for detection scope setting"
+  },
+  "settings.contentFilter.detectionScope.acrossCategories": {
+    "text": "Across Categories",
+    "translationContext": "Across categories detection scope option"
+  },
+  "settings.contentFilter.detectionScope.acrossCategories.description": {
+    "text": "Compare stories across all categories",
+    "translationContext": "Description for across categories detection scope"
+  },
+  "settings.contentFilter.detectionScope.withinCategory": {
+    "text": "Within Categories",
+    "translationContext": "Within categories detection scope option"
+  },
+  "settings.contentFilter.detectionScope.withinCategory.description": {
+    "text": "Compare only stories in the same category",
+    "translationContext": "Description for within categories detection scope"
   },
   "settings.contentFilter.enableDescription": {
     "text": "Automatically filter low-quality, irrelevant, or unwanted content using smart analysis",
@@ -982,6 +1106,26 @@
   "settings.contentFilter.entertainment": {
     "text": "Entertainment",
     "translationContext": "Label for entertainment filter"
+  },
+  "settings.contentFilter.entertainment.description": {
+    "text": "Movies, TV shows, music, pop culture",
+    "translationContext": "Description for entertainment filter"
+  },
+  "settings.contentFilter.entityWeight": {
+    "text": "Entity Similarity Weight",
+    "translationContext": "Label for entity similarity weight"
+  },
+  "settings.contentFilter.entityWeight.help": {
+    "text": "How much weight to give to shared entities (people, places, organizations) when comparing stories",
+    "translationContext": "Help text for entity weight"
+  },
+  "settings.contentFilter.export": {
+    "text": "Export Settings",
+    "translationContext": "Button to export settings"
+  },
+  "settings.contentFilter.export.description": {
+    "text": "Download your current filter settings as a JSON file",
+    "translationContext": "Description for export functionality"
   },
   "settings.contentFilter.export.error": {
     "text": "Export failed",
@@ -1002,18 +1146,6 @@
   "settings.contentFilter.export.title": {
     "text": "Export Configuration",
     "translationContext": "Title for export section"
-  },
-  "settings.contentFilter.export.description": {
-    "text": "Download your current filter settings as a JSON file",
-    "translationContext": "Description for export functionality"
-  },
-  "settings.contentFilter.entertainment.description": {
-    "text": "Movies, TV shows, music, pop culture",
-    "translationContext": "Description for entertainment filter"
-  },
-  "settings.contentFilter.export": {
-    "text": "Export Settings",
-    "translationContext": "Button to export settings"
   },
   "settings.contentFilter.exportImport.description": {
     "text": "Export your filter settings to a file or import from a previous backup",
@@ -1107,9 +1239,17 @@
     "text": "Filter clickbait, spam, and poor journalism",
     "translationContext": "Description for low quality content filter"
   },
+  "settings.contentFilter.filterMode": {
+    "text": "Filter Mode",
+    "translationContext": "Label for filter mode setting"
+  },
   "settings.contentFilter.filterMode.blur": {
     "text": "Blur with warning",
     "translationContext": "Blur filter mode option"
+  },
+  "settings.contentFilter.filterMode.blur.help": {
+    "text": "Show filtered content with a blur effect. You can still access it if needed.",
+    "translationContext": "Help text for blur filter mode"
   },
   "settings.contentFilter.filterMode.blurDescription": {
     "text": "Stories are blurred and can be revealed on click",
@@ -1123,6 +1263,10 @@
     "text": "Hide completely",
     "translationContext": "Hide filter mode option"
   },
+  "settings.contentFilter.filterMode.hide.help": {
+    "text": "Completely remove filtered content from your feed. Clean but you won't see what was filtered.",
+    "translationContext": "Help text for hide filter mode"
+  },
   "settings.contentFilter.filterMode.hideDescription": {
     "text": "Filtered stories are removed from view",
     "translationContext": "Description for hide filter mode"
@@ -1130,6 +1274,10 @@
   "settings.contentFilter.filterMode.label": {
     "text": "Filter Mode",
     "translationContext": "Label for the content filter mode setting"
+  },
+  "settings.contentFilter.filterMode.tooltip": {
+    "text": "Choose how filtered content is handled in the interface",
+    "translationContext": "Tooltip for filter mode setting"
   },
   "settings.contentFilter.filterNegative": {
     "text": "Negative News",
@@ -1235,9 +1383,45 @@
     "text": "Filter Scope & Mode",
     "translationContext": "Label for filter scope section"
   },
+  "settings.contentFilter.filterScope.all": {
+    "text": "All Content",
+    "translationContext": "All content filter scope option"
+  },
+  "settings.contentFilter.filterScope.all.help": {
+    "text": "Analyze all available content including full articles. Most comprehensive but slower.",
+    "translationContext": "Help text for all content filter scope"
+  },
   "settings.contentFilter.filterScope.description": {
     "text": "Configure how and where filters are applied",
     "translationContext": "Description for filter scope section"
+  },
+  "settings.contentFilter.filterScope.scope": {
+    "text": "Filter Scope",
+    "translationContext": "Label for filter scope setting"
+  },
+  "settings.contentFilter.filterScope.scope.description": {
+    "text": "Determines which content areas are analyzed for filtering decisions",
+    "translationContext": "Description for filter scope setting"
+  },
+  "settings.contentFilter.filterScope.scope.tooltip": {
+    "text": "Choose which parts of content to analyze when applying filters",
+    "translationContext": "Tooltip for filter scope setting"
+  },
+  "settings.contentFilter.filterScope.summary": {
+    "text": "Summary",
+    "translationContext": "Summary filter scope option"
+  },
+  "settings.contentFilter.filterScope.summary.help": {
+    "text": "Analyze titles and summaries. Good balance of speed and accuracy.",
+    "translationContext": "Help text for summary filter scope"
+  },
+  "settings.contentFilter.filterScope.title": {
+    "text": "Title Only",
+    "translationContext": "Title only filter scope option"
+  },
+  "settings.contentFilter.filterScope.title.help": {
+    "text": "Only analyze article titles for filtering decisions. Fastest but least comprehensive.",
+    "translationContext": "Help text for title only filter scope"
   },
   "settings.contentFilter.filterSensitivity.balanced": {
     "text": "Balanced (Recommended)",
@@ -1323,6 +1507,58 @@
     "text": "Market news, business updates, economic reports",
     "translationContext": "Description for financial news filter"
   },
+  "settings.contentFilter.geographicScope": {
+    "text": "Geographic Scope",
+    "translationContext": "Label for geographic scope section"
+  },
+  "settings.contentFilter.geographicScope.description": {
+    "text": "Filter content by geographic relevance",
+    "translationContext": "Description for geographic scope section"
+  },
+  "settings.contentFilter.geographicScope.label": {
+    "text": "Geographic Scope",
+    "translationContext": "Label for geographic scope section"
+  },
+  "settings.contentFilter.globalSensitivity": {
+    "text": "Global Filter Sensitivity",
+    "translationContext": "Label for global filter sensitivity"
+  },
+  "settings.contentFilter.globalSensitivity.description": {
+    "text": "Adjusts the default sensitivity level for all content filters",
+    "translationContext": "Description for global filter sensitivity"
+  },
+  "settings.contentFilter.globalSensitivity.tooltip": {
+    "text": "Controls how aggressively filters are applied across all categories",
+    "translationContext": "Tooltip for global filter sensitivity"
+  },
+  "settings.contentFilter.globalWeights": {
+    "text": "Global Weight Settings",
+    "translationContext": "Label for global weight settings"
+  },
+  "settings.contentFilter.globalWeights.contentImportance": {
+    "text": "Content Body Importance",
+    "translationContext": "Label for content importance weight"
+  },
+  "settings.contentFilter.globalWeights.contextEvidence": {
+    "text": "Context Evidence Weight",
+    "translationContext": "Label for context evidence weight"
+  },
+  "settings.contentFilter.globalWeights.description": {
+    "text": "Control how different content elements are weighted in filtering decisions",
+    "translationContext": "Description for global weights"
+  },
+  "settings.contentFilter.globalWeights.label": {
+    "text": "Global Filtering Weights",
+    "translationContext": "Label for global weights section"
+  },
+  "settings.contentFilter.globalWeights.titleImportance": {
+    "text": "Title Match Importance",
+    "translationContext": "Label for title importance weight"
+  },
+  "settings.contentFilter.import": {
+    "text": "Import Settings",
+    "translationContext": "Button to import settings"
+  },
   "settings.contentFilter.import.confirm.cancel": {
     "text": "Cancel",
     "translationContext": "Cancel button for import confirmation"
@@ -1391,42 +1627,6 @@
     "text": "Import Configuration",
     "translationContext": "Title for import section"
   },
-  "settings.contentFilter.geographicScope": {
-    "text": "Geographic Scope",
-    "translationContext": "Label for geographic scope section"
-  },
-  "settings.contentFilter.geographicScope.description": {
-    "text": "Filter content by geographic relevance",
-    "translationContext": "Description for geographic scope section"
-  },
-  "settings.contentFilter.geographicScope.label": {
-    "text": "Geographic Scope",
-    "translationContext": "Label for geographic scope section"
-  },
-  "settings.contentFilter.globalWeights.contentImportance": {
-    "text": "Content Body Importance",
-    "translationContext": "Label for content importance weight"
-  },
-  "settings.contentFilter.globalWeights.contextEvidence": {
-    "text": "Context Evidence Weight",
-    "translationContext": "Label for context evidence weight"
-  },
-  "settings.contentFilter.globalWeights.description": {
-    "text": "Control how different content elements are weighted in filtering decisions",
-    "translationContext": "Description for global weights"
-  },
-  "settings.contentFilter.globalWeights.label": {
-    "text": "Global Filtering Weights",
-    "translationContext": "Label for global weights section"
-  },
-  "settings.contentFilter.globalWeights.titleImportance": {
-    "text": "Title Match Importance",
-    "translationContext": "Label for title importance weight"
-  },
-  "settings.contentFilter.import": {
-    "text": "Import Settings",
-    "translationContext": "Button to import settings"
-  },
   "settings.contentFilter.importConfirm.action": {
     "text": "Import",
     "translationContext": "Import action button"
@@ -1494,6 +1694,14 @@
   "settings.contentFilter.lowQuality.description": {
     "text": "Poor writing, spelling errors, unclear sources",
     "translationContext": "Description for low quality filter"
+  },
+  "settings.contentFilter.memoryDuration": {
+    "text": "Memory Duration",
+    "translationContext": "Label for memory duration setting"
+  },
+  "settings.contentFilter.memoryDuration.help": {
+    "text": "How many days back to compare stories for similarity detection. Longer periods catch more duplicates but use more memory.",
+    "translationContext": "Help text for memory duration"
   },
   "settings.contentFilter.minimumQuality": {
     "text": "Minimum Quality",
@@ -1707,6 +1915,10 @@
     "text": "Specialized filtering modes for specific use cases",
     "translationContext": "Description for specialized filter presets"
   },
+  "settings.contentFilter.presets.parent": {
+    "text": "Presets",
+    "translationContext": "Section divider label for the presets group"
+  },
   "settings.contentFilter.presets.label": {
     "text": "Specialized Presets",
     "translationContext": "Label for specialized filter presets section"
@@ -1746,18 +1958,6 @@
   "settings.contentFilter.reset": {
     "text": "Reset to Defaults",
     "translationContext": "Button to reset settings"
-  },
-  "settings.contentFilter.resetConfirm": {
-    "text": "This will clear all filters and reset settings to defaults.",
-    "translationContext": "Reset confirmation message"
-  },
-  "settings.contentFilter.resetModal.description": {
-    "text": "This will clear all filters and reset settings to defaults.",
-    "translationContext": "Description for reset confirmation modal"
-  },
-  "settings.contentFilter.resetModal.title": {
-    "text": "Reset Content Filters?",
-    "translationContext": "Title for reset confirmation modal"
   },
   "settings.contentFilter.reset.confirm.cancel": {
     "text": "Cancel",
@@ -1803,13 +2003,17 @@
     "text": "Reset to Defaults",
     "translationContext": "Title for reset section"
   },
-  "settings.contentFilter.version.description": {
-    "text": "Configuration format version: 1.0",
-    "translationContext": "Version information description"
+  "settings.contentFilter.resetConfirm": {
+    "text": "This will clear all filters and reset settings to defaults.",
+    "translationContext": "Reset confirmation message"
   },
-  "settings.contentFilter.version.title": {
-    "text": "Version Information",
-    "translationContext": "Title for version information section"
+  "settings.contentFilter.resetModal.description": {
+    "text": "This will clear all filters and reset settings to defaults.",
+    "translationContext": "Description for reset confirmation modal"
+  },
+  "settings.contentFilter.resetModal.title": {
+    "text": "Reset Content Filters?",
+    "translationContext": "Title for reset confirmation modal"
   },
   "settings.contentFilter.scope.all": {
     "text": "All content",
@@ -1830,286 +2034,6 @@
   "settings.contentFilter.scope.title": {
     "text": "Title only",
     "translationContext": "Option to filter by title only"
-  },
-  "settings.contentFilter.sentimentTooltip": {
-    "text": "How positive or neutral the content sentiment must be",
-    "translationContext": "Tooltip for sentiment setting"
-  },
-  "settings.contentFilter.showCount.description": {
-    "text": "Display number of filtered stories in each category",
-    "translationContext": "Description for show filtered count toggle"
-  },
-  "settings.contentFilter.showCount.label": {
-    "text": "Show Filtered Count",
-    "translationContext": "Label for show filtered count toggle"
-  },
-  "settings.contentFilter.socialMediaDrama": {
-    "text": "Social Media Drama",
-    "translationContext": "Label for social media drama filter"
-  },
-  "settings.contentFilter.socialMediaDrama.description": {
-    "text": "Twitter feuds, online controversies, viral disputes",
-    "translationContext": "Description for social media drama filter"
-  },
-  "settings.contentFilter.specializedPresets.description": {
-    "text": "Advanced filtering presets for specific use cases",
-    "translationContext": "Description for specialized presets"
-  },
-  "settings.contentFilter.specializedPresets.label": {
-    "text": "Specialized Presets",
-    "translationContext": "Label for specialized presets section"
-  },
-  "settings.contentFilter.sports": {
-    "text": "Sports",
-    "translationContext": "Label for sports filter"
-  },
-  "settings.contentFilter.sports.description": {
-    "text": "Sports news, games, athlete updates",
-    "translationContext": "Description for sports filter"
-  },
-  "settings.contentFilter.statistics": {
-    "text": "Filter Statistics",
-    "translationContext": "Label for statistics section"
-  },
-  "settings.contentFilter.systemControls": {
-    "text": "System Controls",
-    "translationContext": "Label for system controls section"
-  },
-  "settings.contentFilter.systemControls.description": {
-    "text": "Import, export, and reset filter configurations",
-    "translationContext": "Description for system controls section"
-  },
-  "settings.contentFilter.tab.description": {
-    "text": "Use smart content filtering to automatically filter stories based on quality, relevance, and sentiment analysis instead of simple keyword matching.",
-    "translationContext": "Description for content filter tab"
-  },
-  "settings.contentFilter.technology": {
-    "text": "Technology",
-    "translationContext": "Label for technology filter"
-  },
-  "settings.contentFilter.technology.description": {
-    "text": "Tech news, gadgets, software updates",
-    "translationContext": "Description for technology filter"
-  },
-  "settings.contentFilter.topicsSubjects": {
-    "text": "Topics & Subjects",
-    "translationContext": "Label for topics and subjects section"
-  },
-  "settings.contentFilter.topicsSubjects.description": {
-    "text": "Filter content by topic categories and subject matter",
-    "translationContext": "Description for topics and subjects section"
-  },
-  "settings.contentFilter.topicsSubjects.label": {
-    "text": "Topics & Subjects",
-    "translationContext": "Label for topics and subjects section"
-  },
-  "settings.contentFilter.topReasons": {
-    "text": "Top Filter Reasons",
-    "translationContext": "Label for top filter reasons"
-  },
-  "settings.contentFilter.totalProcessed": {
-    "text": "Stories Processed",
-    "translationContext": "Label for total processed statistic"
-  },
-  "settings.contentFilter.weather": {
-    "text": "Weather",
-    "translationContext": "Label for weather filter"
-  },
-  "settings.contentFilter.weather.description": {
-    "text": "Weather reports, forecasts, climate updates",
-    "translationContext": "Description for weather filter"
-  },
-  "settings.contentFilter.wellnessMental": {
-    "text": "Wellness & Mental Health",
-    "translationContext": "Label for wellness section"
-  },
-  "settings.contentFilter.wellnessMental.description": {
-    "text": "Filter content that may impact mental wellbeing",
-    "translationContext": "Description for wellness section"
-  },
-  "settings.contentFilter.wellnessMental.label": {
-    "text": "Wellness & Mental Health",
-    "translationContext": "Label for wellness section"
-  },
-  "settings.contentFilter.activeFilters.description": {
-    "text": "Currently active content filters. Click on any filter tag to remove it individually.",
-    "translationContext": "Description for active filters section"
-  },
-  "settings.contentFilter.advancedParameters": {
-    "text": "Advanced Parameter Controls",
-    "translationContext": "Label for advanced parameter controls section"
-  },
-  "settings.contentFilter.advancedParameters.description": {
-    "text": "Fine-tune the filtering algorithm with detailed parameter controls. These settings affect how content quality, relevance, and sentiment are evaluated.",
-    "translationContext": "Description for advanced parameter controls"
-  },
-  "settings.contentFilter.algorithmWeights": {
-    "text": "Algorithm Weight Controls",
-    "translationContext": "Label for algorithm weight controls section"
-  },
-  "settings.contentFilter.algorithmWeights.description": {
-    "text": "Adjust how different aspects of content are weighted when calculating similarity. The algorithm automatically normalizes these weights.",
-    "translationContext": "Description for algorithm weight controls"
-  },
-  "settings.contentFilter.categoryOverrides": {
-    "text": "Per-Category Weight Overrides",
-    "translationContext": "Label for category overrides section"
-  },
-  "settings.contentFilter.categoryOverrides.noActive": {
-    "text": "No category filters are currently active.",
-    "translationContext": "Message when no categories are active for overrides"
-  },
-  "settings.contentFilter.categoryOverrides.enableFilters": {
-    "text": "Enable category filters above to customize their weight settings.",
-    "translationContext": "Instructions to enable category filters for overrides"
-  },
-  "settings.contentFilter.contentImportance": {
-    "text": "Content Importance",
-    "translationContext": "Label for content importance weight"
-  },
-  "settings.contentFilter.contentSimilarity": {
-    "text": "Content Similarity Detection",
-    "translationContext": "Label for content similarity detection"
-  },
-  "settings.contentFilter.contentSimilarity.description": {
-    "text": "Enable intelligent detection of duplicate and similar stories",
-    "translationContext": "Description for content similarity detection"
-  },
-  "settings.contentFilter.contentWeight": {
-    "text": "Content Similarity Weight",
-    "translationContext": "Label for content similarity weight"
-  },
-  "settings.contentFilter.contentWeight.help": {
-    "text": "How much weight to give to content body similarity when comparing stories",
-    "translationContext": "Help text for content weight"
-  },
-  "settings.contentFilter.contextEvidence": {
-    "text": "Context Evidence",
-    "translationContext": "Label for context evidence weight"
-  },
-  "settings.contentFilter.detectionMode": {
-    "text": "Detection Mode",
-    "translationContext": "Label for detection mode setting"
-  },
-  "settings.contentFilter.detectionMode.historical": {
-    "text": "Historical",
-    "translationContext": "Historical detection mode option"
-  },
-  "settings.contentFilter.detectionMode.historical.description": {
-    "text": "Compare with stories from previous days",
-    "translationContext": "Description for historical detection mode"
-  },
-  "settings.contentFilter.detectionMode.today": {
-    "text": "Today Only",
-    "translationContext": "Today only detection mode option"
-  },
-  "settings.contentFilter.detectionMode.today.description": {
-    "text": "Compare only with stories from today",
-    "translationContext": "Description for today only detection mode"
-  },
-  "settings.contentFilter.detectionScope": {
-    "text": "Detection Scope",
-    "translationContext": "Label for detection scope setting"
-  },
-  "settings.contentFilter.detectionScope.acrossCategories": {
-    "text": "Across Categories",
-    "translationContext": "Across categories detection scope option"
-  },
-  "settings.contentFilter.detectionScope.acrossCategories.description": {
-    "text": "Compare stories across all categories",
-    "translationContext": "Description for across categories detection scope"
-  },
-  "settings.contentFilter.detectionScope.withinCategory": {
-    "text": "Within Categories",
-    "translationContext": "Within categories detection scope option"
-  },
-  "settings.contentFilter.detectionScope.withinCategory.description": {
-    "text": "Compare only stories in the same category",
-    "translationContext": "Description for within categories detection scope"
-  },
-  "settings.contentFilter.entityWeight": {
-    "text": "Entity Similarity Weight",
-    "translationContext": "Label for entity similarity weight"
-  },
-  "settings.contentFilter.entityWeight.help": {
-    "text": "How much weight to give to shared entities (people, places, organizations) when comparing stories",
-    "translationContext": "Help text for entity weight"
-  },
-  "settings.contentFilter.filterMode": {
-    "text": "Filter Mode",
-    "translationContext": "Label for filter mode setting"
-  },
-  "settings.contentFilter.filterMode.blur.help": {
-    "text": "Show filtered content with a blur effect. You can still access it if needed.",
-    "translationContext": "Help text for blur filter mode"
-  },
-  "settings.contentFilter.filterMode.hide.help": {
-    "text": "Completely remove filtered content from your feed. Clean but you won't see what was filtered.",
-    "translationContext": "Help text for hide filter mode"
-  },
-  "settings.contentFilter.filterMode.tooltip": {
-    "text": "Choose how filtered content is handled in the interface",
-    "translationContext": "Tooltip for filter mode setting"
-  },
-  "settings.contentFilter.filterScope.all": {
-    "text": "All Content",
-    "translationContext": "All content filter scope option"
-  },
-  "settings.contentFilter.filterScope.all.help": {
-    "text": "Analyze all available content including full articles. Most comprehensive but slower.",
-    "translationContext": "Help text for all content filter scope"
-  },
-  "settings.contentFilter.filterScope.scope": {
-    "text": "Filter Scope",
-    "translationContext": "Label for filter scope setting"
-  },
-  "settings.contentFilter.filterScope.scope.description": {
-    "text": "Determines which content areas are analyzed for filtering decisions",
-    "translationContext": "Description for filter scope setting"
-  },
-  "settings.contentFilter.filterScope.scope.tooltip": {
-    "text": "Choose which parts of content to analyze when applying filters",
-    "translationContext": "Tooltip for filter scope setting"
-  },
-  "settings.contentFilter.filterScope.summary": {
-    "text": "Summary",
-    "translationContext": "Summary filter scope option"
-  },
-  "settings.contentFilter.filterScope.summary.help": {
-    "text": "Analyze titles and summaries. Good balance of speed and accuracy.",
-    "translationContext": "Help text for summary filter scope"
-  },
-  "settings.contentFilter.filterScope.title": {
-    "text": "Title Only",
-    "translationContext": "Title only filter scope option"
-  },
-  "settings.contentFilter.filterScope.title.help": {
-    "text": "Only analyze article titles for filtering decisions. Fastest but least comprehensive.",
-    "translationContext": "Help text for title only filter scope"
-  },
-  "settings.contentFilter.globalSensitivity": {
-    "text": "Global Filter Sensitivity",
-    "translationContext": "Label for global filter sensitivity"
-  },
-  "settings.contentFilter.globalSensitivity.description": {
-    "text": "Adjusts the default sensitivity level for all content filters",
-    "translationContext": "Description for global filter sensitivity"
-  },
-  "settings.contentFilter.globalSensitivity.tooltip": {
-    "text": "Controls how aggressively filters are applied across all categories",
-    "translationContext": "Tooltip for global filter sensitivity"
-  },
-  "settings.contentFilter.globalWeights": {
-    "text": "Global Weight Settings",
-    "translationContext": "Label for global weight settings"
-  },
-  "settings.contentFilter.memoryDuration": {
-    "text": "Memory Duration",
-    "translationContext": "Label for memory duration setting"
-  },
-  "settings.contentFilter.memoryDuration.help": {
-    "text": "How many days back to compare stories for similarity detection. Longer periods catch more duplicates but use more memory.",
-    "translationContext": "Help text for memory duration"
   },
   "settings.contentFilter.sensitivity.balanced": {
     "text": "Balanced",
@@ -2143,13 +2067,25 @@
     "text": "Override the global filter sensitivity for specific categories. Higher values mean stricter filtering.",
     "translationContext": "Description for sensitivity override controls"
   },
+  "settings.contentFilter.sensitivityOverrides.enableFilters": {
+    "text": "Enable category filters above to customize their sensitivity settings.",
+    "translationContext": "Instructions to enable category filters for sensitivity overrides"
+  },
   "settings.contentFilter.sensitivityOverrides.noActive": {
     "text": "No category filters are currently active.",
     "translationContext": "Message when no categories are active for sensitivity overrides"
   },
-  "settings.contentFilter.sensitivityOverrides.enableFilters": {
-    "text": "Enable category filters above to customize their sensitivity settings.",
-    "translationContext": "Instructions to enable category filters for sensitivity overrides"
+  "settings.contentFilter.sentimentTooltip": {
+    "text": "How positive or neutral the content sentiment must be",
+    "translationContext": "Tooltip for sentiment setting"
+  },
+  "settings.contentFilter.showCount.description": {
+    "text": "Display number of filtered stories in each category",
+    "translationContext": "Description for show filtered count toggle"
+  },
+  "settings.contentFilter.showCount.label": {
+    "text": "Show Filtered Count",
+    "translationContext": "Label for show filtered count toggle"
   },
   "settings.contentFilter.showFilteredCount": {
     "text": "Show Filtered Count",
@@ -2174,6 +2110,34 @@
   "settings.contentFilter.similarityThreshold.help": {
     "text": "Higher values require more similarity to filter content. Lower values catch more duplicates but may filter unique stories.",
     "translationContext": "Help text for similarity threshold"
+  },
+  "settings.contentFilter.socialMediaDrama": {
+    "text": "Social Media Drama",
+    "translationContext": "Label for social media drama filter"
+  },
+  "settings.contentFilter.socialMediaDrama.description": {
+    "text": "Twitter feuds, online controversies, viral disputes",
+    "translationContext": "Description for social media drama filter"
+  },
+  "settings.contentFilter.specializedPresets.description": {
+    "text": "Advanced filtering presets for specific use cases",
+    "translationContext": "Description for specialized presets"
+  },
+  "settings.contentFilter.specializedPresets.label": {
+    "text": "Specialized Presets",
+    "translationContext": "Label for specialized presets section"
+  },
+  "settings.contentFilter.sports": {
+    "text": "Sports",
+    "translationContext": "Label for sports filter"
+  },
+  "settings.contentFilter.sports.description": {
+    "text": "Sports news, games, athlete updates",
+    "translationContext": "Description for sports filter"
+  },
+  "settings.contentFilter.statistics": {
+    "text": "Filter Statistics",
+    "translationContext": "Label for statistics section"
   },
   "settings.contentFilter.stats.categoryBreakdown": {
     "text": "Category Breakdown",
@@ -2203,6 +2167,26 @@
     "text": "Total Processed",
     "translationContext": "Label for total processed statistic"
   },
+  "settings.contentFilter.systemControls": {
+    "text": "System Controls",
+    "translationContext": "Label for system controls section"
+  },
+  "settings.contentFilter.systemControls.description": {
+    "text": "Import, export, and reset filter configurations",
+    "translationContext": "Description for system controls section"
+  },
+  "settings.contentFilter.tab.description": {
+    "text": "Use smart content filtering to automatically filter stories based on quality, relevance, and sentiment analysis instead of simple keyword matching.",
+    "translationContext": "Description for content filter tab"
+  },
+  "settings.contentFilter.technology": {
+    "text": "Technology",
+    "translationContext": "Label for technology filter"
+  },
+  "settings.contentFilter.technology.description": {
+    "text": "Tech news, gadgets, software updates",
+    "translationContext": "Description for technology filter"
+  },
   "settings.contentFilter.titleImportance": {
     "text": "Title Importance",
     "translationContext": "Label for title importance weight"
@@ -2215,33 +2199,53 @@
     "text": "How much weight to give to title similarity when comparing stories",
     "translationContext": "Help text for title weight"
   },
-  "settings.contentFilter.basicPresets.title": {
-    "text": "Basic Presets",
-    "translationContext": "Title for basic presets section"
+  "settings.contentFilter.topicsSubjects": {
+    "text": "Topics & Subjects",
+    "translationContext": "Label for topics and subjects section"
   },
-  "settings.contentFilter.clearAll.confirm.cancel": {
-    "text": "Cancel",
-    "translationContext": "Cancel button for clear all confirmation"
+  "settings.contentFilter.topicsSubjects.description": {
+    "text": "Filter content by topic categories and subject matter",
+    "translationContext": "Description for topics and subjects section"
   },
-  "settings.contentFilter.clearAll.confirm.confirm": {
-    "text": "Clear All Filters",
-    "translationContext": "Confirm button for clear all"
+  "settings.contentFilter.topicsSubjects.label": {
+    "text": "Topics & Subjects",
+    "translationContext": "Label for topics and subjects section"
   },
-  "settings.contentFilter.clearAll.confirm.description": {
-    "text": "Are you sure you want to remove all active filters and reset all settings to their defaults? This will:",
-    "translationContext": "Description for clear all confirmation dialog"
+  "settings.contentFilter.topReasons": {
+    "text": "Top Filter Reasons",
+    "translationContext": "Label for top filter reasons"
   },
-  "settings.contentFilter.clearAll.confirm.subtitle": {
-    "text": "This action cannot be undone",
-    "translationContext": "Subtitle for clear all confirmation dialog"
+  "settings.contentFilter.totalProcessed": {
+    "text": "Stories Processed",
+    "translationContext": "Label for total processed statistic"
   },
-  "settings.contentFilter.clearAll.confirm.title": {
-    "text": "Clear All Filters",
-    "translationContext": "Title for clear all confirmation dialog"
+  "settings.contentFilter.version.description": {
+    "text": "Configuration format version: 1.0",
+    "translationContext": "Version information description"
   },
-  "settings.contentFilter.clearAll.description": {
-    "text": "Remove all active filters and reset to defaults",
-    "translationContext": "Description for clear all filters button"
+  "settings.contentFilter.version.title": {
+    "text": "Version Information",
+    "translationContext": "Title for version information section"
+  },
+  "settings.contentFilter.weather": {
+    "text": "Weather",
+    "translationContext": "Label for weather filter"
+  },
+  "settings.contentFilter.weather.description": {
+    "text": "Weather reports, forecasts, climate updates",
+    "translationContext": "Description for weather filter"
+  },
+  "settings.contentFilter.wellnessMental": {
+    "text": "Wellness & Mental Health",
+    "translationContext": "Label for wellness section"
+  },
+  "settings.contentFilter.wellnessMental.description": {
+    "text": "Filter content that may impact mental wellbeing",
+    "translationContext": "Description for wellness section"
+  },
+  "settings.contentFilter.wellnessMental.label": {
+    "text": "Wellness & Mental Health",
+    "translationContext": "Label for wellness section"
   },
   "settings.dataLanguage.label": {
     "text": "Content Language",
@@ -2343,10 +2347,6 @@
     "text": "Reset All Settings",
     "translationContext": "Button text to reset all settings to defaults"
   },
-  "settings.resetSettings.description": {
-    "text": "This will reset all settings to their default values",
-    "translationContext": "Description text for the reset settings button"
-  },
   "settings.resetSettings.confirm": {
     "text": "Confirm Reset",
     "translationContext": "Button text for confirming the reset action"
@@ -2354,6 +2354,10 @@
   "settings.resetSettings.confirmDescription": {
     "text": "Click again to confirm reset",
     "translationContext": "Description text for the confirmation state"
+  },
+  "settings.resetSettings.description": {
+    "text": "This will reset all settings to their default values",
+    "translationContext": "Description text for the reset settings button"
   },
   "settings.sections.disableAll": {
     "text": "Disable All",

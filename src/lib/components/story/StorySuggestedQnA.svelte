@@ -5,6 +5,8 @@ import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromQnA } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
+import Icon from '@iconify/svelte';
+import { getSectionIcon } from '$lib/constants/sections';
 
 // Props
 interface Props {
@@ -37,34 +39,37 @@ const allCitedArticles = $derived.by(() => {
 </script>
 
 <section class="mt-6">
-	<h3 class="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-		{s('section.suggestedQnA') || 'Q&A'}
+	<h3 class="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+		<Icon icon={getSectionIcon('suggestedQnA')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+		<span>{s('section.suggestedQnA') || 'Q&A'}</span>
 	</h3>
 
 	<div class="space-y-4">
 		{#each displayQna as qa}
 			<div class="rounded-lg bg-gray-100 p-4 dark:bg-gray-700">
-				<p data-no-wiki class="mb-2 font-semibold text-gray-800 dark:text-gray-200">
-					<CitationText 
+                <p data-no-wiki class="mb-2 font-semibold text-gray-800 dark:text-gray-200">
+                    <CitationText 
 						text={qa.question} 
-						showFavicons={false} 
+                        showFavicons={true} 
 						showNumbers={false} 
 						inline={true} 
-						articles={allCitedArticles.citedArticles} 
+                        articles={allCitedArticles.citedArticles} 
+                        allArticles={articles}
 						{citationMapping}
 						citationTooltip={citationTooltip}
 					/>
 				</p>
 				<p class="text-gray-700 dark:text-gray-300">
-					<CitationText 
-						text={qa.answer} 
-						showFavicons={false} 
-						showNumbers={false} 
-						inline={false} 
-						articles={allCitedArticles.citedArticles} 
-						{citationMapping}
-						citationTooltip={citationTooltip}
-					/>
+                    <CitationText 
+                        text={qa.answer} 
+                        showFavicons={false} 
+                        showNumbers={false} 
+                        inline={false} 
+                        articles={allCitedArticles.citedArticles} 
+                        allArticles={articles}
+                        {citationMapping}
+                        citationTooltip={citationTooltip}
+                    />
 				</p>
 			</div>
 		{/each}

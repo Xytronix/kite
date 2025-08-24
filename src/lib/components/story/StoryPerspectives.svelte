@@ -6,6 +6,8 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromPerspectives } from '$lib/utils/citationAggregator';
 import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
+import Icon from '@iconify/svelte';
+import { getSectionIcon } from '$lib/constants/sections';
 
 // Props
 interface Props {
@@ -54,51 +56,55 @@ function handleTouchEnd() {
 </script>
 
 <section class="mt-6">
-	<h3 class="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-		{s('section.perspectives') || 'Perspectives'}
-	</h3>
+<h3 class="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+    <Icon icon={getSectionIcon('businessAngle')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+    <span>{s('section.perspectives') || 'Perspectives'}</span>
+</h3>
 	<div
 		class="horizontal-scroll-container flex flex-row gap-3 overflow-x-auto pb-4"
 		ontouchstart={handleTouchStart}
 		ontouchend={handleTouchEnd}
 	>
 		{#each displayPerspectives as perspective, index}
-			{@const parsed = parseStructuredText(perspective.text)}
-			<div class="w-56 flex-shrink-0 rounded-lg bg-gray-100 p-4 dark:bg-gray-700">
+            {@const parsed = parseStructuredText(perspective.text)}
+            <div class="w-56 flex-shrink-0 rounded-lg bg-gray-100 p-4 dark:bg-gray-700">
 				{#if parsed.hasTitle}
-					<p data-no-wiki class="mb-2 font-bold text-gray-800 dark:text-gray-200">
-						<CitationText 
+                    <p data-no-wiki class="mb-2 font-bold text-gray-800 dark:text-gray-200">
+                        <CitationText 
 							text={parsed.title!} 
-							showFavicons={false} 
+                            showFavicons={true} 
 							showNumbers={false} 
 							inline={true} 
-							articles={allCitedArticles.citedArticles} 
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
 							{citationMapping}
 							citationTooltip={citationTooltip}
 						/>
 					</p>
-					<p class="mb-2 text-gray-700 dark:text-gray-300">
-						<CitationText 
-							text={parsed.content} 
-							showFavicons={false} 
-							showNumbers={false} 
-							inline={true} 
-							articles={allCitedArticles.citedArticles} 
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+                    <p class="mb-2 text-gray-700 dark:text-gray-300">
+                        <CitationText 
+                            text={parsed.content} 
+                            showFavicons={false} 
+                            showNumbers={false} 
+                            inline={true} 
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
+                            {citationMapping}
+                            citationTooltip={citationTooltip}
+                        />
 					</p>
 				{:else}
-					<p class="mb-2 text-gray-700 dark:text-gray-300">
-						<CitationText 
-							text={parsed.content} 
-							showFavicons={false} 
-							showNumbers={false} 
-							inline={true} 
-							articles={allCitedArticles.citedArticles} 
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+                    <p class="mb-2 text-gray-700 dark:text-gray-300">
+                        <CitationText 
+                            text={parsed.content} 
+                            showFavicons={false} 
+                            showNumbers={false} 
+                            inline={true} 
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
+                            {citationMapping}
+                            citationTooltip={citationTooltip}
+                        />
 					</p>
 				{/if}
 				

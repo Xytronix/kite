@@ -28,3 +28,6 @@ coverage
 
 .vite
 .svelte-kit
+
+# Generated files
+unused-translation-keys.json

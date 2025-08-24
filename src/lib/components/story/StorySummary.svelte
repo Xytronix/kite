@@ -6,6 +6,7 @@ import CitationText from './CitationText.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
+import SmartImage from '../SmartImage.svelte';
 
 // Props
 interface Props {
@@ -59,11 +60,12 @@ const allCitedArticles = $derived.by(() => {
 
 <section class="mt-6">
 	<div class="mb-6">
-		<CitationText 
+        <CitationText 
 			text={displaySummary} 
 			showFavicons={true} 
 			showNumbers={false} 
-			articles={allCitedArticles.citedArticles} 
+            articles={allCitedArticles.citedArticles} 
+            allArticles={story.articles || []}
 			{citationMapping}
 			citationTooltip={citationTooltip}
 		/>
@@ -79,18 +81,20 @@ const allCitedArticles = $derived.by(() => {
 		>
 			<img src="/svg/map.svg" alt="Map icon" class="mr-2 h-5 w-5" />
 			<span>
-				<CitationText 
+                <CitationText 
 					text={displayLocation} 
 					showFavicons={false} 
 					showNumbers={false} 
 					inline={true} 
-					articles={allCitedArticles.citedArticles} 
+                    articles={allCitedArticles.citedArticles} 
+                    allArticles={story.articles || []}
 					{citationMapping}
 					citationTooltip={citationTooltip}
 				/>
 			</span>
 		</button>
 	{/if}
+
 </section>
 
 <!-- Shared Source Tooltip -->

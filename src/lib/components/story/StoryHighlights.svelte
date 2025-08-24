@@ -6,6 +6,8 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromPoints } from '$lib/utils/citationAggregator';
 import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
+import Icon from '@iconify/svelte';
+import { getSectionIcon } from '$lib/constants/sections';
 
 // Props
 interface Props {
@@ -32,8 +34,9 @@ const allCitedArticles = $derived.by(() => {
 </script>
 
 <section class="mt-6">
-	<h3 class="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-		{s('section.highlights') || 'Key Points'}
+	<h3 class="mb-4 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
+		<Icon icon={getSectionIcon('highlights')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+		<span>{s('section.highlights') || 'Key Points'}</span>
 	</h3>
 	<div class="border-t border-dashed border-gray-300 dark:border-gray-600">
 		{#each displayPoints as point, index}
@@ -47,30 +50,36 @@ const allCitedArticles = $derived.by(() => {
 				{#if parsed.hasTitle}
 					<div>
 						<h4 class="mb-2 font-semibold text-gray-800 dark:text-gray-200">
-							<CitationText 
+                        <CitationText 
 								text={parsed.title!} 
-								articles={allCitedArticles.citedArticles} 
+                            showFavicons={true}
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
 								{citationMapping}
 								citationTooltip={citationTooltip}
 							/>
 						</h4>
 						<p class="-ml-10 text-gray-700 dark:text-gray-300">
-							<CitationText 
-								text={parsed.content} 
-								articles={allCitedArticles.citedArticles} 
-								{citationMapping}
-								citationTooltip={citationTooltip}
-							/>
+                            <CitationText 
+                                text={parsed.content} 
+                                showFavicons={false}
+                                articles={allCitedArticles.citedArticles} 
+                                allArticles={articles}
+                                {citationMapping}
+                                citationTooltip={citationTooltip}
+                            />
 						</p>
 					</div>
 				{:else}
 					<p class="text-gray-700 dark:text-gray-300">
-						<CitationText 
-							text={parsed.content} 
-							articles={allCitedArticles.citedArticles} 
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+                        <CitationText 
+                            text={parsed.content} 
+                            showFavicons={false}
+                            articles={allCitedArticles.citedArticles} 
+                            allArticles={articles}
+                            {citationMapping}
+                            citationTooltip={citationTooltip}
+                        />
 					</p>
 				{/if}
 			</div>

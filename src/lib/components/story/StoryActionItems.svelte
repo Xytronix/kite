@@ -5,6 +5,8 @@ import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
+import Icon from '@iconify/svelte';
+import { getSectionIcon } from '$lib/constants/sections';
 
 // Props
 interface Props {
@@ -31,8 +33,9 @@ const allCitedArticles = $derived.by(() => {
 </script>
 
 <section class="mt-6 rounded-lg bg-[#F1FAE8] p-4 dark:bg-[#2B411C]">
-	<h3 class="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
-		{s('section.actionItems') || 'Action Items'}
+	<h3 class="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
+		<Icon icon={getSectionIcon('actionItems')} class="h-5 w-5 text-gray-600 dark:text-gray-300" />
+		<span>{s('section.actionItems') || 'Action Items'}</span>
 	</h3>
 	<ul class="mb-2 ml-4 list-disc space-y-2 text-gray-700 dark:text-gray-200">
 		{#each displayItems as item}

@@ -245,7 +245,6 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 			bind:this={dialogElement}
 			class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800 transform transition-all duration-200 scale-100" 
 			role="document"
-			onclick={(e) => e.stopPropagation()}
 		>
 			<div 
 				bind:this={scrollableElement}
@@ -255,15 +254,16 @@ const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 			<header class="mb-4 flex items-center justify-between">
 				<div class="flex items-center space-x-2">
 					{#if currentSource?.name}
-						<SmartImage
-							domain={currentSource?.name}
-							alt={`${currentSource?.name || 'Unknown Source'} favicon`}
-							class="h-6 w-6 rounded-full"
-							size={24}
-							loading="eager"
-							preferIconify={true}
-							addBackground={true}
-						/>
+                        <SmartImage
+                            domain={currentSource?.name}
+                            alt={`${currentSource?.name || 'Unknown Source'} favicon`}
+                            class="h-4 w-4 rounded-full"
+                            size={16}
+                            loading="eager"
+                            preferIconify={true}
+                            addBackground={true}
+                            backgroundMode="transparent-only"
+                        />
 					{/if}
 					<h3 id="source-overlay-title" class="dark:text-dark-text text-xl font-bold">
 						{currentSource?.name || 'Unknown Source'}

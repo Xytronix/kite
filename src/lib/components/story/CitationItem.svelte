@@ -19,17 +19,17 @@ const isHighlighted = $derived(
 );
 
 const badgeClasses = $derived(
-	isHighlighted
-		? 'bg-yellow-200 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-100'
-		: item.isCommon
-		? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-		: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+    isHighlighted
+        ? 'bg-blue-600 text-white dark:bg-blue-500 dark:text-white'
+        : item.isCommon
+        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+        : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
 );
 
 const containerClasses = $derived(
-	isHighlighted
-		? 'bg-yellow-50 dark:bg-yellow-900 rounded'
-		: ''
+    isHighlighted
+        ? 'rounded-md ring-1 ring-blue-400/40 dark:ring-blue-300/40 bg-blue-500/5 dark:bg-blue-400/10 transition-colors'
+        : ''
 );
 
 const paddingClasses = $derived(isMobile ? 'px-2 py-1' : 'px-1.5 py-0.5');
@@ -42,13 +42,13 @@ const iconTextSpacing = $derived(() => {
 });
 // Calculate margin to align with content, accounting for citation number slot width
 const marginClasses = $derived(() => {
-	const baseMargin = isMobile ? 'mb-4' : 'mb-2';
-	const hasDoubleDigits = maxCitationNumber >= 10;
-	// Align link block directly under domain text (grid column 2)
-	const leftMargin = 'ml-0';
-	return `${leftMargin} ${baseMargin}`;
+ const baseMargin = isMobile ? 'mb-4' : 'mb-2';
+ const hasDoubleDigits = maxCitationNumber >= 10;
+ // Align link/time block directly under the domain text column
+ const leftMargin = hasDoubleDigits ? 'ml-16' : 'ml-12'; // 4rem vs 3rem
+ return `${leftMargin} ${baseMargin}`;
 });
-const linkClasses = $derived(isMobile ? 'font-medium' : 'line-clamp-2 text-xs');
+const linkClasses = $derived(isMobile ? 'font-medium' : 'text-xs'); // allow full line wrapping
 const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 </script>
 
@@ -56,9 +56,11 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 	<!-- Common knowledge citation -->
 	<div class="citation-row grid gap-x-2 items-start {textSizeClasses} {containerClasses} {maxCitationNumber >= 10 ? 'double-digit' : ''}" 
 		data-citation-number="-1">
-		<span class="citation-number-badge rounded {paddingClasses} font-medium flex-shrink-0 leading-none {badgeClasses}">
-			[*]
-		</span>
+		<div class="citation-number-slot flex-shrink-0 {maxCitationNumber >= 10 ? 'citation-number-slot-wide' : ''}">
+			<span class="citation-number-badge rounded {paddingClasses} font-medium leading-none {badgeClasses}">
+				[*]
+			</span>
+		</div>
 		<div class="flex-1">
 			<div class="font-medium text-gray-700 dark:text-gray-300 {isMobile ? 'mb-2' : 'mb-1'}">
 				{s('citation.commonKnowledge.title') || 'Common Knowledge'}
@@ -70,47 +72,51 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 	</div>
 {:else if item.article}
 	<!-- Regular article citation -->
-	<div class="citation-row grid gap-x-2 items-center {textSizeClasses} {containerClasses} {maxCitationNumber >= 10 ? 'double-digit' : ''}" 
-		data-citation-number={item.number}>
-		<!-- Citation number slot - always present for alignment -->
-		<div class="citation-number-slot flex-shrink-0 {maxCitationNumber >= 10 ? 'citation-number-slot-wide' : ''}">
-			{#if showCitationNumber}
-				<span class="citation-number-badge rounded {paddingClasses} font-medium leading-none {badgeClasses}">
-					[{item.number}]
-				</span>
-			{/if}
-		</div>
-		<div class="flex items-center {iconTextSpacing()} flex-1 min-w-0">
-			<SmartImage
-				domain={item.article.domain}
-				alt="{item.article.domain} favicon"
-				class="{iconSizeClasses} rounded-full flex-shrink-0"
-				size={isMobile ? 24 : 16}
-				loading="eager"
-				preferIconify={true}
-				addBackground={true}
-			/>
-			<span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none">
-				{item.article.domain}
-			</span>
-		</div>
-	</div>
-	<div class="{marginClasses}">
-		<a 
-			href={item.article.link} 
-			target="_blank" 
-			rel="noopener noreferrer"
-			class="text-blue-600 dark:text-blue-400 hover:underline {linkClasses} block"
-			title={item.article.title}
-		>
-			{item.article.title}
-		</a>
-		{#if item.article.date}
-			<div class="text-gray-500 dark:text-gray-400 {dateClasses}">
-				{getTimeAgo(item.article.date)}
-			</div>
-		{/if}
-	</div>
+<div class="citation-row grid gap-x-2 {textSizeClasses} {containerClasses} {maxCitationNumber >= 10 ? 'double-digit' : ''}" data-citation-number={item.number}>
+  <!-- Column 1 – badge -->
+  <div class="citation-number-slot flex-shrink-0 {maxCitationNumber >= 10 ? 'citation-number-slot-wide' : ''}">
+    {#if showCitationNumber}
+      <span class="citation-number-badge rounded {paddingClasses} font-medium leading-none {badgeClasses}">[{item.number}]</span>
+    {/if}
+  </div>
+
+  <!-- Column 2 – content -->
+  <div class="flex flex-col gap-y-1 min-w-0">
+    <!-- first line: favicon + domain   |   time -->
+    <div class="flex items-center justify-between min-w-0">
+      <div class="flex items-center {iconTextSpacing()} min-w-0">
+        <SmartImage
+          domain={item.article.domain}
+          alt="{item.article.domain} favicon"
+          class="{iconSizeClasses} rounded-full flex-shrink-0"
+          size={isMobile ? 24 : 16}
+          loading="eager"
+          preferIconify={true}
+          addBackground={true}
+        />
+        <span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none ml-1">
+          {item.article.domain}
+        </span>
+      </div>
+      {#if item.article.date}
+        <div class="text-gray-500 dark:text-gray-400 {dateClasses} flex-shrink-0 ml-2 whitespace-nowrap">
+          {getTimeAgo(item.article.date)}
+        </div>
+      {/if}
+    </div>
+
+    <!-- second line: headline link -->
+    <a
+      href={item.article.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-blue-600 dark:text-blue-400 hover:underline {linkClasses}"
+      title={item.article.title}
+    >
+      {item.article.title}
+    </a>
+  </div>
+</div>
 {/if}
 
 <style>
@@ -125,6 +131,7 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
 .citation-number-slot {
 	/* Fixed width for single digits - ensures alignment */
 	width: 2.5rem;
+	margin-left: -0.25rem; /* shift badge 4px left */
 	display: flex;
 	align-items: center;
 	justify-content: center;

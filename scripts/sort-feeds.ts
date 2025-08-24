@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { runScript, ScriptResult } from './shared-runner.js';
+import { analyzeTranslations, generateTranslationIssues } from './translation-analyzer.js';
+import { logProcessing, logSuccess, logNoChange, logBullet } from './console-utils.js';
 
 const FEEDS_FILE = 'kite_feeds.json';
 
@@ -40,8 +43,10 @@ function dedupeAndSort(urls: string[]): string[] {
   return [...new Set(urls)].sort((a, b) => a.localeCompare(b));
 }
 
+
+
 function main() {
-  console.log('📄 Reading', FEEDS_FILE);
+  logProcessing(`Reading ${FEEDS_FILE}`);
   const raw = fs.readFileSync(FEEDS_FILE, 'utf-8');
   const json: FeedsJson = JSON.parse(raw);
 
@@ -54,24 +59,48 @@ function main() {
     const feeds = dedupeAndSort(cat.feeds);
     const dupes = original - feeds.length;
     totalDupes += dupes;
-    if (dupes) console.log(`  🔹 ${name}: removed ${dupes} duplicate feed(s)`);
+    if (dupes) logBullet(`${name}: removed ${dupes} duplicate feed(s)`);
     out[name] = { ...cat, feeds };
   }
 
   const newRaw = JSON.stringify(out, null, 2) + '\n';
   if (newRaw !== raw) {
     fs.writeFileSync(FEEDS_FILE, newRaw, 'utf-8');
-    console.log('✅', FEEDS_FILE, 'sorted. Duplicates removed:', totalDupes);
+    logSuccess(`${FEEDS_FILE} sorted. Duplicates removed: ${totalDupes}`);
   } else {
-    console.log('⚖️  No changes – already sorted');
+    logNoChange('No changes – already sorted');
   }
 }
 
+// This function is now handled by generateTranslationIssues in translation-analyzer.ts
+
+async function analyzeFeeds(): Promise<ScriptResult> {
+  const translationIssues = await analyzeTranslations();
+  const issues = generateTranslationIssues(translationIssues);
+  
+  const totalMissing = Object.values(translationIssues.missingTranslations).flat().length;
+  const totalOrphaned = Object.values(translationIssues.orphanedTranslations).flat().length;
+  const totalDuplicates = Object.values(translationIssues.duplicateKeys).flat().length;
+  
+  return {
+    issues,
+    summary: {
+      totalIssues: issues.length,
+      byType: {
+        unused: translationIssues.unusedKeys.length,
+        missing: totalMissing,
+        orphaned: totalOrphaned,
+        duplicate: totalDuplicates
+      }
+    }
+  };
+}
+
+// Script entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    main();
-  } catch (e: any) {
-    console.error('❌ Error:', e?.message || e);
-    process.exit(1);
-  }
+  await runScript(
+    { type: 'feeds', name: 'Translation' },
+    main,
+    analyzeFeeds
+  );
 } 

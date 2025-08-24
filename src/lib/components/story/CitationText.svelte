@@ -5,6 +5,7 @@ import type { Article } from '$lib/types';
 import type { CitationMapping } from '$lib/utils/citationContext';
 import SourceTooltip from './SourceTooltip.svelte';
 import SmartImage from '../SmartImage.svelte';
+import Icon from '$lib/components/Icon.svelte';
 
 // Props
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 	showNumbers?: boolean;
 	inline?: boolean; // Whether to render inline (for list items) or as block (for paragraphs)
 	articles?: Article[]; // Articles for citation tooltip
+    allArticles?: Article[]; // Full story articles for the global sources icon/tooltip
 	citationMapping?: CitationMapping; // Global citation mapping
 	citationTooltip?: SourceTooltip; // External tooltip reference for shared tooltips
 }
@@ -22,7 +24,8 @@ let {
 	showFavicons = false, // Changed default to false (most common usage)
 	showNumbers = false,
 	inline = true, // Changed default to true (most common usage)
-	articles = [],
+    articles = [],
+    allArticles = [],
 	citationMapping,
 	citationTooltip: externalTooltip
 }: Props = $props();
@@ -175,6 +178,12 @@ const citedArticles = $derived.by(() => {
 		.filter((item): item is { article: Article; number: number } => !!item.article)
 		.map(item => item.article);
 });
+
+// All unique domains across the passed-in articles (for the global sources icon)
+const allArticleDomains = $derived.by(() => {
+    const pool = (allArticles && allArticles.length > 0) ? allArticles : (articles || []);
+    return Array.from(new Set(pool.map(a => a.domain))).filter(Boolean) as string[];
+});
 </script>
 
 <div class="citation-wrapper">
@@ -198,12 +207,12 @@ const citedArticles = $derived.by(() => {
 							role="button"
 							tabindex="0"
 							aria-label="{segment.citation?.domain === 'common' ? 'Common knowledge citation' : `Citation ${segment.citation?.number}: ${segment.citation?.domain}`}"
-			onmouseover={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onmouseleave={(e) => tooltipReference?.handleSourceLeave(e)}
-			onfocus={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onblur={(e) => tooltipReference?.handleSourceLeave(e)}
-			onclick={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+							onmouseover={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+							onmouseleave={(e) => tooltipReference?.handleSourceLeave(e)}
+							onfocus={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+							onblur={(e) => tooltipReference?.handleSourceLeave(e)}
+							onclick={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+							onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
 						>
 							{segment.content}
 						</span>
@@ -229,12 +238,12 @@ const citedArticles = $derived.by(() => {
 								role="button"
 								tabindex="0"
 								aria-label="{segment.citation?.domain === 'common' ? 'Common knowledge citation' : `Citation ${segment.citation?.number}: ${segment.citation?.domain}`}"
-			onmouseover={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onmouseleave={(e) => tooltipReference?.handleSourceLeave(e)}
-			onfocus={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onblur={(e) => tooltipReference?.handleSourceLeave(e)}
-			onclick={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
-			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+								onmouseover={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+								onmouseleave={(e) => tooltipReference?.handleSourceLeave(e)}
+								onfocus={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+								onblur={(e) => tooltipReference?.handleSourceLeave(e)}
+								onclick={(e) => tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
+								onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleSourceInteraction(e, uniqueDomains, segment.citation?.number)}
 							>
 								{segment.content}
 							</span>
@@ -246,12 +255,26 @@ const citedArticles = $derived.by(() => {
 	</div>
 
 	<!-- Citation sources with favicons (appears on next line for both inline and block) -->
-	{#if showFavicons && uniqueDomains.length > 0}
-		<div class="citation-sources flex items-center">
-		<span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
-			{s(uniqueDomains.length === 1 ? 'citation.source' : 'citation.sources')}
-		</span>
-		<div class="flex items-center -space-x-3">
+    {#if showFavicons && uniqueDomains.length > 0}
+        <div class="citation-sources flex items-center">
+        <!-- Global sources icon that reveals ALL sources for this text block -->
+        <button
+            class="mr-2 inline-flex items-center justify-center rounded p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+            aria-label="View all sources"
+            onmouseover={(e) => tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles)}
+            onmouseleave={(e) => tooltipReference?.handleSourceLeave(e)}
+            onfocus={(e) => tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles)}
+            onblur={(e) => tooltipReference?.handleSourceLeave(e)}
+            onclick={(e) => tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles)}
+            onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles)}
+            type="button"
+        >
+            <Icon icon="tabler:sitemap" class="h-4 w-4" />
+        </button>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+            {s(uniqueDomains.length === 1 ? 'citation.source' : 'citation.sources')}
+        </span>
+        <div class="flex items-center -space-x-3">
 			{#each uniqueDomains.slice(0, 5) as domain, index}
 				<div 
 					class="favicon-wrapper relative w-6 h-6 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center hover:z-10 transition-all hover:scale-110 cursor-pointer overflow-hidden"
@@ -280,14 +303,13 @@ const citedArticles = $derived.by(() => {
 		}}
 		onclick={(e) => {
 			e.stopPropagation();
-			const domainArticles = articles.filter(a => a.domain === domain);
-			tooltipReference?.handleSourceInteraction(e, [domain], undefined, domainArticles);
+            // On click (especially mobile), show ALL section sources rather than per-domain
+            tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles);
 		}}
 		onkeydown={(e) => {
 			if (e.key === 'Enter' || e.key === ' ') {
 				e.stopPropagation();
-				const domainArticles = articles.filter(a => a.domain === domain);
-				tooltipReference?.handleSourceInteraction(e, [domain], undefined, domainArticles);
+                tooltipReference?.handleSourceInteraction(e, allArticleDomains, undefined, allArticles);
 			}
 		}}
 				>
