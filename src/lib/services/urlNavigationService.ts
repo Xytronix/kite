@@ -40,20 +40,27 @@ export class UrlNavigationService {
 		const firstSegment = pathSegments[0];
 		const isBatchId = this.isBatchId(firstSegment);
 		
-		// Helper to extract storyIndex / slug from a path segment
+		// Helper to extract storyIndex from a path segment
 		const extractStoryParams = (segment?: string | null) => {
 			if (!segment) return;
 
-			// Case 1: Segment starts with number – could be "5" or "5-slug-of-story"
-			const match = segment.match(/^(\d+)(?:-(.*))?$/);
-			if (match) {
-				params.storyIndex = parseInt(match[1]);
-				// If there is a slug after the number, capture it as well for completeness
-				if (match[2]) params.slug = match[2];
+			// Check if segment is a pure number (story index)
+			const numericMatch = segment.match(/^\d+$/);
+			if (numericMatch) {
+				params.storyIndex = parseInt(segment);
+				params.slug = null;
 				return;
 			}
 
-			// Case 2: Pure slug without leading index
+			// Legacy support: Segment starts with number followed by slug
+			const legacyMatch = segment.match(/^(\d+)-(.*)$/);
+			if (legacyMatch) {
+				params.storyIndex = parseInt(legacyMatch[1]);
+				params.slug = legacyMatch[2];
+				return;
+			}
+
+			// Pure slug without leading index (legacy)
 			params.slug = segment;
 			params.storyIndex = null;
 		};
@@ -101,16 +108,9 @@ export class UrlNavigationService {
 			}
 		}
 
-		// Prefer slug-only URLs when a slug is provided
+		// Use numeric index format (restore original format)
 		if (storyIndex !== null && storyIndex !== undefined) {
-			url += '/';
-			if (slug) {
-				url += `${storyIndex}-${slug}`;
-			} else {
-				url += `${storyIndex}`;
-			}
-		} else if (slug) {
-			url += `/${slug}`;
+			url += `/${storyIndex}`;
 		}
 
 		// Add data language as query parameter

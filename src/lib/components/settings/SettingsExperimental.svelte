@@ -48,6 +48,10 @@ function setSourceIconPosition(position: 'none' | 'inline' | 'section-end' | 'st
 	experimental.setFeature('sourceIconPosition', position);
 }
 
+function toggleCollapseOtherStories() {
+	experimental.toggleFeature('collapseOtherStories');
+}
+
 // Article/Category display helper functions
 // Unified decoration style and target toggles
 type VisualMode = 'none' | 'icons' | 'emojis';
@@ -538,6 +542,37 @@ function toggleCategories() {
         </div>
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Control where source icons appear: none (disabled), inline with content, at the end of each section, or only at the end of the story.
+        </p>
+    </div>
+
+    <!-- Collapse Other Stories -->
+    <div class="mb-6">
+        <div class="mb-2 flex items-center justify-between">
+            <label for="collapse-other-stories" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <Icon icon="tabler:fold" class="w-4 h-4 mr-2" />
+                Collapse Other Stories When Opening New Story
+            </label>
+            <button
+                id="collapse-other-stories"
+                onclick={toggleCollapseOtherStories}
+                type="button"
+                class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+                class:bg-blue-600={experimental.collapseOtherStories}
+                class:bg-gray-200={!experimental.collapseOtherStories}
+                class:dark:bg-gray-600={!experimental.collapseOtherStories}
+                role="switch"
+                aria-checked={experimental.collapseOtherStories}
+            >
+                <span class="sr-only">Collapse other stories</span>
+                <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                    class:translate-x-6={experimental.collapseOtherStories}
+                    class:translate-x-1={!experimental.collapseOtherStories}
+                ></span>
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            When enabled (default), opening a new story will automatically collapse any previously expanded stories. When disabled, multiple stories can be expanded simultaneously.
         </p>
     </div>
 </div> 

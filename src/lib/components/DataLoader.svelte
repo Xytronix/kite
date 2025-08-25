@@ -148,6 +148,15 @@
 	let connectionQuality = $state<'excellent' | 'good' | 'fair' | 'poor' | null>(null);
 	let isSlowConnection = $state(false);
 
+	// Helper function to normalize category ID from URL to proper casing
+	function normalizeCategoryId(categoryId: string | null, availableCategories: Category[]): string | null {
+		if (!categoryId) return null;
+		
+		// Find category by case-insensitive match
+		const category = availableCategories.find(cat => cat.id.toLowerCase() === categoryId.toLowerCase());
+		return category ? category.id : null;
+	}
+
 	// Helper function to get the first enabled category in user-defined order
 	function getFirstEnabledCategory(availableCategories: Category[]): string {
 		// Get enabled categories in user-defined order (categoriesStore.enabled is already ordered)
@@ -367,7 +376,8 @@
 			}
 			
 			// Use category from URL if provided, otherwise default to first enabled category
-			const targetCategory = initialCategoryId || getFirstEnabledCategory(categories);
+			const normalizedCategoryId = normalizeCategoryId(initialCategoryId, categories);
+			const targetCategory = normalizedCategoryId || getFirstEnabledCategory(categories);
 			currentCategory = targetCategory;
 			
 			console.log(`🎯 Target category set to: ${targetCategory} ${initialCategoryId ? '(from URL)' : '(first enabled)'}`);
@@ -704,7 +714,8 @@
 				}
 			}
 			
-			const firstEnabledCategory = initialCategoryId || getFirstEnabledCategory(categories);
+			const normalizedCategoryId = normalizeCategoryId(initialCategoryId, categories);
+			const firstEnabledCategory = normalizedCategoryId || getFirstEnabledCategory(categories);
 			currentCategory = firstEnabledCategory;
 			
 			console.log(`🎯 Language reload: Target category set to: ${firstEnabledCategory} ${initialCategoryId ? '(from URL)' : '(first enabled)'}`);

@@ -125,13 +125,12 @@
 
     // Generate full URL first (sync to preserve user-gesture context)
     const baseUrl = window.location.origin;
-    const slug = title ? slugify(title) : undefined;
     const fullUrl = generateShareUrl(baseUrl, {
       batchId,
       categoryId,
       storyIndex,
       dataLang,
-      slug,
+      // Don't use slug - use numeric format only
     });
 
     // Decide mobile vs desktop early

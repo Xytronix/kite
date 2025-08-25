@@ -2,6 +2,7 @@
 import { theme } from '$lib/stores/theme.svelte.js';
 import { settings } from '$lib/stores/settings.svelte.js';
 import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
+import { timeTravelBatch } from '$lib/stores/timeTravelBatch.svelte.js';
 import { dataService, dataReloadService } from '$lib/services/dataService';
 import { s } from '$lib/client/localization.svelte';
 import { language } from '$lib/stores/language.svelte.js';
@@ -22,6 +23,8 @@ interface Props {
 		summary: string;
 		lastUpdated: string;
 	};
+	hasHistoricalStories?: boolean;
+	onRestoreToToday?: () => void;
 }
 
 const {
@@ -29,7 +32,9 @@ const {
 	totalStoriesRead = 0,
 	offlineMode = false,
 	getLastUpdated = 'Never',
-	chaosIndex
+	chaosIndex,
+	hasHistoricalStories = false,
+	onRestoreToToday
 }: Props = $props();
 
 // Date click state for cycling through different stats
@@ -154,7 +159,7 @@ $effect(() => {
 				<div class="animate-spin h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 dark:border-t-blue-400 rounded-full"></div>
 				<span class="text-sm">{s('timeTravel.returningToLive') || 'Returning to live...'}</span>
 			</div>
-		{:else if timeTravel.selectedDate}
+		{:else if timeTravel.selectedDate && timeTravelBatch.isTimeTravelMode()}
 			<div class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -174,24 +179,22 @@ $effect(() => {
 					{dateDisplay}
 				</div>
 				<button
-					onclick={async () => {
-						// Immediately reset time travel to give instant feedback
+					onclick={() => {
+						// Immediately reset time travel state
 						timeTravel.reset();
+						timeTravelBatch.set(null);
 						dataService.setTimeTravelBatch(null);
 						
-						// Show loading state
-						isExitingTimeTravel = true;
-						
-						try {
-							// Trigger a reload of the data
-							await dataReloadService.reloadData();
-						} finally {
-							isExitingTimeTravel = false;
+						// Navigate to root URL to exit time travel mode
+						// Use window.location.href for a clean navigation
+						if (typeof window !== 'undefined') {
+							window.location.href = '/';
 						}
 					}}
-					class="ml-1 p-0.5"
+					class="ml-1 p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
 					aria-label="Exit time travel mode"
 					disabled={isExitingTimeTravel}
+					title="Return to current news"
 				>
 					<svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -250,8 +253,18 @@ $effect(() => {
 				<Icon icon="tabler:clock" class="text-gray-600 dark:text-gray-400 w-6 h-6" />
 			</button>
 			
+			{#if hasHistoricalStories && onRestoreToToday}
+				<button
+					onclick={() => onRestoreToToday?.()}
+					title={s('stories.restoreToToday') || 'Show only today\'s stories'}
+					aria-label={s('stories.restoreToToday') || 'Show only today\'s stories'}
+					class="ml-2"
+					type="button"
+				>
+					<Icon icon="tabler:refresh" class="text-amber-600 dark:text-amber-400 w-6 h-6" />
+				</button>
+			{/if}
 
-			
 			<button
 				onclick={() => settings.open()}
 				title={s('header.settings') || 'Settings'}

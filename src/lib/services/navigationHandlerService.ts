@@ -108,6 +108,8 @@ export class NavigationHandlerService {
 					// For now, we'll rely on the DataLoader's logic which already checked
 					// Don't set time travel mode here - let DataLoader handle it
 					console.log('🕰️ Switching to historical batch:', params.batchId);
+					updates.isLatestBatch = false;
+					dataService.setTimeTravelBatch(params.batchId);
 					console.log('⚠️ SKIPPING dataReloadService.reloadData() to prevent page refresh during load more');
 					// try {
 					// 	await dataReloadService.reloadData(); // DISABLED: This causes page refresh
@@ -161,25 +163,92 @@ export class NavigationHandlerService {
 				// Clear all expanded stories first
 				updates.expandedStories = {};
 
+				// Use the current category stories from allCategoryStories, which includes historical stories
 				const categoryStories = state.allCategoryStories[state.currentCategory] || state.stories;
+				console.log('🔍 Story expansion - using category stories:', {
+					category: state.currentCategory,
+					storiesCount: categoryStories.length,
+					hasHistorical: categoryStories.some(s => (s as any).__fromHistoricalBatch),
+					storyIndex: params.storyIndex,
+					slug: params.slug,
+					isLatestBatch: state.isLatestBatch,
+					currentBatchId: state.currentBatchId
+				});
+
+				// Add a small delay to ensure stories are fully processed
+				await new Promise(resolve => setTimeout(resolve, 50));
 
 				// Priority 1: slug (new style links)
 				if (params.slug) {
 					const target = categoryStories.find((s) => slugify(s.title) === params.slug);
 					if (target) {
-						const storyId = target.cluster_number?.toString() || target.title;
+						const baseStoryId = target.cluster_number?.toString() || target.title;
+						const batchId = (target as any).__batchId || state.currentBatchId;
+						// Use category-aware story ID
+						const storyId = `${state.currentCategory}:${batchId}:${baseStoryId}`;
 						updates.expandedStories = { [storyId]: true };
-						// Nothing more to do
+						console.log('🎯 Expanding story by slug:', { slug: params.slug, storyId, title: target.title });
 						return updates;
+					} else {
+						console.warn('❌ Story not found by slug:', params.slug, 'in', categoryStories.length, 'stories');
+						// Log available slugs for debugging
+						const availableSlugs = categoryStories.slice(0, 5).map(s => ({ 
+							title: s.title, 
+							slug: slugify(s.title),
+							batchId: (s as any).__batchId 
+						}));
+						console.log('🔍 Available slugs (first 5):', availableSlugs);
 					}
 				}
 
 				// Priority 2: numeric index (legacy links)
 				if (params.storyIndex !== null && params.storyIndex !== undefined) {
-					if (categoryStories[params.storyIndex]) {
-						const story = categoryStories[params.storyIndex];
-						const storyId = story.cluster_number?.toString() || story.title;
+					// For story index, we need to look at the right subset of stories
+					// If we're in latest batch mode, only look at current batch stories
+					// If we're in historical batch mode, look at all stories
+					let storiesToSearch = categoryStories;
+					
+					if (state.isLatestBatch) {
+						// Only look at current batch stories (not historical)
+						storiesToSearch = categoryStories.filter(s => !(s as any).__fromHistoricalBatch);
+						console.log('🔍 Latest batch mode - filtering to current stories:', {
+							totalStories: categoryStories.length,
+							currentBatchStories: storiesToSearch.length,
+							targetIndex: params.storyIndex
+						});
+					} else {
+						console.log('🔍 Historical batch mode - using all stories:', {
+							totalStories: categoryStories.length,
+							targetIndex: params.storyIndex
+						});
+					}
+					
+					if (storiesToSearch[params.storyIndex]) {
+						const story = storiesToSearch[params.storyIndex];
+						const baseStoryId = story.cluster_number?.toString() || story.title;
+						const batchId = (story as any).__batchId || state.currentBatchId;
+						// Use category-aware story ID
+						const storyId = `${state.currentCategory}:${batchId}:${baseStoryId}`;
 						updates.expandedStories = { [storyId]: true };
+						console.log('🎯 Expanding story by index:', { 
+							index: params.storyIndex, 
+							storyId, 
+							title: story.title,
+							isLatestBatch: state.isLatestBatch,
+							batchId: (story as any).__batchId,
+							category: state.currentCategory
+						});
+					} else {
+						console.warn('❌ Story not found at index:', params.storyIndex, 'in', storiesToSearch.length, 'stories');
+						// Log the first few stories for debugging
+						const debugStories = storiesToSearch.slice(0, Math.min(15, storiesToSearch.length)).map((s, i) => ({
+							index: i,
+							title: s.title.substring(0, 50),
+							clusterId: s.cluster_number,
+							batchId: (s as any).__batchId,
+							isHistorical: (s as any).__fromHistoricalBatch
+						}));
+						console.log('🔍 Available stories for debugging:', debugStories);
 					}
 				}
 			}

@@ -102,7 +102,13 @@ let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Handle story click
 function handleStoryClick(event?: Event) {
-    console.log('🔄 StoryCard handleStoryClick called', { isBlurred, isExpanded, hasEvent: !!event });
+    const storyId = story.cluster_number?.toString() || story.title;
+    console.log('🔄 StoryCard handleStoryClick called', { 
+        storyId, 
+        isBlurred, 
+        isExpanded, 
+        hasEvent: !!event 
+    });
     
     // Ignore clicks originating from interactive elements
     if (event) {
@@ -116,12 +122,12 @@ function handleStoryClick(event?: Event) {
     
 	// If blurred, reveal and expand
 	if (isBlurred) {
-		console.log('🔓 Unblurring story');
+		console.log('🔓 Unblurring story:', storyId);
 		isBlurred = false;
 		// Small delay to let the unblur animation start before expanding
 		setTimeout(() => {
 			if (onToggle) {
-				console.log('🔄 Calling onToggle after unblur');
+				console.log('🔄 Calling onToggle after unblur for:', storyId);
 				onToggle();
 			}
 		}, 100);
@@ -130,11 +136,11 @@ function handleStoryClick(event?: Event) {
 	
 	// Prevent rapid clicking that could cause duplicate calls
 	if (scrollTimeout) {
-		console.log('🚫 Click ignored - scroll timeout active');
+		console.log('🚫 Click ignored - scroll timeout active for:', storyId);
 		return;
 	}
 	
-	console.log('🔄 Calling onToggle');
+	console.log('🔄 Calling onToggle for:', storyId);
 	if (onToggle) onToggle();
 }
 

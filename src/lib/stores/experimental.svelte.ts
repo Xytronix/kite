@@ -17,6 +17,8 @@ export interface ExperimentalFeatures {
   disableStoryScrolling: boolean;
   /** Controls where source icons appear: 'none' (disabled), 'inline' (within content), 'section-end' (at end of sections), or 'story-end' (at end of story) */
   sourceIconPosition: 'none' | 'inline' | 'section-end' | 'story-end';
+  /** When true, collapse previously expanded stories when opening a new story (default behavior). When false, allow multiple stories to be expanded simultaneously. */
+  collapseOtherStories: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -33,6 +35,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   preferIconifyIcons: false,
   disableStoryScrolling: false,
   sourceIconPosition: 'section-end',
+  collapseOtherStories: true,
 };
 
 // Initialize experimental features state
@@ -119,6 +122,10 @@ export const experimental = {
 
   get sourceIconPosition() {
     return experimentalState.sourceIconPosition;
+  },
+
+  get collapseOtherStories() {
+    return experimentalState.collapseOtherStories;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

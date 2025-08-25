@@ -89,33 +89,75 @@ if (browser) {
 	};
 }
 
+// Prevent rapid story toggle calls at StoryList level too
+let storyListToggleTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastStoryListToggleId: string | null = null;
+
 // Handle story toggle
 function handleStoryToggle(story: Story, updateUrl: boolean = false) {
-	const storyId = story.cluster_number?.toString() || story.title;
+	const baseStoryId = story.cluster_number?.toString() || story.title;
+	const storyBatchId = (story as any).__batchId || batchId;
+	// Use category-aware story ID to prevent cross-category expansion
+	const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
 	
-	// Prevent duplicate calls by checking if story is already in the desired state
-	const isCurrentlyExpanded = expandedStories[storyId] || false;
+	console.log('📱 StoryList handleStoryToggle called', { 
+		storyId, 
+		title: story.title.substring(0, 50),
+		updateUrl,
+		currentlyExpanded: expandedStories[storyId] || false,
+		storyBatchId,
+		propBatchId: batchId,
+		storyOwnBatchId: (story as any).__batchId
+	});
+	
+	// Prevent rapid duplicate calls at StoryList level
+	if (storyListToggleTimeout && lastStoryListToggleId === storyId) {
+		console.log('🚫 StoryList: Ignoring rapid duplicate toggle for:', storyId);
+		return;
+	}
+	
+	// Clear any existing timeout
+	if (storyListToggleTimeout) {
+		clearTimeout(storyListToggleTimeout);
+	}
+	
+	// Set debounce timeout
+	lastStoryListToggleId = storyId;
+	storyListToggleTimeout = setTimeout(() => {
+		storyListToggleTimeout = null;
+		lastStoryListToggleId = null;
+	}, 200); // 200ms debounce at StoryList level
 	
 	onStoryToggle?.(storyId, updateUrl);
 }
 
 // Handle read toggle
 function handleReadToggle(story: Story) {
-	const storyId = story.cluster_number?.toString() || story.title;
+	const baseStoryId = story.cluster_number?.toString() || story.title;
+	const storyBatchId = (story as any).__batchId || batchId;
+	// Use category-aware story ID for read state as well
+	const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
 	
 	readStories[storyId] = !readStories[storyId];
 }
 
-// Mark all as read
+// Mark all as read - only mark stories that were visible when button was clicked
 function markAllAsRead() {
+	// Capture current displayed stories at the time of button click
+	const storiesToMark = [...displayedStories];
+	
 	// Defer state mutations to avoid issues when called from reactive contexts
 	setTimeout(() => {
-		for (const it of displayedStories) {
+		for (const it of storiesToMark) {
 			if ((it as any).__dateDivider) continue;
 			const story = it as Story;
-			const storyId = story.cluster_number?.toString() || story.title;
+			const baseStoryId = story.cluster_number?.toString() || story.title;
+			const storyBatchId = (story as any).__batchId || batchId;
+			// Use category-aware story ID for mark all as read
+			const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
 			readStories[storyId] = true;
 		}
+		console.log('✅ Marked', storiesToMark.filter(it => !(it as any).__dateDivider).length, 'stories as read');
 	}, 0);
 }
 
@@ -216,7 +258,10 @@ const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
 // Check if all stories are read
 const allStoriesRead = $derived(
 	displayedStories.filter(it => !(it as any).__dateDivider).every((s: any) => {
-		const storyId = s.cluster_number?.toString() || s.title;
+		const baseStoryId = s.cluster_number?.toString() || s.title;
+		const storyBatchId = (s as any).__batchId || batchId;
+		// Use category-aware story ID for read check
+		const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
 		return readStories[storyId];
 	})
 );
@@ -311,6 +356,8 @@ function observeDateDivider(node: HTMLElement) {
 function setupScrollToEndObserver(node: HTMLElement) {
     let lastScrollTime = 0;
     let scrollEndTimeout: number | null = null;
+    let scrollDirection = 0; // Track scroll direction
+    let lastScrollTop = 0;
     
     const handleScroll = () => {
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -318,14 +365,22 @@ function setupScrollToEndObserver(node: HTMLElement) {
         const documentHeight = document.documentElement.scrollHeight;
         const distanceFromBottom = documentHeight - (scrollTop + windowHeight);
         
-        // Check if we're at the bottom (within 10px tolerance)
-        const atBottom = distanceFromBottom <= 10;
+        // Track scroll direction
+        scrollDirection = scrollTop > lastScrollTop ? 1 : -1;
+        lastScrollTop = scrollTop;
         
-        if (atBottom && canLoadMore && !isLoadingMore && !isLoading) {
+        // More conservative bottom detection - require being very close and scrolling down
+        const atBottom = distanceFromBottom <= 5 && scrollDirection > 0;
+        
+        // Additional checks to prevent accidental triggering
+        const hasMinimumContent = documentHeight > windowHeight * 1.5; // Ensure there's enough content
+        const isScrollingDown = scrollDirection > 0;
+        
+        if (atBottom && canLoadMore && !isLoadingMore && !isLoading && hasMinimumContent && isScrollingDown) {
             const now = Date.now();
             
             if (!isAtBottom) {
-                // Just reached the bottom
+                // Just reached the bottom - require intentional scrolling
                 isAtBottom = true;
                 scrollHoldStart = now;
                 startScrollProgress();
@@ -338,10 +393,10 @@ function setupScrollToEndObserver(node: HTMLElement) {
                 clearTimeout(scrollEndTimeout);
             }
             
-            // Set timeout to detect if user stops scrolling
+            // Longer timeout to ensure user really wants to load more
             scrollEndTimeout = window.setTimeout(() => {
                 stopScrollProgress();
-            }, 100);
+            }, 200);
         } else if (!atBottom && isAtBottom) {
             // User scrolled away from bottom
             isAtBottom = false;
@@ -368,7 +423,7 @@ function startScrollProgress() {
     loadProgress = 0;
     
     progressInterval = window.setInterval(() => {
-        loadProgress += 3; // Fill over ~1.7 seconds (100/60 = 1.67)
+        loadProgress += 1.5; // Fill over ~3.3 seconds (100/30 = 3.33) - slower for more control
         
         if (loadProgress >= 100) {
             triggerLoadMore();
@@ -419,12 +474,22 @@ async function triggerLoadMore() {
             isLoadingMore, 
             isLoading 
         });
-        pendingOperations--;
+        pendingOperations = Math.max(0, pendingOperations - 1);
         return;
     }
     
     stopScrollProgress();
     isLoadingMore = true;
+    
+    // Create a safety timeout to prevent hanging
+    const safetyTimeout = setTimeout(() => {
+        if (isLoadingMore) {
+            persistentLog('⏰ Safety timeout triggered - resetting load more state');
+            isLoadingMore = false;
+            loadProgress = 0;
+            pendingOperations = Math.max(0, pendingOperations - 1);
+        }
+    }, 45000); // 45 second safety timeout
     
     try {
         // Ensure onLoadMore exists and is a function before calling
@@ -441,14 +506,22 @@ async function triggerLoadMore() {
             persistentLog('✅ Load more completed successfully');
         } else {
             persistentLog('⚠️ onLoadMore is not a function', { type: typeof onLoadMore });
+            throw new Error('onLoadMore is not a function');
         }
     } catch (error) {
         persistentLog('❌ Load more failed', { 
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
         });
-        // Don't rethrow the error
+        
+        // If it's a timeout or network error, disable further load more attempts
+        if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('network'))) {
+            persistentLog('🛑 Disabling load more due to persistent error');
+            // Note: We can't directly modify canLoadMore here as it's a prop
+            // The parent component should handle this through error propagation
+        }
     } finally {
+        clearTimeout(safetyTimeout);
         pendingOperations = Math.max(0, pendingOperations - 1);
         persistentLog('🔄 Cleaning up load more state', { pendingOperations });
         isLoadingMore = false;
@@ -646,22 +719,48 @@ onDestroy(() => {
     {:else}
 		{#each displayedStories as item, index (index)}
 			{#if (item as any).__dateDivider}
-				<div use:observeDateDivider data-date={(item as DateDivider).date} class="my-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
-					{new Date((item as DateDivider).date).toLocaleDateString('en', { year:'numeric', month:'long', day:'numeric'})}
+				<div use:observeDateDivider data-date={(item as DateDivider).date} class="my-8 flex items-center justify-center">
+					<div class="flex items-center w-full max-w-xs">
+						<div class="flex-1 h-px bg-gradient-to-r from-transparent to-gray-300 dark:to-gray-600"></div>
+						<div class="px-4 py-2 bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm">
+							<time class="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+								{new Date((item as DateDivider).date).toLocaleDateString('en', { 
+									month: 'short', 
+									day: 'numeric',
+									year: new Date((item as DateDivider).date).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+								})}
+							</time>
+						</div>
+						<div class="flex-1 h-px bg-gradient-to-l from-transparent to-gray-300 dark:to-gray-600"></div>
+					</div>
 				</div>
 			{:else}
 				{@const story = item as FilteredStory}
 				{@const isFiltered = false}
+				{@const baseStoryId = story.cluster_number?.toString() || story.title}
+				{@const storyBatchId = (story as any).__batchId || batchId}
+				{@const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`}
+				{@const actualStoryIndex = (() => {
+					// For story indexing, we need to count only stories from the same batch context
+					// to avoid counting stories from previous batches when loading more
+					const storiesToCount = stories.filter(s => {
+						if ((s as any).__dateDivider) return false;
+						// Only count stories from the same batch as the current story
+						const sBatchId = (s as any).__batchId || batchId;
+						return sBatchId === storyBatchId;
+					});
+					return storiesToCount.findIndex(s => ((s as Story).cluster_number?.toString() || (s as Story).title) === baseStoryId);
+				})()}
 				<StoryCard 
 					{story}
-					storyIndex={index}
-					{batchId}
+					storyIndex={actualStoryIndex}
+					batchId={storyBatchId}
 					categoryId={currentCategory}
-					isRead={readStories[story.cluster_number?.toString() || story.title] || false}
-					isExpanded={expandedStories[story.cluster_number?.toString() || story.title] || false}
+					isRead={readStories[storyId] || false}
+					isExpanded={expandedStories[storyId] || false}
 					onToggle={() => handleStoryToggle(story, true)}
 					onReadToggle={() => handleReadToggle(story)}
-					priority={index < 3}
+					priority={actualStoryIndex < 3}
 					isFiltered={isFiltered}
 					filterKeywords={story._filterScore?.reasons || []}
 					bind:showSourceOverlay
@@ -698,6 +797,8 @@ onDestroy(() => {
 				</p>
 			</div>
 		{/if}
+		
+
 		
 		<!-- Load more section -->
 		{#if canLoadMore && !isLoading && pendingOperations === 0}

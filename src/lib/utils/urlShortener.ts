@@ -63,13 +63,9 @@ export function generateShareUrl(
   }
   if (state.categoryId) parts.push(state.categoryId);
 
-  // Preferred format: include index+slug when both available for clarity & backward compatibility
+  // Use numeric-only format (restored original format)
   if (state.storyIndex !== null && state.storyIndex !== undefined) {
-    const segment = state.slug ? `${state.storyIndex}-${state.slug}` : state.storyIndex.toString();
-    parts.push(segment);
-  } else if (state.slug) {
-    // Edge case: slug without index
-    parts.push(state.slug);
+    parts.push(state.storyIndex.toString());
   }
 
   let url = baseUrl + '/' + parts.join('/');
