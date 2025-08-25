@@ -883,16 +883,6 @@ onDestroy(() => {
 			</div>
 		{/if}
 
-		<!-- Mark all as read button -->
-		{#if !allStoriesRead && displayedStories.length > 0}
-			<div class="mt-6 w-full text-center">
-				<button
-					onclick={markAllAsRead}
-					class="w-full rounded-lg bg-gray-100 px-6 py-3 text-gray-800 transition-colors duration-200 hover:bg-gray-200 md:w-auto dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-				>
-					{s('article.markAllAsRead') || 'Mark all as read'}
-				</button>
-			</div>
-		{/if}
+
 	{/if}
 </div> 

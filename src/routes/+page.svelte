@@ -647,6 +647,42 @@
   // Flag to prevent navigation during load more
   let isLoadingMore = $state(false);
 
+  // Mark all displayed stories as read
+  function markAllAsRead() {
+    // Get current displayed stories
+    const storiesToMark = stories.filter(item => !(item as any).__dateDivider);
+    
+    // Defer state mutations to avoid issues when called from reactive contexts
+    setTimeout(() => {
+      for (const story of storiesToMark) {
+        const baseStoryId = story.cluster_number?.toString() || story.title;
+        const storyBatchId = (story as any).__batchId || currentBatchId;
+        // Use category-aware story ID for mark all as read
+        const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
+        readStories[storyId] = true;
+      }
+      console.log('✅ Marked', storiesToMark.length, 'stories as read');
+    }, 0);
+  }
+
+  // Mark all displayed stories as unread
+  function markAllAsUnread() {
+    // Get current displayed stories
+    const storiesToMark = stories.filter(item => !(item as any).__dateDivider);
+    
+    // Defer state mutations to avoid issues when called from reactive contexts
+    setTimeout(() => {
+      for (const story of storiesToMark) {
+        const baseStoryId = story.cluster_number?.toString() || story.title;
+        const storyBatchId = (story as any).__batchId || currentBatchId;
+        // Use category-aware story ID for mark all as unread
+        const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
+        readStories[storyId] = false;
+      }
+      console.log('✅ Marked', storiesToMark.length, 'stories as unread');
+    }, 0);
+  }
+
   // Function to restore to today's stories only (remove historical stories)
   function restoreToToday() {
     if (!allCategoryStories[currentCategory]) return;
@@ -910,6 +946,7 @@
         });
 
         // If we have stories from current day and few remaining, complete the day
+        // BUT ensure we always load at least a minimum number of stories
         if (
           storiesFromCurrentDay > 0 &&
           totalDailyBatchSize > 0 &&
@@ -917,13 +954,16 @@
           remainingInCurrentDay <= userIncrement * 1.5 &&
           remainingInCurrentDay > 0
         ) {
-          categoryLimits[categoryId] = oldLimit + remainingInCurrentDay;
+          // Ensure we load at least 3 stories, even if completing the day
+          const minIncrement = Math.max(3, remainingInCurrentDay);
+          const actualIncrement = Math.max(minIncrement, userIncrement);
+          categoryLimits[categoryId] = oldLimit + actualIncrement;
           console.log(
-            "📅 Completing current day: from",
+            "📅 Completing current day with minimum guarantee: from",
             oldLimit,
             "to",
             categoryLimits[categoryId],
-            `(+${remainingInCurrentDay} remaining for ${currentDateKey})`,
+            `(+${actualIncrement}, min ${minIncrement} for ${currentDateKey})`,
           );
         } else {
           // Normal increment using user setting
@@ -1747,21 +1787,43 @@
       const oldHasMore = categoryHasMore[categoryId];
       categoryHasMore[categoryId] = hasMoreBatches;
 
+      const finalStoryCount = allCategoryStories[categoryId]?.filter(
+        (item) => !(item as any).__dateDivider,
+      ).length || 0;
+      
       console.log(
         "🏁 Load more results: showing",
-        Math.min(
-          requestedLimit,
-          allCategoryStories[categoryId]?.filter(
-            (item) => !(item as any).__dateDivider,
-          ).length || 0,
-        ),
+        Math.min(requestedLimit, finalStoryCount),
         "of",
-        allCategoryStories[categoryId]?.filter(
-          (item) => !(item as any).__dateDivider,
-        ).length || 0,
+        finalStoryCount,
         "cached stories. More available:",
         categoryHasMore[categoryId],
       );
+      
+      // If this was an increment operation and we didn't get enough new stories,
+      // try to load more from the next batch if available
+      if (increment && hasMoreBatches) {
+        const storiesBeforeIncrement = (requestedLimit - settings.storyCount);
+        const newStoriesLoaded = finalStoryCount - storiesBeforeIncrement;
+        
+        if (newStoriesLoaded < Math.min(3, settings.storyCount / 2)) {
+          console.log(
+            "⚠️ Load more only added",
+            newStoriesLoaded,
+            "stories, trying to load more from next batch"
+          );
+          
+          // Try to load a bit more to reach a reasonable increment
+          const additionalNeeded = Math.min(3, settings.storyCount) - newStoriesLoaded;
+          categoryLimits[categoryId] += additionalNeeded;
+          
+          // Continue to next batch if we still have more
+          if (catBatchesIndex[categoryId] < batchList.length - 1) {
+            console.log("🔄 Attempting to load additional stories from next batch");
+            // This will be handled by the existing batch loading logic above
+          }
+        }
+      }
 
       // Always slice to the requested limit, including date dividers in the correct positions
       const allItems = allCategoryStories[categoryId] || [];
@@ -2370,6 +2432,16 @@
     Object.values(readStories).filter(Boolean).length,
   );
 
+  // Check if all displayed stories are read
+  const allDisplayedStoriesRead = $derived(
+    stories.filter(item => !(item as any).__dateDivider).every((story) => {
+      const baseStoryId = story.cluster_number?.toString() || story.title;
+      const storyBatchId = (story as any).__batchId || currentBatchId;
+      const storyId = `${currentCategory}:${storyBatchId}:${baseStoryId}`;
+      return readStories[storyId];
+    })
+  );
+
   // Effect for saving to localStorage (side effects only, no state mutation)
   $effect(() => {
     // Save to localStorage
@@ -2780,6 +2852,12 @@
       mobilePosition={categoryHeaderPosition}
       {temporaryCategory}
       showTemporaryTooltip={false}
+      displayedStoriesCount={stories.filter(item => !(item as any).__dateDivider).length}
+      allStoriesRead={allDisplayedStoriesRead}
+      {hasHistoricalStories}
+      onMarkAllRead={markAllAsRead}
+      onMarkAllUnread={markAllAsUnread}
+      onRestoreToToday={restoreToToday}
     />
   </div>
 
@@ -2791,15 +2869,13 @@
     ontouchstart={categorySwipeHandler.handleTouchStart}
     ontouchend={categorySwipeHandler.handleTouchEnd}
   >
-    <div class="container mx-auto max-w-[732px] px-4 py-8">
+    <div class="container mx-auto max-w-[732px] px-4 py-6">
       <Header
         {offlineMode}
         {totalReadCount}
         {totalStoriesRead}
         {getLastUpdated}
         {chaosIndex}
-        {hasHistoricalStories}
-        onRestoreToToday={restoreToToday}
       />
 
       <!-- Category Navigation - Desktop (normal document flow) -->
@@ -2812,10 +2888,16 @@
           mobilePosition="bottom"
           {temporaryCategory}
           showTemporaryTooltip={showTemporaryCategoryTooltip}
+          displayedStoriesCount={stories.filter(item => !(item as any).__dateDivider).length}
+          allStoriesRead={allDisplayedStoriesRead}
+          {hasHistoricalStories}
+          onMarkAllRead={markAllAsRead}
+          onMarkAllUnread={markAllAsUnread}
+          onRestoreToToday={restoreToToday}
         />
       </div>
 
-      <div>
+      <div class="mt-0">
         <!-- News Content -->
         {#if currentCategory === "onthisday"}
           <OnThisDay

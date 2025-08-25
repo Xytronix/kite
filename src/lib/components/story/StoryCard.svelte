@@ -12,6 +12,7 @@ import { autoLinkOrgs } from '$lib/utils/orgAutoLink';
 import { autoLinkAcronyms } from '$lib/utils/acronymAutoLink';
 import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
 import { tick } from 'svelte';
+import { slide } from 'svelte/transition';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
@@ -299,7 +300,7 @@ $effect(() => {
 	bind:this={storyElement}
 	id="story-{story.cluster_number}"
 	aria-label="News story: {story.title}"
-	class="relative py-2 cursor-pointer transition-all duration-300 border-b"
+	class="relative py-2 cursor-pointer transition-all duration-300 ease-in-out border-b"
 	class:border-gray-200={!isExpanded && !isBlurred}
 	class:dark:border-gray-700={!isExpanded && !isBlurred}
 	class:border-transparent={isExpanded || isBlurred}
@@ -312,7 +313,7 @@ $effect(() => {
 	tabindex={isBlurred ? 0 : -1}
 >
 	<!-- Blurrable Content -->
-	<div class="transition-all duration-300" class:blur-lg={isBlurred}>
+	<div class="transition-all duration-300 ease-in-out" class:blur-lg={isBlurred}>
 		<!-- Story Header -->
 		<StoryHeader 
 			{story}
@@ -323,7 +324,12 @@ $effect(() => {
 
 		<!-- Expanded Content -->
 		{#if isExpanded}
-			<div class="dark:bg-dark-bg flex flex-col bg-white py-4" role="region" aria-label="Story content">
+			<div 
+				class="dark:bg-dark-bg flex flex-col bg-white py-4" 
+				role="region" 
+				aria-label="Story content"
+				transition:slide={{ duration: 300, axis: 'y' }}
+			>
 				
 				<!-- Dynamic Sections based on user settings -->
                 <div role="presentation"

@@ -127,6 +127,10 @@
     "text": "Mark all as read",
     "translationContext": "Button text to mark all stories as read"
   },
+  "article.markAllAsUnread": {
+    "text": "Mark all as unread",
+    "translationContext": "Button text to mark all stories as unread"
+  },
   "article.readStatus": {
     "text": "Click to toggle read status",
     "translationContext": "Title/tooltip for the read status toggle button"
@@ -2914,6 +2918,10 @@
   "stories.noStories": {
     "text": "Something went wrong, there are no stories here!",
     "translationContext": "Message shown when no stories are found"
+  },
+  "stories.restoreToToday": {
+    "text": "Show only today's stories",
+    "translationContext": "Button text to restore view to today's stories only"
   },
   "time.updated.days": {
     "text": "Updated {{count}} days ago",
