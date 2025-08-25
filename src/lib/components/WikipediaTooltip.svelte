@@ -72,13 +72,13 @@ function detectMobile() {
 export async function handleWikipediaInteraction(event: Event) {
 	const target = event.target as HTMLElement;
 	
-	// Find the actual Wikipedia link, even if we clicked on a child element
-	const wikiLink = target.closest('a[data-wiki-id]') as HTMLElement;
+	// Find the actual Wikipedia element, even if we clicked on a child element
+	const wikiLink = target.closest('[data-wiki-id]') as HTMLElement;
 	
 	if (wikiLink) {
 		const interactionType = event.type;
-		const title = wikiLink.getAttribute('title') || wikiLink.textContent || '';
 		const wikiId = wikiLink.getAttribute('data-wiki-id') || '';
+		const title = wikiLink.getAttribute('title') || wikiLink.textContent?.trim() || wikiId || '';
 		const href = wikiLink.getAttribute('href') || wikiLink.getAttribute('data-url') || '';
 		const tooltipId = `${wikiId}-${title}`;
 		
@@ -110,7 +110,7 @@ export async function handleWikipediaInteraction(event: Event) {
 		
 		// Set initial state
 		currentTooltipId = tooltipId;
-		tooltipTitle = title;
+		tooltipTitle = title; // Use the actual title instead of "Loading..." to reduce flicker
 		tooltipContent = '';
 		tooltipImage = '';
 		tooltipFullImage = '';
@@ -120,21 +120,11 @@ export async function handleWikipediaInteraction(event: Event) {
 		} else {
 			tooltipWikiUrl = href || `https://en.wikipedia.org/wiki/${wikiId}`;
 		}
+		// Start with loading state
 		isLoading = true;
 		
 		// Show tooltip - the floating element will be bound when the template renders
 		showTooltip = true;
-		
-		// Debug logging (commented out)
-		// setTimeout(() => {
-		//   console.log('Floating UI state after timeout:', { 
-		//     reference: floating.elements.reference, 
-		//     floating: floating.elements.floating,
-		//     isPositioned: floating.isPositioned,
-		//     showTooltip
-		//   });
-		// }, 0);
-		
 		
 		// Fetch Wikipedia content with enhanced features
 		try {
@@ -146,7 +136,7 @@ export async function handleWikipediaInteraction(event: Event) {
 			}
 			// Priority 2: Enhanced search with Knowledge Graph (server-side, secure) for regular titles
 			else {
-				loadedData = await fetchWikipediaContentWithEnhancedSearch(title);
+				loadedData = await fetchWikipediaContentWithEnhancedSearch(wikiId);
 			}
 			
 			// Priority 3: Direct Wikipedia API (reliable fallback)
@@ -156,6 +146,7 @@ export async function handleWikipediaInteraction(event: Event) {
 			
 			// Update tooltip if it's still showing for the same ID
 			if (showTooltip && currentTooltipId === tooltipId && loadedData) {
+				tooltipTitle = loadedData.title || title; // Use the resolved Wikipedia title or fallback to original title
 				tooltipContent = loadedData?.extract || 'No summary available.';
 				tooltipImage = loadedData?.thumbnail?.source || '';
 				tooltipFullImage = loadedData?.originalImage?.source || tooltipImage;
@@ -175,6 +166,8 @@ export async function handleWikipediaInteraction(event: Event) {
 				} else {
 					tooltipFlag = '';
 				}
+				
+				// Set loading to false
 				isLoading = false;
 
 				// If this was a click/tap interaction and a callback is provided, open full popup
@@ -185,8 +178,7 @@ export async function handleWikipediaInteraction(event: Event) {
 					hideTooltip();
 					// Defer call slightly to allow tooltip hide state
 					setTimeout(() => {
-
-						onWikipediaClick(loadedData.title || title, loadedData.extract || '', imgUrl, loadedData.wikiUrl);
+						onWikipediaClick(loadedData.title || wikiId, loadedData.extract || '', imgUrl, loadedData.wikiUrl);
 					}, 0);
 				}
 				
@@ -207,7 +199,7 @@ export async function handleWikipediaInteraction(event: Event) {
 			}
 		} catch (error) {
 			console.error('Error loading Wikipedia content:', error);
-			// Hide tooltip entirely when content fails to load
+			// Hide tooltip when content fails to load
 			if (showTooltip && currentTooltipId === tooltipId) {
 				hideTooltip();
 			}
@@ -228,13 +220,13 @@ export function handleWikipediaLeave(event: Event) {
 		return;
 	}
 	
-	// Key improvement: Check if we're moving to ANY part of the same Wikipedia link
-	// This treats the entire link as a single hover zone
+	// Key improvement: Check if we're moving to ANY part of the same Wikipedia element
+	// This treats the entire element as a single hover zone
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWikiLink = relatedTarget.closest('a[data-wiki-id]');
+		const targetWikiLink = relatedTarget.closest('[data-wiki-id]');
 		const currentWikiLink = reference as Element;
 		
-		// If we're moving to the same Wikipedia link (same data-wiki-id), don't hide
+		// If we're moving to the same Wikipedia element (same data-wiki-id), don't hide
 		if (targetWikiLink && currentWikiLink && 
 			targetWikiLink.getAttribute('data-wiki-id') === currentWikiLink.getAttribute('data-wiki-id')) {
 			return;
@@ -254,12 +246,12 @@ function handleTooltipLeave(event: MouseEvent) {
 	const relatedTarget = event.relatedTarget as Node;
 	const reference = floating.elements.reference;
 	
-	// If moving back to the Wikipedia link, don't hide
+	// If moving back to the Wikipedia element, don't hide
 	if (relatedTarget && relatedTarget instanceof Element) {
-		const targetWikiLink = relatedTarget.closest('a[data-wiki-id]');
+		const targetWikiLink = relatedTarget.closest('[data-wiki-id]');
 		const currentWikiLink = reference as Element;
 		
-		// If we're moving to the same Wikipedia link (same data-wiki-id), don't hide
+		// If we're moving to the same Wikipedia element (same data-wiki-id), don't hide
 		if (targetWikiLink && currentWikiLink && 
 			targetWikiLink.getAttribute('data-wiki-id') === currentWikiLink.getAttribute('data-wiki-id')) {
 			return;

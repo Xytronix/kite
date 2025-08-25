@@ -172,7 +172,7 @@
 </script>
 
 {#if shouldShow}
-  <div class="story-end-sources mt-8 pt-6">
+  <div class="story-end-sources mt-8 pt-6" data-no-wiki>
     <h4
       class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-200"
     >

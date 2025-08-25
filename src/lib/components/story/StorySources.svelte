@@ -285,7 +285,7 @@
   });
 </script>
 
-<section class="mt-6">
+<section class="mt-6" data-no-wiki>
   <div class="mb-4 flex items-center justify-between">
     <h3
       class="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200"
@@ -386,7 +386,7 @@
               backgroundMode="transparent-only"
             />
           </div>
-          <span class="col-start-2 truncate text-base font-semibold">
+          <span class="col-start-2 text-base font-semibold line-clamp-2 leading-tight">
             {organizationNames.get(domain?.name) || domain?.name || "Unknown"}
           </span>
           <div
@@ -431,3 +431,14 @@
   {citationMapping}
   citedItems={[]}
 />
+
+<style>
+/* Multi-line text support with line clamping */
+.line-clamp-2 {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+</style>

@@ -6,6 +6,7 @@
   import { language } from "$lib/stores/language.svelte.js";
   import type { Article, MediaInfo } from "$lib/types";
   import type { CitationMapping } from "$lib/utils/citationContext";
+  import { getOrganizationNames } from "$lib/utils/domainUtils";
   import SmartImage from "../SmartImage.svelte";
   import SourceOverlay from "../SourceOverlay.svelte";
   import SourceTooltip from "./SourceTooltip.svelte";
@@ -59,6 +60,7 @@
 
   // Citation tooltip reference
   let sectionTooltip = $state<SourceTooltip | undefined>();
+  let organizationNames = $state<Map<string, string>>(new Map());
 
   // Helper function to get section-specific articles
   function normalizeUrl(url: string): string {
@@ -114,6 +116,17 @@
     citedDomains.length > 0 &&
       experimental.sourceIconPosition === "section-end",
   );
+
+  // Preload organization names for cited domains
+  $effect(() => {
+    if (citedDomains.length > 0) {
+      getOrganizationNames(citedDomains).then(names => {
+        organizationNames = names;
+      }).catch(error => {
+        console.warn('Failed to preload organization names:', error);
+      });
+    }
+  });
 
   // Handle source click to open overlay
   async function handleSourceClick(domain: string) {
@@ -179,6 +192,7 @@
     class="section-sources mt-4"
     role="region"
     aria-label="Section sources"
+    data-no-wiki
   >
     <div class="flex items-center justify-start flex-wrap gap-2">
       <!-- Global sources icon -->
@@ -246,8 +260,8 @@
             type="button"
             class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white bg-white p-0 shadow-sm transition-all hover:z-10 hover:scale-110 hover:shadow-md dark:border-gray-600 dark:bg-gray-800"
             style="z-index: {8 - index}"
-            title={domain}
-            aria-label="View citations from {domain}"
+            title={organizationNames.get(domain) || domain}
+            aria-label="View citations from {organizationNames.get(domain) || domain}"
             onmouseenter={(e) => {
               // Get articles for this specific domain from the current context
               let domainArticles: Article[] = [];
