@@ -1,5 +1,6 @@
 import type { Article } from '$lib/types';
 import type { CitationMapping } from './citationContext';
+import { getEnhancedArticleKey } from './sourceUtils';
 
 export interface CitationItem {
 	article: Article | null;
@@ -96,7 +97,8 @@ export function aggregateCitationsFromTexts(
 				citedItems.push(item);
 			}
 		} else if (item.article) {
-			const articleKey = item.article.link;
+			// Use enhanced article key that includes domain to differentiate sources
+			const articleKey = getEnhancedArticleKey(item.article);
 			if (!seen.has(articleKey)) {
 				seen.add(articleKey);
 				citedArticles.push(item.article);
@@ -221,8 +223,8 @@ export function createLocalCitationMapping(
 			const globalNumber = parseInt(citationText);
 			const article = globalCitationMapping.numberToArticle.get(globalNumber);
 			
-			if (article && !seenArticles.has(article.link)) {
-				seenArticles.add(article.link);
+			if (article && !seenArticles.has(getEnhancedArticleKey(article))) {
+				seenArticles.add(getEnhancedArticleKey(article));
 				localNumberToArticle.set(localNumber, article);
 				localArticleToNumber.set(article, localNumber);
 				localNumber++;

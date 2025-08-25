@@ -25,11 +25,14 @@ let { visible, title, content, imageUrl, wikiUrl, onClose }: Props = $props();
 >
 	<div class="p-6">
 		{#if imageUrl}
-			<img
-				src={imageUrl}
-				alt={title}
-				class="mb-4 h-48 w-full rounded-lg object-cover"
-			/>
+			<div class="mb-4 flex justify-center">
+				<img
+					src={imageUrl}
+					alt={title}
+					class="max-h-64 w-auto max-w-full rounded-lg object-contain shadow-sm"
+					loading="lazy"
+				/>
+			</div>
 		{/if}
 		<p class="text-gray-700 dark:text-gray-300">{content}</p>
 		{#if wikiUrl}

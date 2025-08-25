@@ -2,6 +2,7 @@
 import { getTimeAgo } from '$lib/utils/getTimeAgo';
 import { s } from '$lib/client/localization.svelte';
 import { getOrganizationName } from '$lib/utils/domainUtils';
+import { generateSourceDisplayName } from '$lib/utils/sourceUtils';
 import type { Article } from '$lib/types';
 import SmartImage from '../SmartImage.svelte';
 
@@ -11,9 +12,10 @@ interface Props {
 	isMobile?: boolean;
 	showCitationNumber?: boolean;
 	maxCitationNumber?: number; // The highest citation number in the current set
+	allArticles?: Article[]; // All articles in the context for better differentiation
 }
 
-let { item, highlightedNumber, isMobile = false, showCitationNumber = true, maxCitationNumber = 0 }: Props = $props();
+let { item, highlightedNumber, isMobile = false, showCitationNumber = true, maxCitationNumber = 0, allArticles = [] }: Props = $props();
 
 // Function to decode HTML entities
 function decodeHtmlEntities(text: string): string {
@@ -26,15 +28,31 @@ function decodeHtmlEntities(text: string): string {
 // State for organization name
 let organizationName = $state<string>('');
 
-// Load organization name when article changes
+// Load enhanced organization name when article changes
 $effect(() => {
 	if (item.article?.domain) {
 		organizationName = item.article.domain; // Set fallback immediately
-		getOrganizationName(item.article.domain).then(name => {
-			organizationName = name;
-		}).catch(() => {
-			// Keep the fallback domain name if lookup fails
-		});
+		
+		// Use enhanced display name generation if we have context of all articles
+		if (allArticles.length > 0) {
+			generateSourceDisplayName(item.article, allArticles).then(name => {
+				organizationName = name;
+			}).catch(() => {
+				// Fallback to basic organization name
+				getOrganizationName(item.article.domain).then(name => {
+					organizationName = name;
+				}).catch(() => {
+					// Keep the fallback domain name if lookup fails
+				});
+			});
+		} else {
+			// Use basic organization name if no context available
+			getOrganizationName(item.article.domain).then(name => {
+				organizationName = name;
+			}).catch(() => {
+				// Keep the fallback domain name if lookup fails
+			});
+		}
 	}
 });
 

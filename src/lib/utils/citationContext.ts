@@ -12,6 +12,15 @@ export interface CitationMapping {
 }
 
 /**
+ * Enhanced article key generation that considers both domain and content
+ */
+function getEnhancedArticleKey(article: Article): string {
+  // Use normalized link as primary key for better deduplication
+  const normalizedLink = article.link.toLowerCase().replace(/^https?:\/\/(www\.)?/, '');
+  return normalizedLink || `${article.domain}::${article.title}`;
+}
+
+/**
  * Extract all citations from a text string
  */
 function extractCitations(text: string): string[] {
@@ -153,6 +162,12 @@ export function buildCitationMapping(story: any, articles: Article[]): CitationM
       citationToNumber.set(citation, citationCounter);
       numberToArticle.set(citationCounter, article);
       articleToNumber.set(article, citationCounter);
+      
+      // Debug logging for The Hindu articles
+      if (article.domain.toLowerCase().includes('hindu')) {
+        console.log(`Citation mapping: [${citation}] -> Citation #${citationCounter} -> "${article.title}" (${article.link})`);
+      }
+      
       citationCounter++;
     }
   };

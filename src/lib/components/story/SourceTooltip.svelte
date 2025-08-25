@@ -7,6 +7,10 @@
     getOrganizationName,
   } from "$lib/utils/domainUtils";
   import { scrollLock } from "$lib/utils/scrollLock";
+  import {
+    getEnhancedArticleKey,
+    smartDeduplicateArticles,
+  } from "$lib/utils/sourceUtils";
   import SmartImage from "../SmartImage.svelte";
   import CitationItem from "./CitationItem.svelte";
   import {
@@ -96,8 +100,8 @@
 
   function getArticleKey(a: Article | null | undefined): string {
     if (!a) return "null";
-    if (a.link) return normalizeUrl(a.link);
-    return `${a.domain || ""}::${(a.title || "").trim()}`;
+    // Use enhanced article key for better deduplication
+    return getEnhancedArticleKey(a);
   }
 
   // State for dynamic sizing
@@ -720,28 +724,39 @@
 
   // Get unique display items for rendering
   function getUniqueDisplayItems() {
-    const seen = new Set();
-    const unique = [];
+    // Separate common knowledge items from articles
+    const commonItems = displayItems.filter((item) => item.isCommon);
+    const articleItems = displayItems.filter((item) => item.article);
 
-    for (const item of displayItems) {
-      if (item.isCommon) {
-        // Only add common knowledge once
-        if (!seen.has("common")) {
-          seen.add("common");
-          unique.push(item);
+    // Smart deduplicate articles
+    const articles = articleItems.map((item) => item.article!);
+    const uniqueArticles = smartDeduplicateArticles(articles);
+
+    // Rebuild items with unique articles, preserving citation info
+    const uniqueArticleItems = uniqueArticles.map((article) => {
+      // Find the original item for this article to preserve citation number and status
+      const originalItem = articleItems.find(
+        (item) =>
+          item.article &&
+          getEnhancedArticleKey(item.article) ===
+            getEnhancedArticleKey(article),
+      );
+      return (
+        originalItem || {
+          article,
+          number: -1,
+          isCommon: false,
+          isCited: false,
         }
-      } else if (item.article) {
-        // Only add each unique article once (by normalized link as unique identifier)
-        const articleKey = getArticleKey(item.article);
-        if (!seen.has(articleKey)) {
-          seen.add(articleKey);
-          unique.push(item);
-        }
-      }
-    }
+      );
+    });
+
+    // Combine and deduplicate common knowledge
+    const uniqueCommon = commonItems.length > 0 ? [commonItems[0]] : [];
+    const allUnique = [...uniqueArticleItems, ...uniqueCommon];
 
     // Sort: cited articles first (by number), then non-cited (alphabetically)
-    return unique.sort((a, b) => {
+    return allUnique.sort((a, b) => {
       if (a.isCommon && !b.isCommon) return 1;
       if (!a.isCommon && b.isCommon) return -1;
       if (a.isCommon && b.isCommon) return 0;
@@ -971,6 +986,7 @@
                     {highlightedNumber}
                     showCitationNumber={item.isCited}
                     {maxCitationNumber}
+                    allArticles={combinedArticles}
                   />
                 {/each}
               {:else}
@@ -1068,6 +1084,7 @@
                       isMobile={true}
                       showCitationNumber={item.isCited}
                       {maxCitationNumber}
+                      allArticles={combinedArticles}
                     />
                   {/each}
                 {:else}

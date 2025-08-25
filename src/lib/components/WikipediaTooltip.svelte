@@ -7,12 +7,68 @@ import Portal from 'svelte-portal';
 import { scrollLock } from '$lib/utils/scrollLock';
 import { fetchWikipediaContent, fetchWikipediaContentWithEnhancedSearch, type WikipediaContent } from '$lib/services/wikipediaService';
 import { s } from '$lib/client/localization.svelte';
+import { openMapLocation, getMapServiceName, isAppleDevice } from '$lib/utils/mapUtils';
+import Icon from '@iconify/svelte';
+
+// Enhanced location search function (similar to StorySummary's fetchWikipediaContentWithCrossLanguage)
+async function fetchWikipediaContentForLocation(locationName: string): Promise<WikipediaContent | null> {
+	console.debug('Fetching Wikipedia content for location in tooltip:', locationName);
+	
+	// Clean the location name - remove common prefixes that might interfere
+	let cleanLocation = locationName.trim();
+	
+	// Remove common prefixes like "Learn more about", "in", "at", etc.
+	cleanLocation = cleanLocation.replace(/^(?:learn more about|in|at|from|near|over|across|around|into)\s+/i, '');
+	
+	try {
+		const { resolveWikiTitleWithContext } = await import('$lib/utils/wikiResolver');
+		
+		// Try multiple search variations for better results
+		const searchVariations = [
+			cleanLocation, // Original: "Gaza City, Palestinian Territories"
+			cleanLocation.split(',')[0].trim(), // First part: "Gaza City"
+			cleanLocation.replace(/,.*$/, '').trim(), // Remove everything after comma: "Gaza City"
+		];
+		
+		// Remove duplicates
+		const uniqueVariations = [...new Set(searchVariations)];
+		
+		for (const variation of uniqueVariations) {
+			console.debug('Trying Wikipedia search for location variation:', variation);
+			
+			// Use wikiResolver to properly resolve the place with context validation
+			const resolveResult = await resolveWikiTitleWithContext(variation, 'place');
+			
+			if (resolveResult) {
+				console.debug('WikiResolver found for location variation:', variation, resolveResult);
+				
+				// Get the full Wikipedia content using the resolved title and Q-ID
+				// Prefer Q-ID if available for better cross-language support
+				const wikiId = resolveResult.qid || resolveResult.title;
+				const wikiContent = await fetchWikipediaContent(wikiId);
+				
+				if (wikiContent && wikiContent.extract && wikiContent.extract !== 'Failed to load Wikipedia content.') {
+					console.debug('Successfully fetched Wikipedia content for location variation:', variation);
+					return wikiContent;
+				}
+			}
+		}
+		
+		console.debug('No Wikipedia place found for any variation of:', cleanLocation);
+		return null;
+		
+	} catch (error) {
+		console.debug('Wikipedia location search failed:', error);
+		return null;
+	}
+}
 
 interface Props {
 	onWikipediaClick?: (title: string, content: string, imageUrl?: string, wikiUrl?: string) => void;
+	onWikipediaContentFound?: (wikiId: string, wikiUrl: string, title: string) => void;
 }
 
-let { onWikipediaClick }: Props = $props();
+let { onWikipediaClick, onWikipediaContentFound }: Props = $props();
 
 // State for dynamic sizing
 let tooltipMaxHeight = $state(300);
@@ -55,6 +111,7 @@ let currentTooltipId = $state('');
 let isMobile = $state(false);
 let isLoading = $state(false);
 let tooltipFlag = $state('');
+let currentWikiId = $state('');
 
 // Elements
 let arrowElement: HTMLElement;
@@ -110,6 +167,7 @@ export async function handleWikipediaInteraction(event: Event) {
 		
 		// Set initial state
 		currentTooltipId = tooltipId;
+		currentWikiId = wikiId; // Store the current wikiId for location detection
 		tooltipTitle = title; // Use the actual title instead of "Loading..." to reduce flicker
 		tooltipContent = '';
 		tooltipImage = '';
@@ -134,68 +192,84 @@ export async function handleWikipediaInteraction(event: Event) {
 			if (wikiId.startsWith('Q')) {
 				loadedData = await fetchWikipediaContent(wikiId);
 			}
-			// Priority 2: Enhanced search with Knowledge Graph (server-side, secure) for regular titles
+			// Priority 2: For location-like names (containing comma or common location indicators), use enhanced location search
+			else if (wikiId.includes(',') || /\b(city|town|village|county|state|province|territory|island|mountain|river|lake)\b/i.test(wikiId)) {
+				// Use the same enhanced location search logic as StorySummary
+				loadedData = await fetchWikipediaContentForLocation(wikiId);
+			}
+			// Priority 3: Enhanced search with Knowledge Graph (server-side, secure) for regular titles
 			else {
 				loadedData = await fetchWikipediaContentWithEnhancedSearch(wikiId);
 			}
 			
-			// Priority 3: Direct Wikipedia API (reliable fallback)
+			// Priority 4: Direct Wikipedia API (reliable fallback)
 			if (!loadedData) {
 				loadedData = await fetchWikipediaContent(wikiId);
 			}
 			
 			// Update tooltip if it's still showing for the same ID
-			if (showTooltip && currentTooltipId === tooltipId && loadedData) {
-				tooltipTitle = loadedData.title || title; // Use the resolved Wikipedia title or fallback to original title
-				tooltipContent = loadedData?.extract || 'No summary available.';
-				tooltipImage = loadedData?.thumbnail?.source || '';
-				tooltipFullImage = loadedData?.originalImage?.source || tooltipImage;
-				// Always use the resolved URL from the API, especially important for Q-IDs
-				const resolvedUrl = loadedData?.wikiUrl;
-				const fallbackUrl = tooltipWikiUrl;
-				
-				// Always use the resolved URL from the API which respects the language setting
-				tooltipWikiUrl = resolvedUrl || fallbackUrl;
-				
+			if (showTooltip && currentTooltipId === tooltipId) {
+				if (loadedData && loadedData.extract && loadedData.extract !== 'Failed to load Wikipedia content.') {
+					// Valid content found - update tooltip
+					tooltipTitle = loadedData.title || title; // Use the resolved Wikipedia title or fallback to original title
+					tooltipContent = loadedData?.extract || 'No summary available.';
+					tooltipImage = loadedData?.thumbnail?.source || '';
+					tooltipFullImage = loadedData?.originalImage?.source || tooltipImage;
+					// Always use the resolved URL from the API, especially important for Q-IDs
+					const resolvedUrl = loadedData?.wikiUrl;
+					const fallbackUrl = tooltipWikiUrl;
+					
+					// Always use the resolved URL from the API which respects the language setting
+					tooltipWikiUrl = resolvedUrl || fallbackUrl;
+					
 
-
-				// Country flag detection – if description contains 'country' etc.
-				const desc = (loadedData as any)?.description as string | undefined;
-				if (desc && /\bcountry\b/i.test(desc)) {
-					tooltipFlag = getFlagEmoji(loadedData.title);
-				} else {
-					tooltipFlag = '';
-				}
-				
-				// Set loading to false
-				isLoading = false;
-
-				// If this was a click/tap interaction and a callback is provided, open full popup
-				if (interactionType === 'click' && typeof onWikipediaClick === 'function') {
-					// Prefer full-size image if available
-					const imgUrl = loadedData?.originalImage?.source || loadedData?.thumbnail?.source || '';
-					// Hide any tooltip that may have appeared
-					hideTooltip();
-					// Defer call slightly to allow tooltip hide state
-					setTimeout(() => {
-						onWikipediaClick(loadedData.title || wikiId, loadedData.extract || '', imgUrl, loadedData.wikiUrl);
-					}, 0);
-				}
-				
-				// Update scrollbars after content loads
-				setTimeout(() => {
-					try {
-						if (tooltipScrollbars?.osInstance) {
-							const instance = tooltipScrollbars.osInstance();
-							if (instance) {
-								instance.update(true);
-							}
-						}
-					} catch (error) {
-						// Silently handle scrollbar update errors
-						console.debug('Scrollbar update failed:', error);
+					// Country flag detection – if description contains 'country' etc.
+					const desc = (loadedData as any)?.description as string | undefined;
+					if (desc && /\bcountry\b/i.test(desc)) {
+						tooltipFlag = getFlagEmoji(loadedData.title);
+					} else {
+						tooltipFlag = '';
 					}
-				}, 10);
+					
+					// Set loading to false
+					isLoading = false;
+
+					// Notify parent component that Wikipedia content was found
+					if (typeof onWikipediaContentFound === 'function') {
+						onWikipediaContentFound(wikiId, tooltipWikiUrl, loadedData.title || title);
+					}
+
+					// If this was a click/tap interaction and a callback is provided, open full popup
+					if (interactionType === 'click' && typeof onWikipediaClick === 'function') {
+						// Prefer full-size image if available
+						const imgUrl = loadedData?.originalImage?.source || loadedData?.thumbnail?.source || '';
+						// Hide any tooltip that may have appeared
+						hideTooltip();
+						// Defer call slightly to allow tooltip hide state
+						setTimeout(() => {
+							onWikipediaClick(loadedData.title || wikiId, loadedData.extract || '', imgUrl, loadedData.wikiUrl);
+						}, 0);
+					}
+					
+					// Update scrollbars after content loads
+					setTimeout(() => {
+						try {
+							if (tooltipScrollbars?.osInstance) {
+								const instance = tooltipScrollbars.osInstance();
+								if (instance) {
+									instance.update(true);
+								}
+							}
+						} catch (error) {
+							// Silently handle scrollbar update errors
+							console.debug('Scrollbar update failed:', error);
+						}
+					}, 10);
+				} else {
+					// No valid content found - hide tooltip
+					console.debug('No valid Wikipedia content found for tooltip, hiding:', wikiId);
+					hideTooltip();
+				}
 			}
 		} catch (error) {
 			console.error('Error loading Wikipedia content:', error);
@@ -282,6 +356,38 @@ function hideTooltip() {
 // Close mobile modal
 function closeMobileModal() {
 	hideTooltip();
+}
+
+// Check if current content is location-related
+const isLocationContent = $derived.by(() => {
+	return currentWikiId && (
+		currentWikiId.includes(',') || 
+		/\b(city|town|village|county|state|province|territory|island|mountain|river|lake)\b/i.test(currentWikiId)
+	);
+});
+
+// Handle Apple Maps button click
+function handleAppleMapsClick() {
+	if (currentWikiId) {
+		// Force Apple Maps by creating a maps:// URL
+		const encodedLocation = encodeURIComponent(currentWikiId);
+		const link = document.createElement("a");
+		link.href = `maps://maps.apple.com/?q=${encodedLocation}`;
+		link.style.display = "none";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+}
+
+// Handle Google Maps button click
+function handleGoogleMapsClick() {
+	if (currentWikiId) {
+		// Force Google Maps
+		const encodedLocation = encodeURIComponent(currentWikiId);
+		const googleMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+		window.open(googleMapUrl, "_blank");
+	}
 }
 
 // Lock/unlock page scroll for mobile
@@ -432,7 +538,8 @@ export function getFlagEmoji(countryName: string): string {
 								<img
 									src={tooltipImage}
 									alt={tooltipTitle}
-									class="mb-2 h-32 w-full rounded object-cover"
+									class="mb-2 h-40 w-full rounded object-cover"
+									loading="lazy"
 								/>
 							{/if}
 							<p class="text-sm text-gray-600 dark:text-gray-400 break-words">{tooltipContent}</p>
@@ -501,23 +608,41 @@ export function getFlagEmoji(countryName: string): string {
 								<img
 									src={tooltipFullImage || tooltipImage}
 									alt={tooltipTitle}
-									class="mb-4 h-48 w-full rounded-lg object-cover"
+									class="mb-4 h-56 w-full rounded-lg object-cover shadow-sm"
+									loading="lazy"
 								/>
 							{/if}
 							<p class="text-gray-700 dark:text-gray-300">{tooltipContent}</p>
-							{#if tooltipWikiUrl}
-								<a
-									href={tooltipWikiUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="mt-4 inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-								>
-									{s('wikipedia.readMore')}
-									<svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-									</svg>
-								</a>
-							{/if}
+							<div class="mt-4 flex flex-wrap gap-2">
+								{#if tooltipWikiUrl}
+									<a
+										href={tooltipWikiUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+									>
+										{s('wikipedia.readMore')}
+										<Icon icon="mdi:external-link" class="ml-1 h-3 w-3" />
+									</a>
+								{/if}
+								
+								{#if isLocationContent}
+									<button
+										onclick={handleAppleMapsClick}
+										class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+									>
+										<Icon icon="simple-icons:apple" class="mr-2 h-4 w-4" />
+										Apple Maps
+									</button>
+									<button
+										onclick={handleGoogleMapsClick}
+										class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+									>
+										<Icon icon="mdi:google-maps" class="mr-2 h-4 w-4" />
+										Google Maps
+									</button>
+								{/if}
+							</div>
 						{/if}
 					</div>
 				</OverlayScrollbarsComponent>
