@@ -36,11 +36,11 @@ $effect(() => {
 		// Use enhanced display name generation if we have context of all articles
 		if (allArticles.length > 0) {
 			generateSourceDisplayName(item.article, allArticles).then(name => {
-				organizationName = name;
+				organizationName = decodeHtmlEntities(name);
 			}).catch(() => {
 				// Fallback to basic organization name
 				getOrganizationName(item.article.domain).then(name => {
-					organizationName = name;
+					organizationName = decodeHtmlEntities(name);
 				}).catch(() => {
 					// Keep the fallback domain name if lookup fails
 				});
@@ -48,7 +48,7 @@ $effect(() => {
 		} else {
 			// Use basic organization name if no context available
 			getOrganizationName(item.article.domain).then(name => {
-				organizationName = name;
+				organizationName = decodeHtmlEntities(name);
 			}).catch(() => {
 				// Keep the fallback domain name if lookup fails
 			});

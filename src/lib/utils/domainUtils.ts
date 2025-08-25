@@ -5,6 +5,16 @@ import type { MediaInfo } from '$lib/types';
 const domainNameCache = new Map<string, string>();
 
 /**
+ * Decode HTML entities in text
+ */
+function decodeHtmlEntities(text: string): string {
+	if (typeof document === 'undefined') return text;
+	const textarea = document.createElement('textarea');
+	textarea.innerHTML = text;
+	return textarea.value;
+}
+
+/**
  * Get a user-friendly organization name for a domain
  * Falls back to the domain if no organization name is found
  */
@@ -18,7 +28,8 @@ export async function getOrganizationName(domain: string, language: string = 'en
 	
 	try {
 		const mediaInfo = await mediaService.getMediaInfoForDomain(domain, language);
-		const organizationName = mediaInfo?.organization || domain;
+		const rawOrganizationName = mediaInfo?.organization || domain;
+		const organizationName = decodeHtmlEntities(rawOrganizationName);
 		
 		// Cache the result
 		domainNameCache.set(cacheKey, organizationName);

@@ -30,6 +30,14 @@
 
   let { perspectives = [], articles = [], citationMapping }: Props = $props();
 
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === "undefined") return text;
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   // Shared tooltip reference
   let citationTooltip = $state<SourceTooltip | undefined>();
 
@@ -366,10 +374,12 @@
                           type="button"
                           class="relative flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white bg-white p-0 shadow-sm transition-all hover:z-10 hover:scale-110 hover:shadow-md dark:border-gray-600 dark:bg-gray-800"
                           style="z-index: {4 - index}"
-                          title={organizationNames.get(domain) || domain}
-                          aria-label="View citations from {organizationNames.get(
-                            domain,
-                          ) || domain}"
+                          title={decodeHtmlEntities(
+                            organizationNames.get(domain) || domain,
+                          )}
+                          aria-label="View citations from {decodeHtmlEntities(
+                            organizationNames.get(domain) || domain,
+                          )}"
                           onmouseenter={(e) => {
                             const domainArticles =
                               perspectiveCitations.citedArticles.filter(
@@ -460,51 +470,71 @@
                       {#each sourceNames as sourceName, nameIdx}
                         {@const matchedArticle = (() => {
                           // First try to find article by matching source name to organization name or domain
-                          const cleanSourceName = sourceName.toLowerCase().trim();
-                          
+                          const cleanSourceName = sourceName
+                            .toLowerCase()
+                            .trim();
+
                           // Try exact title match first
                           let match = perspectiveCitations.citedArticles.find(
-                            (article) => article.title.toLowerCase().trim() === cleanSourceName
+                            (article) =>
+                              article.title.toLowerCase().trim() ===
+                              cleanSourceName,
                           );
-                          
+
                           if (!match) {
                             // Try domain-based matching with organization names
-                            match = perspectiveCitations.citedArticles.find((article) => {
-                              const domain = article.domain.toLowerCase();
-                              const domainBase = domain.replace(/\.(com|org|net|co\.uk|co\.nz|com\.pk|com\.au|tv|news)$/, "");
-                              const orgName = organizationNames.get(article.domain)?.toLowerCase() || "";
-                              
-                              return (
-                                // Direct domain match
-                                domainBase === cleanSourceName ||
-                                // Organization name match
-                                orgName === cleanSourceName ||
-                                // Domain contains source name
-                                domainBase.includes(cleanSourceName) ||
-                                // Source name contains domain base
-                                cleanSourceName.includes(domainBase) ||
-                                // Organization name contains source name
-                                orgName.includes(cleanSourceName) ||
-                                // Source name contains organization name
-                                cleanSourceName.includes(orgName) ||
-                                // Handle hyphenated domains
-                                domainBase.replace(/-/g, " ") === cleanSourceName ||
-                                cleanSourceName.replace(/\s+/g, "-") === domainBase ||
-                                // Handle common variations
-                                (cleanSourceName.includes("new york times") && domain.includes("nytimes")) ||
-                                (cleanSourceName.includes("nytimes") && domain.includes("nytimes")) ||
-                                (cleanSourceName.includes("globe and mail") && domain.includes("theglobeandmail")) ||
-                                (cleanSourceName.includes("abc news") && domain.includes("abc")) ||
-                                (cleanSourceName.includes("politico") && domain.includes("politico")) ||
-                                (cleanSourceName.includes("rfe/rl") && domain.includes("rferl"))
-                              );
-                            });
+                            match = perspectiveCitations.citedArticles.find(
+                              (article) => {
+                                const domain = article.domain.toLowerCase();
+                                const domainBase = domain.replace(
+                                  /\.(com|org|net|co\.uk|co\.nz|com\.pk|com\.au|tv|news)$/,
+                                  "",
+                                );
+                                const orgName = decodeHtmlEntities(
+                                  organizationNames.get(article.domain) || "",
+                                ).toLowerCase();
+
+                                return (
+                                  // Direct domain match
+                                  domainBase === cleanSourceName ||
+                                  // Organization name match
+                                  orgName === cleanSourceName ||
+                                  // Domain contains source name
+                                  domainBase.includes(cleanSourceName) ||
+                                  // Source name contains domain base
+                                  cleanSourceName.includes(domainBase) ||
+                                  // Organization name contains source name
+                                  orgName.includes(cleanSourceName) ||
+                                  // Source name contains organization name
+                                  cleanSourceName.includes(orgName) ||
+                                  // Handle hyphenated domains
+                                  domainBase.replace(/-/g, " ") ===
+                                    cleanSourceName ||
+                                  cleanSourceName.replace(/\s+/g, "-") ===
+                                    domainBase ||
+                                  // Handle common variations
+                                  (cleanSourceName.includes("new york times") &&
+                                    domain.includes("nytimes")) ||
+                                  (cleanSourceName.includes("nytimes") &&
+                                    domain.includes("nytimes")) ||
+                                  (cleanSourceName.includes("globe and mail") &&
+                                    domain.includes("theglobeandmail")) ||
+                                  (cleanSourceName.includes("abc news") &&
+                                    domain.includes("abc")) ||
+                                  (cleanSourceName.includes("politico") &&
+                                    domain.includes("politico")) ||
+                                  (cleanSourceName.includes("rfe/rl") &&
+                                    domain.includes("rferl"))
+                                );
+                              },
+                            );
                           }
-                          
+
                           return match;
                         })()}
                         <a
-                          href={matchedArticle?.link || getSourceUrl(sourceName, source.url)}
+                          href={matchedArticle?.link ||
+                            getSourceUrl(sourceName, source.url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           class="whitespace-nowrap text-[#183FDC] hover:underline dark:text-[#5B89FF]"

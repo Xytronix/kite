@@ -26,6 +26,14 @@
     paragraphCitations = [],
   }: Props = $props();
 
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === 'undefined') return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   // State for source overlay
   let showSourceOverlay = $state(false);
   let currentSource = $state<any>(null);
@@ -260,8 +268,8 @@
             type="button"
             class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white bg-white p-0 shadow-sm transition-all hover:z-10 hover:scale-110 hover:shadow-md dark:border-gray-600 dark:bg-gray-800"
             style="z-index: {8 - index}"
-            title={organizationNames.get(domain) || domain}
-            aria-label="View citations from {organizationNames.get(domain) || domain}"
+            title={decodeHtmlEntities(organizationNames.get(domain) || domain)}
+            aria-label="View citations from {decodeHtmlEntities(organizationNames.get(domain) || domain)}"
             onmouseenter={(e) => {
               // Get articles for this specific domain from the current context
               let domainArticles: Article[] = [];

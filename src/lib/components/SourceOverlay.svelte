@@ -52,7 +52,7 @@ $effect(() => {
 	if (currentSource?.name) {
 		organizationName = currentSource.name; // Set fallback immediately
 		getOrganizationName(currentSource.name).then(name => {
-			organizationName = name;
+			organizationName = decodeHtmlEntities(name);
 		}).catch(() => {
 			// Keep the fallback domain name if lookup fails
 		});

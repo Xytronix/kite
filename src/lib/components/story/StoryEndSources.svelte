@@ -32,6 +32,14 @@
     isLoadingMediaInfo = $bindable(false),
   }: Props = $props();
 
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === 'undefined') return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   // Get only domains that are actually cited in the story content
   const citedDomains = $derived.by(() => {
     const domains = new Set<string>();
@@ -280,7 +288,7 @@
             addBackground={true}
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {organizationNames.get(domain) || domain}
+            {decodeHtmlEntities(organizationNames.get(domain) || domain)}
           </span>
           <span class="text-xs text-gray-500 dark:text-gray-400">
             ({articleCount})

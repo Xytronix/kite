@@ -778,6 +778,14 @@
     return maxNum;
   });
 
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === 'undefined') return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   // Update tooltip title based on display items
   async function updateTooltipTitle() {
     // If showing articles from a single domain, show organization-specific title
@@ -790,7 +798,7 @@
       const domain = uniqueDomains[0];
       try {
         const organizationName = await getOrganizationName(domain);
-        tooltipTitle = `${organizationName} Sources`;
+        tooltipTitle = `${decodeHtmlEntities(organizationName)} Sources`;
       } catch (error) {
         console.warn(
           "Failed to get organization name for tooltip title:",

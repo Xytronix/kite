@@ -17,61 +17,14 @@ export function getEnhancedArticleKey(article: Article): string {
 }
 
 /**
- * Generate a display name for an article that differentiates it from others with same domain
+ * Generate a display name for an article
  */
 export async function generateSourceDisplayName(article: Article, allArticles: Article[]): Promise<string> {
-  const sameDomainArticles = allArticles.filter(a => a.domain === article.domain);
-  
-  if (sameDomainArticles.length === 1) {
-    // Only one article from this domain, use organization name
-    try {
-      return await getOrganizationName(article.domain);
-    } catch {
-      return article.domain;
-    }
-  }
-  
-  // Multiple articles from same domain, need to differentiate
+  // Always use organization name without differentiation
   try {
-    const orgName = await getOrganizationName(article.domain);
-    
-    // Try to extract a meaningful differentiator from the title
-    const titleWords = article.title.toLowerCase().split(/\s+/);
-    const meaningfulWords = titleWords.filter(word => 
-      word.length > 3 && 
-      !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'will', 'have', 'been', 'said', 'says', 'news', 'report', 'article'].includes(word)
-    );
-    
-    if (meaningfulWords.length > 0) {
-      const differentiator = meaningfulWords[0];
-      const capitalizedDiff = differentiator.charAt(0).toUpperCase() + differentiator.slice(1);
-      return `${orgName} (${capitalizedDiff})`;
-    }
-    
-    // Fallback to using part of the link path
-    try {
-      const url = new URL(article.link);
-      const pathParts = url.pathname.split('/').filter(p => p.length > 0);
-      if (pathParts.length > 0) {
-        const lastPart = pathParts[pathParts.length - 1];
-        const cleanPart = lastPart.replace(/[-_]/g, ' ').replace(/\.(html?|php|aspx?)$/i, '');
-        if (cleanPart.length > 0 && cleanPart.length < 20) {
-          const capitalizedPart = cleanPart.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          return `${orgName} (${capitalizedPart})`;
-        }
-      }
-    } catch {
-      // URL parsing failed, continue to fallback
-    }
-    
-    // Final fallback: use organization name with index
-    const articleIndex = sameDomainArticles.findIndex(a => getEnhancedArticleKey(a) === getEnhancedArticleKey(article));
-    return articleIndex === 0 ? orgName : `${orgName} ${articleIndex + 1}`;
-    
+    return await getOrganizationName(article.domain);
   } catch {
-    // Organization name lookup failed, use domain with differentiator
-    const articleIndex = sameDomainArticles.findIndex(a => getEnhancedArticleKey(a) === getEnhancedArticleKey(article));
-    return articleIndex === 0 ? article.domain : `${article.domain} ${articleIndex + 1}`;
+    return article.domain;
   }
 }
 

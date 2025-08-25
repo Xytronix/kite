@@ -33,6 +33,14 @@
     isLoadingMediaInfo = $bindable(false),
   }: Props = $props();
 
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === 'undefined') return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   // State
   let showAllSources = $state(false);
   let visibleSources = $state(
@@ -387,7 +395,7 @@
             />
           </div>
           <span class="col-start-2 text-base font-semibold line-clamp-2 leading-tight">
-            {organizationNames.get(domain?.name) || domain?.name || "Unknown"}
+            {decodeHtmlEntities(organizationNames.get(domain?.name) || domain?.name || "Unknown")}
           </span>
           <div
             class="col-start-2 flex flex-col text-xs leading-5 text-gray-500 dark:text-gray-400"
