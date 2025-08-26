@@ -173,14 +173,14 @@ onclick={() => {
   - **BEHAVIOR**: All sections use smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1, 4.1, 4.2_
 
-- [ ] 8. Create new Filter Scope & Mode top-level divider
+- [x] 8. Create new Filter Scope & Mode top-level divider
   - Create new top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
   - Use horizontal lines, uppercase label with "settings.contentFilter.filterScopeMode.parent" key, and chevron icon
   - Add state variable: showFilterScopeMode = $state(false)
   - Ensure consistent styling with other top-level dividers using `my-3` spacing
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 8.1. Convert Filter Scope to collapsible sub-section within Filter Scope & Mode divider
+- [x] 8.1. Convert Filter Scope to collapsible sub-section within Filter Scope & Mode divider
   - Convert the Filter Scope section to use the established sub-section pattern within the new Filter Scope & Mode divider
   - Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
   - Include icon (`tabler:target`), localized title using "settings.contentFilter.filterScope.parent" key, and active count indicator
@@ -192,7 +192,7 @@ onclick={() => {
   - **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 8.2. Convert Advanced Similarity to collapsible sub-section within Filter Scope & Mode divider
+- [x] 8.2. Convert Advanced Similarity to collapsible sub-section within Filter Scope & Mode divider
   - Convert the Advanced Similarity section to use the established sub-section pattern within the new Filter Scope & Mode divider
   - Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
   - Include icon (`tabler:adjustments`), localized title using "settings.contentFilter.advancedSimilarity.parent" key, and active count indicator

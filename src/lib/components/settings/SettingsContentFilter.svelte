@@ -27,7 +27,7 @@
   // Section collapse/expand state
   let showBasicPresets = $state(true);
   let showSpecializedPresets = $state(true);
-  let showContentQuality = $state(true);
+  let showContentQuality = $state(false);
   let showFilters = $state(true);
   let showTopicsSubjects = $state(false);
   let showNewsTypes = $state(false);
@@ -37,6 +37,7 @@
   let showActiveFilters = $state(true);
   let showAdvancedSimilarity = $state(false);
   let showFilterScope = $state(false);
+  let showFilterScopeMode = $state(false);
   let showAdvancedWeights = $state(false);
   let showSystemControls = $state(false);
   let showGlobalWeights = $state(true);
@@ -50,6 +51,8 @@
   let manuallyCollapsedNewsTypes = $state(false);
   let manuallyCollapsedWellnessMental = $state(false);
   let manuallyCollapsedCustomKeywords = $state(false);
+  let manuallyCollapsedFilterScope = $state(false);
+  let manuallyCollapsedAdvancedSimilarity = $state(false);
 
   // Track previous filter states to detect changes
   // Initialize to null to detect first-time changes properly
@@ -58,6 +61,8 @@
   let previousNewsTypesFilters = $state<boolean | null>(null);
   let previousWellnessFilters = $state<boolean | null>(null);
   let previousCustomKeywordsFilters = $state<boolean | null>(null);
+  let previousFilterScopeFilters = $state<boolean | null>(null);
+  let previousAdvancedSimilarityFilters = $state<boolean | null>(null);
 
   // Auto-collapse/expand section flags based on active filters (mirrors old SettingsSmartFilter behavior)
   const hasContentQualityFilters = $derived(
@@ -100,10 +105,22 @@
       smartContentFilter.preferences.contentSimilarityThreshold > 0,
   );
 
+  const hasFilterScopeFilters = $derived(
+    smartContentFilter.filterScope !== 'all' ||
+      smartContentFilter.filterMode !== 'hide' ||
+      smartContentFilter.showFilteredCount !== true ||
+      smartContentFilter.preferences.filterSensitivity !== 'balanced',
+  );
+
+  const hasAdvancedSimilarityFilters = $derived(
+    smartContentFilter.preferences.filterContentSimilarity &&
+      smartContentFilter.preferences.contentSimilarityThreshold > 0,
+  );
+
   // Initialize sections based on current filter state on component mount
   $effect(() => {
     // Only run once on mount when previous states are null
-    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null) {
+    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null && previousFilterScopeFilters === null && previousAdvancedSimilarityFilters === null) {
       // Auto-expand sections that have active filters on initial load
       if (hasContentQualityFilters && !manuallyCollapsedContentQuality) {
         showContentQuality = true;
@@ -124,6 +141,14 @@
       if (hasCustomKeywordsFilters && !manuallyCollapsedCustomKeywords) {
         showCustomKeywords = true;
       }
+      
+      if (hasFilterScopeFilters && !manuallyCollapsedFilterScope) {
+        showFilterScope = true;
+      }
+      
+      if (hasAdvancedSimilarityFilters && !manuallyCollapsedAdvancedSimilarity) {
+        showAdvancedSimilarity = true;
+      }
     }
   });
 
@@ -135,14 +160,18 @@
     const currentNewsTypesFilters = hasNewsTypesFilters;
     const currentWellnessFilters = hasWellnessFilters;
     const currentCustomKeywordsFilters = hasCustomKeywordsFilters;
+    const currentFilterScopeFilters = hasFilterScopeFilters;
+    const currentAdvancedSimilarityFilters = hasAdvancedSimilarityFilters;
     
     // Skip if this is the very first run and we haven't initialized previous states
-    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null) {
+    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null && previousFilterScopeFilters === null && previousAdvancedSimilarityFilters === null) {
       previousContentQualityFilters = currentContentQualityFilters;
       previousTopicsSubjectsFilters = currentTopicsSubjectsFilters;
       previousNewsTypesFilters = currentNewsTypesFilters;
       previousWellnessFilters = currentWellnessFilters;
       previousCustomKeywordsFilters = currentCustomKeywordsFilters;
+      previousFilterScopeFilters = currentFilterScopeFilters;
+      previousAdvancedSimilarityFilters = currentAdvancedSimilarityFilters;
       return;
     }
     
@@ -176,6 +205,18 @@
         !manuallyCollapsedCustomKeywords) {
       showCustomKeywords = true;
     }
+    
+    if (currentFilterScopeFilters && 
+        previousFilterScopeFilters === false && 
+        !manuallyCollapsedFilterScope) {
+      showFilterScope = true;
+    }
+    
+    if (currentAdvancedSimilarityFilters && 
+        previousAdvancedSimilarityFilters === false && 
+        !manuallyCollapsedAdvancedSimilarity) {
+      showAdvancedSimilarity = true;
+    }
 
     // Auto-collapse logic - Enable auto-collapse when all filters become inactive
     if (previousContentQualityFilters === true && !currentContentQualityFilters && !manuallyCollapsedContentQuality) {
@@ -192,6 +233,12 @@
     }
     if (previousCustomKeywordsFilters === true && !currentCustomKeywordsFilters && !manuallyCollapsedCustomKeywords) {
       showCustomKeywords = false;
+    }
+    if (previousFilterScopeFilters === true && !currentFilterScopeFilters && !manuallyCollapsedFilterScope) {
+      showFilterScope = false;
+    }
+    if (previousAdvancedSimilarityFilters === true && !currentAdvancedSimilarityFilters && !manuallyCollapsedAdvancedSimilarity) {
+      showAdvancedSimilarity = false;
     }
 
     // Reset manual override flags when filters transition from active to inactive
@@ -210,6 +257,12 @@
     if (previousCustomKeywordsFilters === true && !currentCustomKeywordsFilters) {
       manuallyCollapsedCustomKeywords = false;
     }
+    if (previousFilterScopeFilters === true && !currentFilterScopeFilters) {
+      manuallyCollapsedFilterScope = false;
+    }
+    if (previousAdvancedSimilarityFilters === true && !currentAdvancedSimilarityFilters) {
+      manuallyCollapsedAdvancedSimilarity = false;
+    }
 
     // Update previous states for next comparison
     previousContentQualityFilters = currentContentQualityFilters;
@@ -217,6 +270,8 @@
     previousNewsTypesFilters = currentNewsTypesFilters;
     previousWellnessFilters = currentWellnessFilters;
     previousCustomKeywordsFilters = currentCustomKeywordsFilters;
+    previousFilterScopeFilters = currentFilterScopeFilters;
+    previousAdvancedSimilarityFilters = currentAdvancedSimilarityFilters;
   });
   // Performance optimizations - Memoized computations with reduced re-calculations
   let memoizedFilterCounts = $state(new Map<string, number>());
@@ -2987,57 +3042,77 @@
 
 
 
-      <!-- Filter Scope and Mode Controls Section -->
-      <div class="flex flex-col space-y-2">
-        <div class="mb-1 flex items-center gap-2">
-          <Icon
-            icon="tabler:adjustments"
-            class="h-4 w-4 text-gray-600 dark:text-gray-400"
-          />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {s("settings.contentFilter.filterScope") || "Filter Scope & Mode"}
-          </span>
-          {#if smartContentFilter.preferences.minimumQuality > 0 || smartContentFilter.preferences.minimumSentiment !== 0 || smartContentFilter.preferences.minimumRelevance > 0}
-            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-              (Custom settings active)
-            </span>
-          {/if}
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          {s("settings.contentFilter.filterScope.description") ||
-            "Configure how and where filters are applied"}
-        </p>
+      <!-- Filter Scope & Mode Top-Level Divider -->
+      <button
+        type="button"
+        class="my-3 flex w-full items-center text-left"
+        onclick={() => (showFilterScopeMode = !showFilterScopeMode)}
+        aria-expanded={showFilterScopeMode}
+        aria-controls="filter-scope-mode-section"
+      >
+        <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+        <span class="px-2 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {s("settings.contentFilter.filterMode") || "Filter Mode"}
+        </span>
+        <Icon
+          icon="tabler:chevron-right"
+          class="ml-2 h-4 w-4 text-gray-400 transition-transform duration-200 {showFilterScopeMode ? 'rotate-90' : ''}"
+          aria-hidden="true"
+        />
+        <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+      </button>
 
-        <div class="mt-4">
-          <div class="space-y-6">
+      {#if showFilterScopeMode}
+      <div id="filter-scope-mode-section">
+        <!-- Filter Scope Sub-Section -->
+        <div class="mb-6">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between text-left mb-3"
+            onclick={() => {
+              const wasExpanded = showFilterScope;
+              showFilterScope = !showFilterScope;
+              
+              if (wasExpanded && !showFilterScope) {
+                manuallyCollapsedFilterScope = true;
+              } else if (!wasExpanded && showFilterScope) {
+                manuallyCollapsedFilterScope = false;
+              }
+            }}
+            aria-expanded={showFilterScope}
+            aria-controls="filter-scope-content"
+          >
+            <div class="flex items-center gap-2">
+              <Icon
+                icon="tabler:target"
+                class="h-4 w-4 text-gray-600 dark:text-gray-400"
+              />
+              <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {s("settings.contentFilter.filterScope.parent") || "Filter Scope"}
+              </h5>
+              {#if hasFilterScopeFilters}
+                <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
+                  (Custom settings active)
+                </span>
+              {/if}
+            </div>
+            <Icon
+              icon="tabler:chevron-right"
+              class="h-4 w-4 text-gray-400 transition-transform duration-200 {showFilterScope ? 'rotate-90' : ''}"
+              aria-hidden="true"
+            />
+          </button>
+          
+          {#if showFilterScope}
+          <div id="filter-scope-content">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              {s("settings.contentFilter.filterScope.description") ||
+                "Configure how and where filters are applied"}
+            </p>
+
+            <div class="space-y-6">
             <!-- Filter Scope Selection -->
             <div>
-              <div class="mb-3 flex items-center gap-2">
-                <Icon
-                  icon="tabler:target"
-                  class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                />
-                <span
-                  class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  {s("settings.contentFilter.filterScope.scope") ||
-                    "Filter Scope"}
-                </span>
-                <Tooltip
-                  text={s("settings.contentFilter.filterScope.scope.tooltip") ||
-                    "Choose which parts of content to analyze when applying filters"}
-                  position="top"
-                >
-                  <Icon
-                    icon="tabler:info-circle"
-                    class="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  />
-                </Tooltip>
-              </div>
-              <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                {s("settings.contentFilter.filterScope.scope.description") ||
-                  "Determines which content areas are analyzed for filtering decisions"}
-              </p>
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <button
                   type="button"
@@ -3045,7 +3120,7 @@
                   'title'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() => smartContentFilter.setFilterScope("title")}
+                  onclick={(e) => handleFilterClick(e, () => smartContentFilter.setFilterScope("title"))}
                 >
                   <Icon icon="tabler:heading" class="h-4 w-4" />
                   <span
@@ -3059,7 +3134,7 @@
                   'summary'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() => smartContentFilter.setFilterScope("summary")}
+                  onclick={(e) => handleFilterClick(e, () => smartContentFilter.setFilterScope("summary"))}
                 >
                   <Icon icon="tabler:file-text" class="h-4 w-4" />
                   <span
@@ -3073,7 +3148,7 @@
                   'all'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() => smartContentFilter.setFilterScope("all")}
+                  onclick={(e) => handleFilterClick(e, () => smartContentFilter.setFilterScope("all"))}
                 >
                   <Icon icon="tabler:file-description" class="h-4 w-4" />
                   <span
@@ -3098,27 +3173,7 @@
 
             <!-- Filter Mode Selection -->
             <div>
-              <div class="mb-3 flex items-center gap-2">
-                <Icon
-                  icon="tabler:eye"
-                  class="h-4 w-4 text-gray-500 dark:text-gray-400"
-                />
-                <span
-                  class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  {s("settings.contentFilter.filterMode") || "Filter Mode"}
-                </span>
-                <Tooltip
-                  text={s("settings.contentFilter.filterMode.tooltip") ||
-                    "Choose how filtered content is handled in the interface"}
-                  position="top"
-                >
-                  <Icon
-                    icon="tabler:info-circle"
-                    class="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  />
-                </Tooltip>
-              </div>
+              <!-- Collapsed divider already labels this as Filter Mode; keep description only -->
               <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
                 {s("settings.contentFilter.filterMode.description") ||
                   "Controls how filtered content appears in your feed"}
@@ -3130,7 +3185,7 @@
                   'hide'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() => smartContentFilter.setFilterMode("hide")}
+                  onclick={(e) => handleFilterClick(e, () => smartContentFilter.setFilterMode("hide"))}
                 >
                   <Icon icon="tabler:eye-off" class="h-4 w-4" />
                   <span
@@ -3144,7 +3199,7 @@
                   'blur'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() => smartContentFilter.setFilterMode("blur")}
+                  onclick={(e) => handleFilterClick(e, () => smartContentFilter.setFilterMode("blur"))}
                 >
                   <Icon icon="tabler:blur" class="h-4 w-4" />
                   <span
@@ -3252,8 +3307,8 @@
                     .preferences.filterSensitivity === 'loose'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() =>
-                    smartContentFilter.setFilterSensitivity("loose")}
+                  onclick={(e) => handleFilterClick(e, () =>
+                    smartContentFilter.setFilterSensitivity("loose"))}
                 >
                   <Icon icon="tabler:feather" class="h-4 w-4" />
                   <span
@@ -3267,8 +3322,8 @@
                     .preferences.filterSensitivity === 'balanced'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() =>
-                    smartContentFilter.setFilterSensitivity("balanced")}
+                  onclick={(e) => handleFilterClick(e, () =>
+                    smartContentFilter.setFilterSensitivity("balanced"))}
                 >
                   <Icon icon="tabler:weight" class="h-4 w-4" />
                   <span
@@ -3282,8 +3337,8 @@
                     .preferences.filterSensitivity === 'strict'
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}"
-                  onclick={() =>
-                    smartContentFilter.setFilterSensitivity("strict")}
+                  onclick={(e) => handleFilterClick(e, () =>
+                    smartContentFilter.setFilterSensitivity("strict"))}
                 >
                   <Icon icon="tabler:shield" class="h-4 w-4" />
                   <span
@@ -3303,56 +3358,63 @@
                   {s("settings.contentFilter.sensitivity.strict.help") ||
                     "Aggressive filtering for maximum content quality and relevance."}
                 {/if}
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-
-      <!-- Advanced Similarity Section -->
-      <div class="flex flex-col space-y-2">
-        <div class="mb-1 flex items-center gap-2">
-          <Icon
-            icon="tabler:copy"
-            class="h-4 w-4 text-gray-600 dark:text-gray-400"
-          />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {s("settings.contentFilter.advancedSimilarity") ||
-              "Advanced Content Similarity"}
-          </span>
-          {#if smartContentFilter.preferences.filterContentSimilarity && smartContentFilter.preferences.contentSimilarityThreshold > 0}
-            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-              (Similarity detection active)
-            </span>
+            </div>
+          </div>
+            </div>
+          </div>
           {/if}
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          {s("settings.contentFilter.advancedSimilarity.description") ||
-            "Detect and filter duplicate or highly similar content using advanced algorithms"}
-        </p>
 
-        <div class="mt-4">
+        <!-- Content Similarity Detection Sub-Section -->
+        <div class="mb-6">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between text-left mb-3"
+            onclick={() => {
+              const wasExpanded = showAdvancedSimilarity;
+              showAdvancedSimilarity = !showAdvancedSimilarity;
+              
+              if (wasExpanded && !showAdvancedSimilarity) {
+                manuallyCollapsedAdvancedSimilarity = true;
+              } else if (!wasExpanded && showAdvancedSimilarity) {
+                manuallyCollapsedAdvancedSimilarity = false;
+              }
+            }}
+            aria-expanded={showAdvancedSimilarity}
+            aria-controls="advanced-similarity-content"
+          >
+            <div class="flex items-center gap-2">
+              <Icon
+                icon="tabler:copy"
+                class="h-4 w-4 text-gray-600 dark:text-gray-400"
+              />
+              <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {s("settings.contentFilter.contentSimilarity") || "Content Similarity Detection"}
+              </h5>
+              {#if hasAdvancedSimilarityFilters}
+                <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
+                  (Similarity detection active)
+                </span>
+              {/if}
+            </div>
+            <Icon
+              icon="tabler:chevron-right"
+              class="h-4 w-4 text-gray-400 transition-transform duration-200 {showAdvancedSimilarity ? 'rotate-90' : ''}"
+              aria-hidden="true"
+            />
+          </button>
+          
+          {#if showAdvancedSimilarity}
+          <div id="advanced-similarity-content">
+            
+
           <!-- Main Content Similarity Toggle -->
           <div class="mb-6">
             <div class="flex items-center justify-between">
-              <div>
-                <div class="mb-1 flex items-center gap-2">
-                  <Icon
-                    icon="tabler:copy"
-                    class="h-4 w-4 text-gray-600 dark:text-gray-400"
-                  />
-                  <h4
-                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    {s("settings.contentFilter.contentSimilarity") ||
-                      "Content Similarity Detection"}
-                  </h4>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {s("settings.contentFilter.contentSimilarity.description") ||
-                    "Enable intelligent detection of duplicate and similar stories"}
-                </p>
-              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {s("settings.contentFilter.advancedSimilarity.description") ||
+                  "Detect and filter duplicate or highly similar content using advanced algorithms. Fine-tune how similarity is calculated and when content should be considered duplicates."}
+              </p>
 
               <!-- Content Similarity Toggle Switch -->
               <button
@@ -3383,11 +3445,6 @@
               </button>
       </div>
       </div>
-
-          <p class="mb-6 text-sm text-gray-600 dark:text-gray-400">
-            {s("settings.contentFilter.advancedSimilarity.description") ||
-              "Detect and filter duplicate or highly similar content using advanced algorithms. Fine-tune how similarity is calculated and when content should be considered duplicates."}
-          </p>
           <!-- Similarity Threshold Slider -->
           <div class="mb-6">
             <div class="mb-3 flex items-center justify-between">
@@ -3416,10 +3473,10 @@
                 bind:value={
                   smartContentFilter.preferences.contentSimilarityThreshold
                 }
-                oninput={(e) =>
+                oninput={createSafeAction((e) =>
                   smartContentFilter.setContentSimilarityThreshold(
                     parseInt((e.target as HTMLInputElement).value),
-                  )}
+                  ))}
                 class="slider h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
               />
               <div
@@ -3456,8 +3513,8 @@
                   .preferences.contentSimilarityMode === 'today'
                   ? 'border-blue-500 bg-blue-50 text-blue-900 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-100'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-600'}"
-                onclick={() =>
-                  smartContentFilter.setContentSimilarityMode("today")}
+                onclick={createSafeAction(() =>
+                  smartContentFilter.setContentSimilarityMode("today"))}
               >
                 <div class="flex items-center gap-3">
                   <Icon
@@ -3498,8 +3555,8 @@
                   .preferences.contentSimilarityMode === 'historical'
                   ? 'border-blue-500 bg-blue-50 text-blue-900 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-100'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-600'}"
-                onclick={() =>
-                  smartContentFilter.setContentSimilarityMode("historical")}
+                onclick={createSafeAction(() =>
+                  smartContentFilter.setContentSimilarityMode("historical"))}
               >
                 <div class="flex items-center gap-3">
                   <Icon
@@ -3568,10 +3625,10 @@
                   bind:value={
                     smartContentFilter.preferences.contentSimilarityExpiry
                   }
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.setContentSimilarityExpiry(
                       parseInt((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -4028,10 +4085,14 @@
                   {/if}
                 </button>
               </Tooltip>
+          </div>
+        </div>
+        </div>
+          {/if}
+        </div>
       </div>
-      </div>
-      </div>
-      </div>
+      {/if}
+
       <div class="flex flex-col space-y-2">
         <div class="mb-1 flex items-center gap-2">
           <Icon
