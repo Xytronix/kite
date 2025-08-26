@@ -27,12 +27,13 @@
   // Section collapse/expand state
   let showBasicPresets = $state(true);
   let showSpecializedPresets = $state(true);
-  let showContentQuality = $state(false);
+  let showContentQuality = $state(true);
   let showFilters = $state(true);
   let showTopicsSubjects = $state(false);
   let showNewsTypes = $state(false);
   let showGeographicScope = $state(false);
   let showWellnessMental = $state(false);
+  let showCustomKeywords = $state(false);
   let showActiveFilters = $state(true);
   let showAdvancedSimilarity = $state(false);
   let showFilterScope = $state(false);
@@ -41,6 +42,22 @@
   let showGlobalWeights = $state(true);
   let showPerCategoryOverrides = $state(true);
   let showPresets = $state(true);
+
+  // Manual override tracking - prevents auto-expand when user manually collapsed sections
+  // Only track sections that are actually collapsible
+  let manuallyCollapsedContentQuality = $state(false);
+  let manuallyCollapsedTopicsSubjects = $state(false);
+  let manuallyCollapsedNewsTypes = $state(false);
+  let manuallyCollapsedWellnessMental = $state(false);
+  let manuallyCollapsedCustomKeywords = $state(false);
+
+  // Track previous filter states to detect changes
+  // Initialize to null to detect first-time changes properly
+  let previousContentQualityFilters = $state<boolean | null>(null);
+  let previousTopicsSubjectsFilters = $state<boolean | null>(null);
+  let previousNewsTypesFilters = $state<boolean | null>(null);
+  let previousWellnessFilters = $state<boolean | null>(null);
+  let previousCustomKeywordsFilters = $state<boolean | null>(null);
 
   // Auto-collapse/expand section flags based on active filters (mirrors old SettingsSmartFilter behavior)
   const hasContentQualityFilters = $derived(
@@ -74,31 +91,132 @@
       smartContentFilter.preferences.filterEconomicPessimism,
   );
 
+  const hasCustomKeywordsFilters = $derived(
+    smartContentFilter.customKeywords.length > 0,
+  );
+
   const hasContentSimilarityActive = $derived(
     smartContentFilter.preferences.filterContentSimilarity &&
       smartContentFilter.preferences.contentSimilarityThreshold > 0,
   );
 
-  // Automatic expand/collapse when filters become active/inactive
+  // Initialize sections based on current filter state on component mount
   $effect(() => {
-    if (hasContentQualityFilters && !showContentQuality)
-      showContentQuality = true;
-    if (hasTopicsSubjectsFilters && !showTopicsSubjects)
-      showTopicsSubjects = true;
-    if (hasNewsTypesFilters && !showNewsTypes) showNewsTypes = true;
-    if (hasWellnessFilters && !showWellnessMental) showWellnessMental = true;
-    if (hasContentSimilarityActive && !showAdvancedSimilarity)
-      showAdvancedSimilarity = true;
+    // Only run once on mount when previous states are null
+    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null) {
+      // Auto-expand sections that have active filters on initial load
+      if (hasContentQualityFilters && !manuallyCollapsedContentQuality) {
+        showContentQuality = true;
+      }
+      
+      if (hasTopicsSubjectsFilters && !manuallyCollapsedTopicsSubjects) {
+        showTopicsSubjects = true;
+      }
+      
+      if (hasNewsTypesFilters && !manuallyCollapsedNewsTypes) {
+        showNewsTypes = true;
+      }
+      
+      if (hasWellnessFilters && !manuallyCollapsedWellnessMental) {
+        showWellnessMental = true;
+      }
+      
+      if (hasCustomKeywordsFilters && !manuallyCollapsedCustomKeywords) {
+        showCustomKeywords = true;
+      }
+    }
+  });
 
-    if (!hasContentQualityFilters && showContentQuality)
+  // Smart auto-expand when filters become active (but respect manual overrides)
+  $effect(() => {
+    // Handle initial state and transitions
+    const currentContentQualityFilters = hasContentQualityFilters;
+    const currentTopicsSubjectsFilters = hasTopicsSubjectsFilters;
+    const currentNewsTypesFilters = hasNewsTypesFilters;
+    const currentWellnessFilters = hasWellnessFilters;
+    const currentCustomKeywordsFilters = hasCustomKeywordsFilters;
+    
+    // Skip if this is the very first run and we haven't initialized previous states
+    if (previousContentQualityFilters === null && previousTopicsSubjectsFilters === null && previousNewsTypesFilters === null && previousWellnessFilters === null && previousCustomKeywordsFilters === null) {
+      previousContentQualityFilters = currentContentQualityFilters;
+      previousTopicsSubjectsFilters = currentTopicsSubjectsFilters;
+      previousNewsTypesFilters = currentNewsTypesFilters;
+      previousWellnessFilters = currentWellnessFilters;
+      previousCustomKeywordsFilters = currentCustomKeywordsFilters;
+      return;
+    }
+    
+    // Auto-expand logic - When transitioning from inactive to active
+    if (currentContentQualityFilters && 
+        previousContentQualityFilters === false && 
+        !manuallyCollapsedContentQuality) {
+      showContentQuality = true;
+    }
+    
+    if (currentTopicsSubjectsFilters && 
+        previousTopicsSubjectsFilters === false && 
+        !manuallyCollapsedTopicsSubjects) {
+      showTopicsSubjects = true;
+    }
+    
+    if (currentNewsTypesFilters && 
+        previousNewsTypesFilters === false && 
+        !manuallyCollapsedNewsTypes) {
+      showNewsTypes = true;
+    }
+    
+    if (currentWellnessFilters && 
+        previousWellnessFilters === false && 
+        !manuallyCollapsedWellnessMental) {
+      showWellnessMental = true;
+    }
+    
+    if (currentCustomKeywordsFilters && 
+        previousCustomKeywordsFilters === false && 
+        !manuallyCollapsedCustomKeywords) {
+      showCustomKeywords = true;
+    }
+
+    // Auto-collapse logic - Enable auto-collapse when all filters become inactive
+    if (previousContentQualityFilters === true && !currentContentQualityFilters && !manuallyCollapsedContentQuality) {
       showContentQuality = false;
-    if (!hasTopicsSubjectsFilters && showTopicsSubjects)
+    }
+    if (previousTopicsSubjectsFilters === true && !currentTopicsSubjectsFilters && !manuallyCollapsedTopicsSubjects) {
       showTopicsSubjects = false;
-    if (!hasNewsTypesFilters && showNewsTypes) showNewsTypes = false;
-    if (!hasWellnessFilters && showWellnessMental)
+    }
+    if (previousNewsTypesFilters === true && !currentNewsTypesFilters && !manuallyCollapsedNewsTypes) {
+      showNewsTypes = false;
+    }
+    if (previousWellnessFilters === true && !currentWellnessFilters && !manuallyCollapsedWellnessMental) {
       showWellnessMental = false;
-    if (!hasContentSimilarityActive && showAdvancedSimilarity)
-      showAdvancedSimilarity = false;
+    }
+    if (previousCustomKeywordsFilters === true && !currentCustomKeywordsFilters && !manuallyCollapsedCustomKeywords) {
+      showCustomKeywords = false;
+    }
+
+    // Reset manual override flags when filters transition from active to inactive
+    if (previousContentQualityFilters === true && !currentContentQualityFilters) {
+      manuallyCollapsedContentQuality = false;
+    }
+    if (previousTopicsSubjectsFilters === true && !currentTopicsSubjectsFilters) {
+      manuallyCollapsedTopicsSubjects = false;
+    }
+    if (previousNewsTypesFilters === true && !currentNewsTypesFilters) {
+      manuallyCollapsedNewsTypes = false;
+    }
+    if (previousWellnessFilters === true && !currentWellnessFilters) {
+      manuallyCollapsedWellnessMental = false;
+    }
+    if (previousCustomKeywordsFilters === true && !currentCustomKeywordsFilters) {
+      manuallyCollapsedCustomKeywords = false;
+    }
+
+    // Update previous states for next comparison
+    previousContentQualityFilters = currentContentQualityFilters;
+    previousTopicsSubjectsFilters = currentTopicsSubjectsFilters;
+    previousNewsTypesFilters = currentNewsTypesFilters;
+    previousWellnessFilters = currentWellnessFilters;
+    previousCustomKeywordsFilters = currentCustomKeywordsFilters;
   });
   // Performance optimizations - Memoized computations with reduced re-calculations
   let memoizedFilterCounts = $state(new Map<string, number>());
@@ -1131,7 +1249,7 @@
   // Custom Keywords Functions
   let newKeywordInput = $state("");
 
-  function addCustomKeyword() {
+  const addCustomKeyword = createSafeAction(() => {
     const input = newKeywordInput.trim();
     if (input) {
       // Check if input contains commas (multiple keywords)
@@ -1154,7 +1272,7 @@
       }
       newKeywordInput = "";
     }
-  }
+  });
 
   // Remove individual custom keyword with scroll preservation
   const removeCustomKeyword = createSafeAction((keyword: string) => {
@@ -1899,30 +2017,57 @@
 
   <div id="filters-section" class={showFilters ? '' : 'hidden'}>
 
-  <!-- Content Quality Section -->
-    <div class="flex flex-col space-y-2">
-      <div class="mb-1 flex items-center gap-2">
+    <!-- Content Quality Sub-section -->
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => {
+          const wasExpanded = showContentQuality;
+          showContentQuality = !showContentQuality;
+          
+          // Track manual actions to prevent auto-expand/collapse interference
+          if (wasExpanded && !showContentQuality) {
+            // User manually collapsed the section
+            manuallyCollapsedContentQuality = true;
+          } else if (!wasExpanded && showContentQuality) {
+            // User manually expanded the section
+            manuallyCollapsedContentQuality = false;
+          }
+        }}
+        aria-expanded={showContentQuality}
+        aria-controls="content-quality-section"
+      >
+        <div class="flex items-center gap-2">
+          <Icon
+            icon="tabler:shield-check"
+            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          />
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.contentQuality.parent") || "Content Quality"}
+          </h5>
+          {#if filterGroups["Content Quality"].filters.some((filter) => smartContentFilter.preferences[filter])}
+            {@const activeCount = filterGroups["Content Quality"].filters.filter(
+              (filter) => smartContentFilter.preferences[filter],
+            ).length}
+            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
+              ({activeCount}/{filterGroups["Content Quality"].filters.length} active)
+            </span>
+          {/if}
+        </div>
         <Icon
-          icon="tabler:shield-check"
-          class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showContentQuality ? 'rotate-90' : ''}"
+          aria-hidden="true"
         />
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {s("settings.contentFilter.contentQuality.label") ||
-            "Content Quality"}
-        </span>
-        {#if filterGroups["Content Quality"].filters.some((filter) => smartContentFilter.preferences[filter])}
-          {@const activeCount = filterGroups["Content Quality"].filters.filter(
-            (filter) => smartContentFilter.preferences[filter],
-          ).length}
-          <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-            ({activeCount}/{filterGroups["Content Quality"].filters.length} active)
-          </span>
-        {/if}
-      </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400">
-        {s("settings.contentFilter.contentQuality.description") ||
-          "Filter content based on quality indicators and editorial standards"}
-      </p>
+      </button>
+
+      {#if showContentQuality}
+      <div id="content-quality-section">
+        <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          {s("settings.contentFilter.contentQuality.description") ||
+            "Filter content based on quality indicators and editorial standards"}
+        </p>
 
       <div class={getGridClasses(5)}>
         <!-- Low Quality Content Filter -->
@@ -2089,37 +2234,66 @@
             {/if}
           </button>
         </Tooltip>
+        </div>
       </div>
-      </div>
+      {/if}
+    </div>
 
-    <!-- Topics & Subjects Section -->
-    <div class="flex flex-col space-y-2">
-      <div class="mb-1 flex items-center gap-2">
+    <!-- Topics & Subjects Sub-section -->
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => {
+          const wasExpanded = showTopicsSubjects;
+          showTopicsSubjects = !showTopicsSubjects;
+          
+          // Track manual actions to prevent auto-expand/collapse interference
+          if (wasExpanded && !showTopicsSubjects) {
+            // User manually collapsed the section
+            manuallyCollapsedTopicsSubjects = true;
+          } else if (!wasExpanded && showTopicsSubjects) {
+            // User manually expanded the section
+            manuallyCollapsedTopicsSubjects = false;
+          }
+        }}
+        aria-expanded={showTopicsSubjects}
+        aria-controls="topics-subjects-section"
+      >
+        <div class="flex items-center gap-2">
+          <Icon
+            icon="tabler:tags"
+            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          />
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.topicsSubjects.parent") || "Topics & Subjects"}
+          </h5>
+          {#if filterGroups["Topics & Subjects"].filters.some((filter) => smartContentFilter.preferences[filter])}
+            {@const activeCount = filterGroups[
+              "Topics & Subjects"
+            ].filters.filter(
+              (filter) => smartContentFilter.preferences[filter],
+            ).length}
+            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
+              ({activeCount}/{filterGroups["Topics & Subjects"].filters.length} active)
+            </span>
+          {/if}
+        </div>
         <Icon
-          icon="tabler:tags"
-          class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showTopicsSubjects ? 'rotate-90' : ''}"
+          aria-hidden="true"
         />
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {s("settings.contentFilter.topicsSubjects.label") ||
-            "Topics & Subjects"}
-        </span>
-        {#if filterGroups["Topics & Subjects"].filters.some((filter) => smartContentFilter.preferences[filter])}
-          {@const activeCount = filterGroups[
-            "Topics & Subjects"
-          ].filters.filter(
-            (filter) => smartContentFilter.preferences[filter],
-          ).length}
-          <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-            ({activeCount}/{filterGroups["Topics & Subjects"].filters.length} active)
-          </span>
-        {/if}
-      </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400">
-        {s("settings.contentFilter.topicsSubjects.description") ||
-          "Filter content based on specific topics and subject areas"}
-      </p>
+      </button>
+      
+      {#if showTopicsSubjects}
+      <div id="topics-subjects-section">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {s("settings.contentFilter.topicsSubjects.description") ||
+            "Filter content based on specific topics and subject areas"}
+        </p>
 
-      <div class={getGridClasses(7)}>
+        <div class={getGridClasses(7)}>
         <!-- Politics Filter -->
         <Tooltip text="Political news, elections, government affairs">
           <button
@@ -2183,8 +2357,10 @@
             class={getFilterButtonClasses(
               smartContentFilter.preferences.filterFinancial,
             )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterFinancial")}
+            onclick={(e) =>
+              handleFilterClick(e, () =>
+                smartContentFilter.togglePreference("filterFinancial"),
+              )}
           >
             <Icon
               icon="tabler:chart-line"
@@ -2210,8 +2386,10 @@
             class={getFilterButtonClasses(
               smartContentFilter.preferences.filterTechnology,
             )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterTechnology")}
+            onclick={(e) =>
+              handleFilterClick(e, () =>
+                smartContentFilter.togglePreference("filterTechnology"),
+              )}
           >
             <Icon
               icon="tabler:device-laptop"
@@ -2237,8 +2415,10 @@
             class={getFilterButtonClasses(
               smartContentFilter.preferences.filterEntertainment,
             )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterEntertainment")}
+            onclick={(e) =>
+              handleFilterClick(e, () =>
+                smartContentFilter.togglePreference("filterEntertainment"),
+              )}
           >
             <Icon
               icon="tabler:movie"
@@ -2264,8 +2444,10 @@
             class={getFilterButtonClasses(
               smartContentFilter.preferences.filterCelebrity,
             )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterCelebrity")}
+            onclick={(e) =>
+              handleFilterClick(e, () =>
+                smartContentFilter.togglePreference("filterCelebrity"),
+              )}
           >
             <Icon
               icon="tabler:star"
@@ -2291,7 +2473,10 @@
             class={getFilterButtonClasses(
               smartContentFilter.preferences.filterWeather,
             )}
-            onclick={() => smartContentFilter.togglePreference("filterWeather")}
+            onclick={(e) =>
+              handleFilterClick(e, () =>
+                smartContentFilter.togglePreference("filterWeather"),
+              )}
           >
             <Icon
               icon="tabler:cloud"
@@ -2308,144 +2493,200 @@
             {/if}
           </button>
         </Tooltip>
+        </div>
       </div>
-      </div>
+      {/if}
+    </div>
 
-    <!-- News Types Section -->
-    <div class="flex flex-col space-y-2">
-      <div class="mb-1 flex items-center gap-2">
+    <!-- News Types Sub-section -->
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => {
+          const wasExpanded = showNewsTypes;
+          showNewsTypes = !showNewsTypes;
+          
+          // Track manual actions to prevent auto-expand/collapse interference
+          if (wasExpanded && !showNewsTypes) {
+            // User manually collapsed the section
+            manuallyCollapsedNewsTypes = true;
+          } else if (!wasExpanded && showNewsTypes) {
+            // User manually expanded the section
+            manuallyCollapsedNewsTypes = false;
+          }
+        }}
+        aria-expanded={showNewsTypes}
+        aria-controls="news-types-section"
+      >
+        <div class="flex items-center gap-2">
+          <Icon
+            icon="tabler:news"
+            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          />
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.newsTypes.parent") || "News Types"}
+          </h5>
+          <!-- Active count indicator -->
+          {#if hasNewsTypesFilters}
+            {@const activeCount = filterGroups["News Types"].filters.filter(
+              (filter) => smartContentFilter.preferences[filter],
+            ).length}
+            <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
+              ({activeCount}/{filterGroups["News Types"].filters.length} active)
+            </span>
+          {/if}
+        </div>
         <Icon
-          icon="tabler:news"
-          class="h-4 w-4 text-gray-600 dark:text-gray-400"
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showNewsTypes ? 'rotate-90' : ''}"
+          aria-hidden="true"
         />
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {s("settings.contentFilter.newsTypes.label") || "News Types"}
-        </span>
-        {#if filterGroups["News Types"].filters.some((filter) => smartContentFilter.preferences[filter])}
-          {@const activeCount = filterGroups["News Types"].filters.filter(
-            (filter) => smartContentFilter.preferences[filter],
-          ).length}
-          <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-            ({activeCount}/{filterGroups["News Types"].filters.length} active)
-          </span>
-        {/if}
+      </button>
+      
+      {#if showNewsTypes}
+      <div id="news-types-section">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {s("settings.contentFilter.newsTypes.description") ||
+            "Filter content based on news format and delivery style"}
+        </p>
+
+        <div class={getGridClasses(3)}>
+          <!-- Breaking News Filter -->
+          <Tooltip
+            text="Urgent alerts, breaking news notifications, live updates"
+          >
+            <button
+              type="button"
+              class={getFilterButtonClasses(
+                smartContentFilter.preferences.filterBreakingNews,
+              )}
+              onclick={(e) => handleFilterClick(e, () => smartContentFilter.togglePreference("filterBreakingNews"))}
+            >
+              <Icon
+                icon="tabler:urgent"
+                class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                  .filterBreakingNews
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400'}"
+              />
+              <span class="text-sm font-medium">Breaking News</span>
+              {#if smartContentFilter.preferences.filterBreakingNews}
+                <Icon
+                  icon="tabler:check-circle"
+                  class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
+                />
+              {/if}
+            </button>
+          </Tooltip>
+
+          <!-- Local News Filter -->
+          <Tooltip
+            text="Hyper-local stories, community events, regional coverage"
+          >
+            <button
+              type="button"
+              class={getFilterButtonClasses(
+                smartContentFilter.preferences.filterLocalNews,
+              )}
+              onclick={(e) => handleFilterClick(e, () => smartContentFilter.togglePreference("filterLocalNews"))}
+            >
+              <Icon
+                icon="tabler:map-pin"
+                class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                  .filterLocalNews
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400'}"
+              />
+              <span class="text-sm font-medium">Local News</span>
+              {#if smartContentFilter.preferences.filterLocalNews}
+                <Icon
+                  icon="tabler:check-circle"
+                  class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
+                />
+              {/if}
+            </button>
+          </Tooltip>
+
+          <!-- International News Filter -->
+          <Tooltip text="Global events, foreign affairs, international coverage">
+            <button
+              type="button"
+              class={getFilterButtonClasses(
+                smartContentFilter.preferences.filterInternationalNews,
+              )}
+              onclick={(e) => handleFilterClick(e, () => smartContentFilter.togglePreference("filterInternationalNews"))}
+            >
+              <Icon
+                icon="tabler:globe"
+                class="mb-2 h-5 w-5 {smartContentFilter.preferences
+                  .filterInternationalNews
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400'}"
+              />
+              <span class="text-sm font-medium">International News</span>
+              {#if smartContentFilter.preferences.filterInternationalNews}
+                <Icon
+                  icon="tabler:check-circle"
+                  class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
+                />
+              {/if}
+            </button>
+          </Tooltip>
+        </div>
       </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400">
-        {s("settings.contentFilter.newsTypes.description") ||
-          "Filter content based on news format and delivery style"}
-      </p>
+      {/if}
+    </div>
 
-      <div class={getGridClasses(3)}>
-        <!-- Breaking News Filter -->
-        <Tooltip
-          text="Urgent alerts, breaking news notifications, live updates"
-        >
-          <button
-            type="button"
-            class={getFilterButtonClasses(
-              smartContentFilter.preferences.filterBreakingNews,
-            )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterBreakingNews")}
-          >
-            <Icon
-              icon="tabler:urgent"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences
-                .filterBreakingNews
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400'}"
-            />
-            <span class="text-sm font-medium">Breaking News</span>
-            {#if smartContentFilter.preferences.filterBreakingNews}
-              <Icon
-                icon="tabler:check-circle"
-                class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
-              />
-            {/if}
-          </button>
-        </Tooltip>
-
-        <!-- Local News Filter -->
-        <Tooltip
-          text="Hyper-local stories, community events, regional coverage"
-        >
-          <button
-            type="button"
-            class={getFilterButtonClasses(
-              smartContentFilter.preferences.filterLocalNews,
-            )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterLocalNews")}
-          >
-            <Icon
-              icon="tabler:map-pin"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences
-                .filterLocalNews
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400'}"
-            />
-            <span class="text-sm font-medium">Local News</span>
-            {#if smartContentFilter.preferences.filterLocalNews}
-              <Icon
-                icon="tabler:check-circle"
-                class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
-              />
-            {/if}
-          </button>
-        </Tooltip>
-
-        <!-- International News Filter -->
-        <Tooltip text="Global events, foreign affairs, international coverage">
-          <button
-            type="button"
-            class={getFilterButtonClasses(
-              smartContentFilter.preferences.filterInternationalNews,
-            )}
-            onclick={() =>
-              smartContentFilter.togglePreference("filterInternationalNews")}
-          >
-            <Icon
-              icon="tabler:globe"
-              class="mb-2 h-5 w-5 {smartContentFilter.preferences
-                .filterInternationalNews
-                ? 'text-blue-600 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400'}"
-            />
-            <span class="text-sm font-medium">International News</span>
-            {#if smartContentFilter.preferences.filterInternationalNews}
-              <Icon
-                icon="tabler:check-circle"
-                class="mt-1 h-3 w-3 text-blue-600 dark:text-blue-400"
-              />
-            {/if}
-          </button>
-        </Tooltip>
-      </div>
-
-      <!-- Wellness & Mental Health Section -->
-      <div class="flex flex-col space-y-2">
-        <div class="mb-1 flex items-center gap-2">
+    <!-- Wellness & Mental Health Sub-section -->
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => {
+          const wasExpanded = showWellnessMental;
+          showWellnessMental = !showWellnessMental;
+          
+          // Track manual actions to prevent auto-expand/collapse interference
+          if (wasExpanded && !showWellnessMental) {
+            // User manually collapsed the section
+            manuallyCollapsedWellnessMental = true;
+          } else if (!wasExpanded && showWellnessMental) {
+            // User manually expanded the section
+            manuallyCollapsedWellnessMental = false;
+          }
+        }}
+        aria-expanded={showWellnessMental}
+        aria-controls="wellness-mental-section"
+      >
+        <div class="flex items-center gap-2">
           <Icon
             icon="tabler:brain"
             class="h-4 w-4 text-gray-600 dark:text-gray-400"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {s("settings.contentFilter.wellnessMental.label") ||
-              "Wellness & Mental Health"}
-          </span>
-          {#if filterGroups["Wellness & Mental Health"].filters.some((filter) => smartContentFilter.preferences[filter])}
-            {@const activeCount = filterGroups[
-              "Wellness & Mental Health"
-            ].filters.filter(
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.wellnessMental.parent") || "Wellness & Mental Health"}
+          </h5>
+          <!-- Active count indicator -->
+          {#if hasWellnessFilters}
+            {@const activeCount = filterGroups["Wellness & Mental Health"].filters.filter(
               (filter) => smartContentFilter.preferences[filter],
             ).length}
             <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
-              ({activeCount}/{filterGroups["Wellness & Mental Health"].filters
-                .length} active)
+              ({activeCount}/{filterGroups["Wellness & Mental Health"].filters.length} active)
             </span>
           {/if}
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">
+        <Icon
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showWellnessMental ? 'rotate-90' : ''}"
+          aria-hidden="true"
+        />
+      </button>
+      
+      {#if showWellnessMental}
+      <div id="wellness-mental-section">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
           {s("settings.contentFilter.wellnessMental.description") ||
             "Filter content that may negatively impact mental health and well-being"}
         </p>
@@ -2460,8 +2701,10 @@
               class={getFilterButtonClasses(
                 smartContentFilter.preferences.filterNegativeNews,
               )}
-              onclick={() =>
-                smartContentFilter.togglePreference("filterNegativeNews")}
+              onclick={(e) =>
+                handleFilterClick(e, () =>
+                  smartContentFilter.togglePreference("filterNegativeNews"),
+                )}
             >
               <Icon
                 icon="tabler:mood-sad"
@@ -2489,8 +2732,10 @@
               class={getFilterButtonClasses(
                 smartContentFilter.preferences.filterViolence,
               )}
-              onclick={() =>
-                smartContentFilter.togglePreference("filterViolence")}
+              onclick={(e) =>
+                handleFilterClick(e, () =>
+                  smartContentFilter.togglePreference("filterViolence"),
+                )}
             >
               <Icon
                 icon="emojione-monotone:raised-fist"
@@ -2518,8 +2763,10 @@
               class={getFilterButtonClasses(
                 smartContentFilter.preferences.filterAnxietyInducing,
               )}
-              onclick={() =>
-                smartContentFilter.togglePreference("filterAnxietyInducing")}
+              onclick={(e) =>
+                handleFilterClick(e, () =>
+                  smartContentFilter.togglePreference("filterAnxietyInducing"),
+                )}
             >
               <Icon
                 icon="fluent-emoji-high-contrast:fearful-face"
@@ -2547,8 +2794,10 @@
               class={getFilterButtonClasses(
                 smartContentFilter.preferences.filterEconomicPessimism,
               )}
-              onclick={() =>
-                smartContentFilter.togglePreference("filterEconomicPessimism")}
+              onclick={(e) =>
+                handleFilterClick(e, () =>
+                  smartContentFilter.togglePreference("filterEconomicPessimism"),
+                )}
             >
               <Icon
                 icon="tabler:trending-down"
@@ -2566,144 +2815,177 @@
               {/if}
             </button>
           </Tooltip>
+        </div>
       </div>
-      </div>
+      {/if}
+    </div>
 
-      </div>
-
-      <!-- Custom Keywords Section -->
-      <div class="flex flex-col space-y-2">
-        <div class="mb-1 flex items-center gap-2">
+    <!-- Custom Keywords Sub-section -->
+    <div class="mb-6">
+      <button
+        type="button"
+        class="flex w-full items-center justify-between text-left mb-3"
+        onclick={() => {
+          const wasExpanded = showCustomKeywords;
+          showCustomKeywords = !showCustomKeywords;
+          
+          // Track manual actions to prevent auto-expand/collapse interference
+          if (wasExpanded && !showCustomKeywords) {
+            // User manually collapsed the section
+            manuallyCollapsedCustomKeywords = true;
+          } else if (!wasExpanded && showCustomKeywords) {
+            // User manually expanded the section
+            manuallyCollapsedCustomKeywords = false;
+          }
+        }}
+        aria-expanded={showCustomKeywords}
+        aria-controls="custom-keywords-section"
+      >
+        <div class="flex items-center gap-2">
           <Icon
             icon="tabler:key"
             class="h-4 w-4 text-gray-600 dark:text-gray-400"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {s("settings.contentFilter.customKeywords") || "Custom Keywords"}
-          </span>
-          {#if smartContentFilter.customKeywords.length > 0}
+          <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {s("settings.contentFilter.customKeywords.parent") || "Custom Keywords"}
+          </h5>
+          <!-- Active count indicator -->
+          {#if hasCustomKeywordsFilters}
             <span class="text-xs font-medium text-blue-600 dark:text-blue-400">
               ({smartContentFilter.customKeywords.length} active)
             </span>
           {/if}
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">
+        <Icon
+          icon="tabler:chevron-right"
+          class="h-4 w-4 text-gray-400 transition-transform duration-200 {showCustomKeywords ? 'rotate-90' : ''}"
+          aria-hidden="true"
+        />
+      </button>
+      
+      {#if showCustomKeywords}
+      <div id="custom-keywords-section">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
           {s("settings.contentFilter.customKeywords.description") ||
             "Add custom keywords to filter content containing specific terms or phrases"}
         </p>
 
-        <div class="mt-4">
-          <!-- Add Single Keyword -->
-          <div class="mb-4">
-            <label
-              for="new-keyword-input"
-              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        <!-- Add Single Keyword -->
+        <div class="mb-4">
+          <label
+            for="new-keyword-input"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {s("settings.contentFilter.customKeywords.add") || "Add Keywords"}
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="new-keyword-input"
+              type="text"
+              bind:value={newKeywordInput}
+              placeholder={s(
+                "settings.contentFilter.customKeywords.placeholder",
+              ) || "Enter keyword or keywords separated by commas..."}
+              class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              onkeydown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomKeyword();
+                }
+              }}
+            />
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-800"
+              onclick={addCustomKeyword}
+              disabled={!newKeywordInput.trim()}
             >
-              {s("settings.contentFilter.customKeywords.add") || "Add Keywords"}
-            </label>
-            <div class="flex gap-2">
-              <input
-                id="new-keyword-input"
-                type="text"
-                bind:value={newKeywordInput}
-                placeholder={s(
-                  "settings.contentFilter.customKeywords.placeholder",
-                ) || "Enter keyword or keywords separated by commas..."}
-                class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-                onkeydown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addCustomKeyword();
-                  }
-                }}
-              />
+              <Icon icon="tabler:plus" class="h-4 w-4" />
+              <span
+                >{s("settings.contentFilter.customKeywords.add") ||
+                  "Add"}</span
+              >
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {s("settings.contentFilter.customKeywords.help") ||
+              "Enter a single keyword or multiple keywords separated by commas. Duplicates will be ignored."}
+          </p>
+        </div>
+
+        <!-- Current Keywords Display -->
+        {#if smartContentFilter.customKeywords.length > 0}
+          <div class="mb-4">
+            <div class="mb-3 flex items-center justify-between">
+              <div
+                class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                {s("settings.contentFilter.customKeywords.current") ||
+                  "Current Keywords"} ({smartContentFilter.customKeywords
+                  .length})
+              </div>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-800"
-                onclick={addCustomKeyword}
-                disabled={!newKeywordInput.trim()}
+                class="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  clearAllCustomKeywords();
+                }}
               >
-                <Icon icon="tabler:plus" class="h-4 w-4" />
-                <span
-                  >{s("settings.contentFilter.customKeywords.add") ||
-                    "Add"}</span
-                >
+                {s("settings.contentFilter.customKeywords.clearAll") ||
+                  "Clear All"}
               </button>
             </div>
+            <div class="flex flex-wrap gap-2">
+              {#each smartContentFilter.customKeywords as keyword}
+                <div
+                  class="group flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-700/50"
+                >
+                  <Icon
+                    icon="tabler:tag"
+                    class="mr-2 h-4 w-4 text-gray-600 opacity-80 dark:text-gray-400"
+                  />
+                  <span class="text-gray-800 dark:text-gray-200"
+                    >{keyword}</span
+                  >
+                  <button
+                    type="button"
+                    class="ml-2 text-gray-600 opacity-75 hover:text-gray-800 hover:opacity-100 dark:text-gray-400 dark:hover:text-gray-200"
+                    onclick={() => removeCustomKeyword(keyword)}
+                    aria-label={`Remove keyword: ${keyword}`}
+                  >
+                    <Icon icon="tabler:x" class="h-3 w-3" />
+                  </button>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {:else}
+          <div
+            class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700/50"
+          >
+            <Icon
+              icon="tabler:tag-off"
+              class="mx-auto mb-2 h-8 w-8 text-gray-400"
+            />
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {s("settings.contentFilter.customKeywords.empty") ||
+                "No custom keywords added yet"}
+            </p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {s("settings.contentFilter.customKeywords.help") ||
-                "Enter a single keyword or multiple keywords separated by commas. Duplicates will be ignored."}
+              {s("settings.contentFilter.customKeywords.emptyHelp") ||
+                "Add keywords above to filter content containing specific terms"}
             </p>
           </div>
+        {/if}
+      </div>
+      {/if}
+    </div>
 
-          <!-- Current Keywords Display -->
-          {#if smartContentFilter.customKeywords.length > 0}
-            <div class="mb-4">
-              <div class="mb-3 flex items-center justify-between">
-                <div
-                  class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  {s("settings.contentFilter.customKeywords.current") ||
-                    "Current Keywords"} ({smartContentFilter.customKeywords
-                    .length})
-                </div>
-                <button
-                  type="button"
-                  class="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                  onclick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    clearAllCustomKeywords();
-                  }}
-                >
-                  {s("settings.contentFilter.customKeywords.clearAll") ||
-                    "Clear All"}
-                </button>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                {#each smartContentFilter.customKeywords as keyword}
-                  <div
-                    class="group flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-700/50"
-                  >
-                    <Icon
-                      icon="tabler:tag"
-                      class="mr-2 h-4 w-4 text-gray-600 opacity-80 dark:text-gray-400"
-                    />
-                    <span class="text-gray-800 dark:text-gray-200"
-                      >{keyword}</span
-                    >
-                    <button
-                      type="button"
-                      class="ml-2 text-gray-600 opacity-75 hover:text-gray-800 hover:opacity-100 dark:text-gray-400 dark:hover:text-gray-200"
-                      onclick={() => removeCustomKeyword(keyword)}
-                      aria-label={`Remove keyword: ${keyword}`}
-                    >
-                      <Icon icon="tabler:x" class="h-3 w-3" />
-                    </button>
-                  </div>
-                {/each}
       </div>
-      </div>
-          {:else}
-            <div
-              class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700/50"
-            >
-              <Icon
-                icon="tabler:tag-off"
-                class="mx-auto mb-2 h-8 w-8 text-gray-400"
-              />
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                {s("settings.contentFilter.customKeywords.empty") ||
-                  "No custom keywords added yet"}
-              </p>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {s("settings.contentFilter.customKeywords.emptyHelp") ||
-                  "Add keywords above to filter content containing specific terms"}
-              </p>
-            </div>
-          {/if}
-      </div>
-      </div>
+
+
 
       <!-- Filter Scope and Mode Controls Section -->
       <div class="flex flex-col space-y-2">
@@ -5110,6 +5392,8 @@
         </div>
       </div>
 
+
+
       <!-- System Controls Section -->
       <div class="flex flex-col space-y-2">
         <div class="mb-1 flex items-center gap-2">
@@ -5260,7 +5544,6 @@
           {/if}
         </div>
       </div>
-    </div>
 
 
 <!-- Import Confirmation Dialog -->

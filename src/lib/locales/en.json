@@ -763,6 +763,10 @@
     "text": "Detect and filter similar or duplicate content",
     "translationContext": "Description for advanced similarity section"
   },
+  "settings.contentFilter.advancedSimilarity.parent": {
+    "text": "Advanced Similarity",
+    "translationContext": "Sub-section header within Filter Scope & Mode divider"
+  },
   "settings.contentFilter.advancedWeights": {
     "text": "Advanced Category Weights",
     "translationContext": "Label for advanced weights section"
@@ -770,6 +774,10 @@
   "settings.contentFilter.advancedWeights.description": {
     "text": "Fine-tune filtering sensitivity for each category",
     "translationContext": "Description for advanced weights section"
+  },
+  "settings.contentFilter.advancedWeights.parent": {
+    "text": "Advanced Category Weight Overrides",
+    "translationContext": "Divider label for advanced category weight overrides section"
   },
   "settings.contentFilter.algorithmWeights": {
     "text": "Algorithm Weight Controls",
@@ -911,6 +919,10 @@
     "text": "Content Quality",
     "translationContext": "Label for content quality section"
   },
+  "settings.contentFilter.contentQuality.parent": {
+    "text": "Content Quality",
+    "translationContext": "Sub-section header within Filters divider"
+  },
   "settings.contentFilter.contentSimilarity": {
     "text": "Content Similarity Detection",
     "translationContext": "Label for content similarity detection"
@@ -998,6 +1010,10 @@
   "settings.contentFilter.customKeywords": {
     "text": "Custom Keywords",
     "translationContext": "Label for custom keywords section"
+  },
+  "settings.contentFilter.customKeywords.parent": {
+    "text": "Custom Keywords",
+    "translationContext": "Sub-section header within Filters divider"
   },
   "settings.contentFilter.customKeywords.add": {
     "text": "Add",
@@ -1399,6 +1415,10 @@
     "text": "Configure how and where filters are applied",
     "translationContext": "Description for filter scope section"
   },
+  "settings.contentFilter.filterScope.parent": {
+    "text": "Filter Scope",
+    "translationContext": "Sub-section header within Filter Scope & Mode divider"
+  },
   "settings.contentFilter.filterScope.scope": {
     "text": "Filter Scope",
     "translationContext": "Label for filter scope setting"
@@ -1426,6 +1446,10 @@
   "settings.contentFilter.filterScope.title.help": {
     "text": "Only analyze article titles for filtering decisions. Fastest but least comprehensive.",
     "translationContext": "Help text for title only filter scope"
+  },
+  "settings.contentFilter.filterScopeMode.parent": {
+    "text": "Filter Scope & Mode",
+    "translationContext": "Divider label for filter scope and advanced similarity settings section"
   },
   "settings.contentFilter.filterSensitivity.balanced": {
     "text": "Balanced (Recommended)",
@@ -1502,6 +1526,10 @@
   "settings.contentFilter.filterWeatherDesc": {
     "text": "Filter routine weather forecasts and updates",
     "translationContext": "Description for weather filter"
+  },
+  "settings.contentFilter.filters.parent": {
+    "text": "Filters",
+    "translationContext": "Main divider label for the filters section"
   },
   "settings.contentFilter.financial": {
     "text": "Financial",
@@ -1754,6 +1782,10 @@
   "settings.contentFilter.newsTypes.label": {
     "text": "News Types",
     "translationContext": "Label for news types section"
+  },
+  "settings.contentFilter.newsTypes.parent": {
+    "text": "News Types",
+    "translationContext": "Sub-section header within Filters divider"
   },
   "settings.contentFilter.opinions": {
     "text": "Opinions",
@@ -2215,6 +2247,10 @@
     "text": "Topics & Subjects",
     "translationContext": "Label for topics and subjects section"
   },
+  "settings.contentFilter.topicsSubjects.parent": {
+    "text": "Topics & Subjects",
+    "translationContext": "Sub-section header within Filters divider"
+  },
   "settings.contentFilter.topReasons": {
     "text": "Top Filter Reasons",
     "translationContext": "Label for top filter reasons"
@@ -2250,6 +2286,10 @@
   "settings.contentFilter.wellnessMental.label": {
     "text": "Wellness & Mental Health",
     "translationContext": "Label for wellness section"
+  },
+  "settings.contentFilter.wellnessMental.parent": {
+    "text": "Wellness & Mental Health",
+    "translationContext": "Sub-section header within Filters divider"
   },
   "settings.dataLanguage.label": {
     "text": "Content Language",
