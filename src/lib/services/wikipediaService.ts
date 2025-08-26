@@ -558,6 +558,9 @@ function extractFirstParagraph(htmlContent: string): string {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = htmlContent;
 
+        // Remove any embedded styles/scripts (TemplateStyles etc.) that can leak CSS text
+        tempDiv.querySelectorAll('style, script, link[rel="stylesheet"], style[data-mw-deduplicate]').forEach(el => el.remove());
+
         // Remove unwanted elements
         const unwantedSelectors = [
             '.mw-editsection',
@@ -568,12 +571,27 @@ function extractFirstParagraph(htmlContent: string): string {
             '.ambox',
             '.hatnote',
             'sup',
-            '.coordinates'
+            '.coordinates',
+            // Additional hardening
+            'style',
+            'script'
         ];
 
         unwantedSelectors.forEach(selector => {
             tempDiv.querySelectorAll(selector).forEach(el => el.remove());
         });
+
+        // Strip residual .mw-parser-output class wrappers that may prefix text nodes
+        tempDiv.querySelectorAll('.mw-parser-output').forEach(wrapper => {
+            // unwrap children into parent
+            const parent = wrapper.parentNode;
+            if (!parent) return;
+            while (wrapper.firstChild) parent.insertBefore(wrapper.firstChild, wrapper);
+            wrapper.remove();
+        });
+
+        // Remove inline IPA spans and audio helpers that sometimes leak as text
+        tempDiv.querySelectorAll('.IPA, .unicode, .audiolink, .IPAchar').forEach(el => el.remove());
 
         // Find the first substantial paragraph
         const paragraphs = tempDiv.querySelectorAll('p');

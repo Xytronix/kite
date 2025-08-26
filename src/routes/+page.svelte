@@ -199,6 +199,7 @@
     title: "",
     content: "",
     imageUrl: "",
+    wikiUrl: "",
   });
 
   // State for story URL management - Initialize with empty reactive objects
@@ -2207,17 +2208,19 @@
     title: string,
     content: string,
     imageUrl?: string,
+    wikiUrl?: string,
   ) => {
     wikipediaPopup = {
       visible: true,
       title,
       content,
       imageUrl: imageUrl || "",
+      wikiUrl: wikiUrl || "",
     };
   };
 
   const closeWikipediaPopup = () => {
-    wikipediaPopup = { visible: false, title: "", content: "", imageUrl: "" };
+    wikipediaPopup = { visible: false, title: "", content: "", imageUrl: "", wikiUrl: "" };
   };
 
   // Prevent rapid story toggle calls
@@ -2965,6 +2968,7 @@
   title={wikipediaPopup.title}
   content={wikipediaPopup.content}
   imageUrl={wikipediaPopup.imageUrl}
+  wikiUrl={wikipediaPopup.wikiUrl}
   onClose={closeWikipediaPopup}
 />
 

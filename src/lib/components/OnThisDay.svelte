@@ -9,7 +9,7 @@ import Icon from '@iconify/svelte';
 interface Props {
 	stories: OnThisDayEvent[] | null;
 	isLoading?: boolean;
-	onWikipediaClick?: (title: string, content: string, imageUrl?: string) => void;
+	onWikipediaClick?: (title: string, content: string, imageUrl?: string, wikiUrl?: string) => void;
 	onRetry?: () => void;
 }
 

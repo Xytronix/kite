@@ -33,7 +33,7 @@ interface Props {
 	priority?: boolean; // For high-priority stories (first few visible)
 	isFiltered?: boolean;
 	filterKeywords?: string[];
-    onWikipediaClick?: (title: string, content: string, imageUrl?: string) => void;
+    onWikipediaClick?: (title: string, content: string, imageUrl?: string, wikiUrl?: string) => void;
 }
 
 let { 
