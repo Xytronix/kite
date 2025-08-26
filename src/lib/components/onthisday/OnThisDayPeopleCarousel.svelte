@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import type { OnThisDayEvent } from '$lib/types';
 import { s } from '$lib/client/localization.svelte';
 import { batchService } from '$lib/services/batchService';
-import { fetchWikipediaContent } from '$lib/services/wikipediaService';
+import { fetchWikipediaContent, extractWikipediaIdsFromContent } from '$lib/services/wikipediaService';
 
 interface Props {
 	people: OnThisDayEvent[];
@@ -37,24 +37,26 @@ async function preloadPeopleImages() {
 
 	
 	const imagePromises = people.map(async (person, index) => {
-		// Extract Wikipedia ID from the person's content
-		const linkMatch = person.content.match(/<a[^>]*data-wiki-id="([^"]*)"[^>]*>/);
-		if (!linkMatch) {
+		// Extract Wikipedia IDs from the person's content using improved extraction
+		const wikiIds = extractWikipediaIdsFromContent(person.content);
+		if (wikiIds.length === 0) {
 			return;
 		}
 		
-		const wikiId = linkMatch[1];
+		const wikiId = wikiIds[0]; // Use the first Wikipedia ID found
 		
 		try {
-			// fetchWikipediaContent now handles Q-IDs properly
+			// fetchWikipediaContent now handles Q-IDs and accented characters properly
+			console.debug('Loading Wikipedia content for OnThisDay person:', wikiId, 'from content:', person.content.substring(0, 100) + '...');
 			const data = await fetchWikipediaContent(wikiId);
 			if (data?.thumbnail?.source) {
 				const cacheKey = person.year + person.content;
 				peopleImagesCache.set(cacheKey, data.thumbnail.source);
 				imagesLoaded++; // Trigger reactivity
+				console.debug('Successfully loaded thumbnail for:', wikiId, 'URL:', data.thumbnail.source);
 			}
 		} catch (error) {
-			// Silently handle image loading errors
+			console.debug('Failed to load Wikipedia content for OnThisDay person:', wikiId, error);
 		}
 	});
 	
@@ -166,23 +168,24 @@ $effect(() => setup({ people }));
 	<!-- Carousel for Desktop -->
 	<div class="relative hidden md:block">
 		<!-- Left Arrow -->
-		<button
-			class="absolute top-1/2 left-[-2rem] -translate-y-1/2 cursor-pointer rounded px-2 py-1 text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-50 focus-visible-ring dark:text-gray-500 dark:hover:text-gray-300"
-			onclick={prevSlide}
-			disabled={currentSlide === 0}
-			aria-label="Previous slide"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2.5"
+		{#if currentSlide > 0}
+			<button
+				class="absolute top-1/2 left-[-2rem] -translate-y-1/2 cursor-pointer rounded px-2 py-1 text-gray-400 transition-colors hover:text-gray-600 focus-visible-ring dark:text-gray-500 dark:hover:text-gray-300"
+				onclick={prevSlide}
+				aria-label="Previous slide"
 			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-			</svg>
-		</button>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-4 w-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+				</svg>
+			</button>
+		{/if}
 
 		<!-- Slides Wrapper -->
 		<div class="overflow-hidden" onwheel={handleWheel}>
@@ -246,23 +249,24 @@ $effect(() => setup({ people }));
 		</div>
 
 		<!-- Right Arrow -->
-		<button
-			class="absolute top-1/2 right-[-2rem] -translate-y-1/2 cursor-pointer rounded px-2 py-1 text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-50 focus-visible-ring dark:text-gray-500 dark:hover:text-gray-300"
-			onclick={nextSlide}
-			disabled={currentSlide === chunkedPeople.length - 1}
-			aria-label="Next slide"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="h-4 w-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2.5"
+		{#if currentSlide < chunkedPeople.length - 1}
+			<button
+				class="absolute top-1/2 right-[-2rem] -translate-y-1/2 cursor-pointer rounded px-2 py-1 text-gray-400 transition-colors hover:text-gray-600 focus-visible-ring dark:text-gray-500 dark:hover:text-gray-300"
+				onclick={nextSlide}
+				aria-label="Next slide"
 			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-			</svg>
-		</button>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-4 w-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+				</svg>
+			</button>
+		{/if}
 
 		<!-- Dots Pagination -->
 		{#if chunkedPeople.length > 1}

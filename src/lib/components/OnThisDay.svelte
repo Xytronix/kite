@@ -34,7 +34,7 @@ function handleWikipediaLeave(event: Event) {
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div 
-	class="py-4" 
+	class="py-4 onthisday-content" 
 	role="region" 
 	aria-label="OnThisDay events with Wikipedia links"
 	onmouseover={handleWikipediaInteraction} 

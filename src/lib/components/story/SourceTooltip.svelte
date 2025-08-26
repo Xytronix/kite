@@ -140,7 +140,13 @@
         return baseOffset;
       }),
       flip({
-        fallbackPlacements: ["top-start", "bottom-end", "top-end"],
+        fallbackPlacements: [
+          "top-start",
+          "bottom-end",
+          "top-end",
+          "bottom",
+          "top",
+        ],
         padding: ({ elements }) => {
           // Use much larger padding for inline citations and small elements
           const referenceRect = elements.reference?.getBoundingClientRect();
@@ -159,7 +165,7 @@
           const isInlineCitation = referenceRect && referenceRect.height < 30;
           return isInlineCitation ? 14 : 10;
         },
-        crossAxis: false,
+        crossAxis: true, // Allow cross-axis shifting for better positioning with virtual references
       }),
       // Size middleware for height calculation
       size({
@@ -207,6 +213,112 @@
   // Detect mobile device
   function detectMobile() {
     return "ontouchstart" in window || window.innerWidth < 768;
+  }
+
+  // Create a virtual reference element for better positioning on multi-line text
+  function createVirtualReference(event: Event, element: HTMLElement) {
+    const mouseEvent = event as MouseEvent;
+    const touchEvent = event as TouchEvent;
+
+    let clientX: number | undefined;
+    let clientY: number | undefined;
+
+    // Get coordinates from mouse or touch event
+    if (mouseEvent.clientX !== undefined && mouseEvent.clientY !== undefined) {
+      clientX = mouseEvent.clientX;
+      clientY = mouseEvent.clientY;
+    } else if (touchEvent.touches && touchEvent.touches.length > 0) {
+      clientX = touchEvent.touches[0].clientX;
+      clientY = touchEvent.touches[0].clientY;
+    }
+
+    // Try to get the text range at the interaction position for more precise positioning
+    if (
+      document.caretRangeFromPoint &&
+      clientX !== undefined &&
+      clientY !== undefined
+    ) {
+      try {
+        const range = document.caretRangeFromPoint(clientX, clientY);
+        if (range) {
+          // Check if the range is within our target element or its children
+          const rangeContainer =
+            range.startContainer.nodeType === Node.TEXT_NODE
+              ? range.startContainer.parentElement
+              : (range.startContainer as Element);
+
+          if (
+            rangeContainer &&
+            (element.contains(rangeContainer) || rangeContainer === element)
+          ) {
+            const rect = range.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              return {
+                getBoundingClientRect() {
+                  return {
+                    width: Math.max(rect.width, 1),
+                    height: Math.max(rect.height, 1),
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                    left: rect.left,
+                    x: rect.x,
+                    y: rect.y,
+                  };
+                },
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.debug("Range detection failed, using mouse position:", error);
+      }
+    }
+
+    // Fallback: create a virtual reference based on mouse/touch position
+    if (clientX !== undefined && clientY !== undefined) {
+      return {
+        getBoundingClientRect() {
+          return {
+            width: 1,
+            height: 1,
+            top: clientY,
+            right: clientX + 1,
+            bottom: clientY + 1,
+            left: clientX,
+            x: clientX,
+            y: clientY,
+          };
+        },
+      };
+    }
+
+    // Final fallback: use the original element but try to get a better position
+    // For multi-line elements, use the first line's position
+    const elementRect = element.getBoundingClientRect();
+    const computedStyle = window.getComputedStyle(element);
+    const lineHeight =
+      parseFloat(computedStyle.lineHeight) || elementRect.height;
+
+    // If the element is much taller than a single line, position at the first line
+    if (elementRect.height > lineHeight * 1.5) {
+      return {
+        getBoundingClientRect() {
+          return {
+            width: elementRect.width,
+            height: lineHeight,
+            top: elementRect.top,
+            right: elementRect.right,
+            bottom: elementRect.top + lineHeight,
+            left: elementRect.left,
+            x: elementRect.x,
+            y: elementRect.y,
+          };
+        },
+      };
+    }
+
+    return element;
   }
 
   // Handle source interaction - renamed from handleCitationInteraction for broader usage
@@ -270,8 +382,12 @@
         hideTimeout = null;
       }
 
-      // Set reference element for floating UI
-      floating.elements.reference = wrapper;
+      // Create a virtual reference element for better positioning on multi-line text
+      const virtualReference = createVirtualReference(
+        event,
+        wrapper as HTMLElement,
+      );
+      floating.elements.reference = virtualReference;
 
       // Force immediate position recalculation when switching reference elements
       if (showTooltip) {
@@ -780,8 +896,8 @@
 
   // Function to decode HTML entities
   function decodeHtmlEntities(text: string): string {
-    if (typeof document === 'undefined') return text;
-    const textarea = document.createElement('textarea');
+    if (typeof document === "undefined") return text;
+    const textarea = document.createElement("textarea");
     textarea.innerHTML = text;
     return textarea.value;
   }

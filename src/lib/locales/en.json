@@ -748,8 +748,8 @@
     "translationContext": "Description for advanced settings"
   },
   "settings.contentFilter.advancedParameters": {
-    "text": "Advanced Parameter Controls",
-    "translationContext": "Label for advanced parameter controls section"
+    "text": "Parameter Controls",
+    "translationContext": "Label for parameter controls section"
   },
   "settings.contentFilter.advancedParameters.description": {
     "text": "Fine-tune the filtering algorithm with detailed parameter controls. These settings affect how content quality, relevance, and sentiment are evaluated.",
@@ -774,6 +774,14 @@
   "settings.contentFilter.advancedWeights.description": {
     "text": "Fine-tune filtering sensitivity for each category",
     "translationContext": "Description for advanced weights section"
+  },
+  "settings.contentFilter.advancedOverrides": {
+    "text": "Advanced Overrides",
+    "translationContext": "Divider label for advanced overrides section"
+  },
+  "settings.contentFilter.advancedOverrides.description": {
+    "text": "Fine-tune how different aspects of content are weighted when detecting similarity and relevance. Global settings apply to all categories unless overridden.",
+    "translationContext": "Description for advanced overrides section"
   },
   "settings.contentFilter.advancedWeights.parent": {
     "text": "Advanced Category Weight Overrides",

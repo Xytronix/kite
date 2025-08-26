@@ -25,12 +25,7 @@ export interface WikipediaContent {
 export function hasWikipediaEntryFailed(wikiId: string, lang?: string): boolean {
     const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
-    let id: string;
-    try {
-        id = decodeURIComponent(wikiId);
-    } catch {
-        id = wikiId;
-    }
+    const id = safeNormalizeWikiId(wikiId);
     const cacheKey = `${wikiLang}:${id}`;
     return wikipediaFailedCache.has(cacheKey);
 }
@@ -47,12 +42,7 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
 
     const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
-    let id: string;
-    try {
-        id = decodeURIComponent(wikiId);
-    } catch {
-        id = wikiId;
-    }
+    const id = safeNormalizeWikiId(wikiId);
 
     try {
         let url: string;
@@ -68,8 +58,28 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
             }
         }
 
-        // Use REST API summary endpoint for validation
-        url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
+        // Use REST API summary endpoint for validation - handle accented characters properly
+        let pageTitle = id;
+        
+        // If it contains underscores, it's likely a Wikipedia page title format
+        if (pageTitle.includes('_')) {
+            // Convert underscores to spaces for better API compatibility
+            pageTitle = pageTitle.replace(/_/g, ' ');
+        }
+        
+        // Handle encoding properly for validation
+        const titleForUrl = pageTitle.replace(/ /g, '_');
+        let encodedTitle: string;
+        if (titleForUrl.includes('%')) {
+            // Already encoded, use as-is
+            encodedTitle = titleForUrl;
+        } else {
+            // Encode for URL safety
+            encodedTitle = encodeURIComponent(titleForUrl);
+        }
+        
+        url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
+        console.debug('Validating Wikipedia entry:', pageTitle, '-> encoded:', encodedTitle, '-> URL:', url);
         const response = await fetch(url, { method: 'HEAD' });
 
         if (!response.ok) {
@@ -100,12 +110,7 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
 function markWikipediaEntryAsFailed(wikiId: string, lang?: string): void {
     const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
     const wikiLang = normalizeWikiLang(uiLang);
-    let id: string;
-    try {
-        id = decodeURIComponent(wikiId);
-    } catch {
-        id = wikiId;
-    }
+    const id = safeNormalizeWikiId(wikiId);
     const cacheKey = `${wikiLang}:${id}`;
     wikipediaFailedCache.set(cacheKey, true);
 }
@@ -122,15 +127,17 @@ export function clearWikipediaFailedCache() {
  * Supports both regular Wikipedia page IDs and Wikidata Q-IDs
  */
 export async function fetchWikipediaContent(wikiId: string, lang?: string): Promise<WikipediaContent> {
-    // Some callers may already pass an encoded page title (e.g. "Ren%C3%A9_Descartes")
-    // which would become *double* encoded below when we call encodeURIComponent again.
-    // To avoid 404 errors resulting from double-encoding, we attempt to decode once.
-    let id: string;
-    try {
-        id = decodeURIComponent(wikiId);
-    } catch {
-        // If decoding fails (malformed URI) just use the original value
-        id = wikiId;
+    // Safely normalize the Wikipedia ID
+    const id = safeNormalizeWikiId(wikiId);
+    
+    // Special debug case for Battle of Crécy
+    if (wikiId.includes('Cr%C3%A9cy') || wikiId.includes('Crécy')) {
+        console.debug('Battle of Crécy debug - Original:', wikiId, 'Normalized:', id);
+        console.debug('URL parts:', {
+            hasPercent: wikiId.includes('%'),
+            decoded: wikiId.includes('%') ? decodeURIComponent(wikiId) : 'no decoding needed',
+            finalId: id
+        });
     }
 
     const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
@@ -176,8 +183,32 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
             url = `https://${summaryLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
             console.log(`Resolved Q-ID ${id} to Wikipedia page: ${pageTitle} (${summaryLang})`);
         } else {
-            // Regular Wikipedia page ID / title
-            url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
+            // Regular Wikipedia page ID / title - handle accented characters properly
+            // For titles like "Battle of Crécy" or "Battle_of_Crécy", ensure proper encoding
+            let pageTitle = id;
+            
+            // If it contains underscores, it's likely a Wikipedia page title format
+            if (pageTitle.includes('_')) {
+                // Convert underscores to spaces for better API compatibility
+                pageTitle = pageTitle.replace(/_/g, ' ');
+            }
+            
+            // For the REST API, we need to use underscores and proper encoding
+            // But preserve the original character encoding (don't double-encode)
+            const titleForUrl = pageTitle.replace(/ /g, '_');
+            
+            // Only encode if it's not already encoded or contains special characters that need encoding
+            let encodedTitle: string;
+            if (titleForUrl.includes('%')) {
+                // Already encoded, use as-is but ensure it's properly formatted
+                encodedTitle = titleForUrl;
+            } else {
+                // Encode for URL safety
+                encodedTitle = encodeURIComponent(titleForUrl);
+            }
+            
+            url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
+            console.debug('Fetching Wikipedia content for regular title:', pageTitle, '-> encoded:', encodedTitle, '-> URL:', url);
         }
 
         const response = await fetch(url);
@@ -232,17 +263,36 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
 
         // 1) Attempt a search-based fallback in the requested language to find the closest article title
         try {
-            const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(id)}&srlimit=1&format=json&origin=*`;
+            // For search, use the original ID (which might contain accents) rather than encoded version
+            const searchTerm = id.replace(/_/g, ' '); // Convert underscores to spaces for better search
+            const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerm)}&srlimit=3&format=json&origin=*`;
+            console.debug('Wikipedia search fallback for:', searchTerm, 'in language:', wikiLang);
             const searchResp = await fetch(searchUrl);
             if (searchResp.ok) {
                 const searchData = await searchResp.json();
-                const altTitle: string | undefined = searchData?.query?.search?.[0]?.title;
-                if (altTitle) {
-                    // Recursively fetch using the best-match title
+                const results = searchData?.query?.search || [];
+                
+                // Try to find an exact or close match
+                for (const result of results) {
+                    const resultTitle = result.title as string;
+                    // Check for exact match (case insensitive) or very close match
+                    if (resultTitle.toLowerCase() === searchTerm.toLowerCase() || 
+                        resultTitle.toLowerCase().replace(/[^a-z0-9]/g, '') === searchTerm.toLowerCase().replace(/[^a-z0-9]/g, '')) {
+                        console.debug('Found exact match via search:', resultTitle);
+                        return await fetchWikipediaContent(resultTitle, uiLang);
+                    }
+                }
+                
+                // If no exact match, try the first result
+                if (results.length > 0) {
+                    const altTitle = results[0].title;
+                    console.debug('Found alternative title via search:', altTitle);
                     return await fetchWikipediaContent(altTitle, uiLang);
                 }
             }
-        } catch {/* ignore search fallback errors */ }
+        } catch (error) {
+            console.debug('Search fallback failed:', error);
+        }
 
         // 2) If we already tried English or userLang === 'en', give up directly
         if (wikiLang === 'en') {
@@ -258,15 +308,31 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
 
         // 3) Try fetching summary in English to obtain its Wikidata ID
         try {
-            const enSummaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(id)}`;
+            // For English fallback, also try with spaces instead of underscores
+            const searchTerm = id.replace(/_/g, ' ');
+            
+            // Handle encoding properly for English fallback
+            let titleForUrl = searchTerm.replace(/ /g, '_');
+            let encodedTitle: string;
+            if (titleForUrl.includes('%')) {
+                encodedTitle = titleForUrl;
+            } else {
+                encodedTitle = encodeURIComponent(titleForUrl);
+            }
+            
+            const enSummaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
+            console.debug('Trying English fallback for:', searchTerm, '-> encoded:', encodedTitle);
             const enData = await safeJsonFetch(enSummaryUrl);
             const qid = enData?.wikibase_item as string | undefined;
 
             if (qid && /^Q\d+$/.test(qid)) {
+                console.debug('Found Q-ID via English fallback:', qid);
                 // Recursively fetch using Q-ID which has full language logic
                 return await fetchWikipediaContent(qid, uiLang);
             }
-        } catch {/* ignore */ }
+        } catch (error) {
+            console.debug('English fallback failed:', error);
+        }
         // 4) Final failure
         markWikipediaEntryAsFailed(id, uiLang);
         return {
@@ -394,6 +460,28 @@ export async function fetchWikipediaContentBySearch(query: string, lang?: string
 }
 
 /**
+ * Extract and normalize Wikipedia IDs from OnThisDay HTML content
+ * Handles URL-encoded IDs like "Battle_of_Cr%C3%A9cy"
+ */
+export function extractWikipediaIdsFromContent(htmlContent: string): string[] {
+    const wikiIds: string[] = [];
+    const linkRegex = /<a[^>]*data-wiki-id="([^"]*)"[^>]*>/g;
+    let match;
+
+    while ((match = linkRegex.exec(htmlContent)) !== null) {
+        const wikiId = match[1];
+        if (wikiId) {
+            // Normalize the extracted ID
+            const normalizedId = safeNormalizeWikiId(wikiId);
+            console.debug('Extracted Wikipedia ID:', wikiId, '-> normalized:', normalizedId);
+            wikiIds.push(normalizedId);
+        }
+    }
+
+    return wikiIds;
+}
+
+/**
  * Enhanced search using server-side Knowledge Graph API
  * This calls our secure server endpoint instead of exposing API keys to the client
  */
@@ -515,6 +603,35 @@ async function safeJsonFetch(url: string): Promise<any | null> {
         return null;
     }
 }
+
+// Helper function to safely normalize Wikipedia IDs
+function safeNormalizeWikiId(wikiId: string): string {
+    if (!wikiId) return '';
+
+    // Handle Q-IDs (Wikidata) - these should not be encoded
+    if (/^Q\d+$/.test(wikiId)) {
+        return wikiId;
+    }
+
+    // Handle URL-encoded content (like "Battle_of_Cr%C3%A9cy" -> "Battle_of_Crécy")
+    if (wikiId.includes('%')) {
+        try {
+            const decoded = decodeURIComponent(wikiId);
+            console.debug('Decoded Wikipedia ID:', wikiId, '->', decoded);
+            // If decoding was successful and changed the string, use decoded version
+            if (decoded !== wikiId) {
+                return decoded;
+            }
+        } catch (error) {
+            // If decoding fails, continue with original
+            console.debug('Failed to decode Wikipedia ID:', wikiId, error);
+        }
+    }
+
+    return wikiId;
+}
+
+
 
 // Map language codes used in UI to Wikipedia sub-domains
 function normalizeWikiLang(lang: string | undefined): string {

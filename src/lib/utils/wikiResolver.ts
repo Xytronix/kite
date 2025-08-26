@@ -65,7 +65,18 @@ export interface WikiResolveResult {
 export async function resolveWikiTitleWithContext(phrase: string, kind: EntityKind = 'generic'): Promise<WikiResolveResult | null> {
 	const uiLang = browser ? language.ui : 'en';
 	const wikiLang = normalizeWikiLang(uiLang);
-	const cacheKey = `${wikiLang}:${kind}:${phrase}`;
+	
+	// Properly decode URL-encoded phrases
+	let cleanPhrase = phrase;
+	if (phrase.includes('%')) {
+		try {
+			cleanPhrase = decodeURIComponent(phrase);
+		} catch (error) {
+			console.debug('Failed to decode phrase:', phrase, error);
+		}
+	}
+	
+	const cacheKey = `${wikiLang}:${kind}:${cleanPhrase}`;
 	if (RESOLVE_CACHE.has(cacheKey)) {
     const cached = RESOLVE_CACHE.get(cacheKey)!;
     return cached ? JSON.parse(cached) as WikiResolveResult : null;
@@ -74,7 +85,7 @@ export async function resolveWikiTitleWithContext(phrase: string, kind: EntityKi
 	// 1. Wikipedia search in user language
 	async function searchWikipedia(lang: string): Promise<string | ''> {
 		try {
-			const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(phrase)}&srlimit=1&format=json&origin=*`;
+			const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanPhrase)}&srlimit=1&format=json&origin=*`;
 			const resp = await fetch(searchUrl);
 			if (!resp.ok) return '';
 			const data: any = await resp.json();
@@ -103,7 +114,7 @@ export async function resolveWikiTitleWithContext(phrase: string, kind: EntityKi
 		const wdData: any = await wdResp.json();
 		const desc = wdData?.search?.[0]?.description as string | undefined;
 		const qid = wdData?.search?.[0]?.id as string | undefined;
-		console.debug('WikiResolver validation for:', phrase, 'kind:', kind, 'description:', desc, 'matches:', matchesKind(desc, kind));
+		console.debug('WikiResolver validation for:', cleanPhrase, 'kind:', kind, 'description:', desc, 'matches:', matchesKind(desc, kind));
 		if (matchesKind(desc, kind)) {
 			const result: WikiResolveResult = { title, qid: qid || '' };
 			RESOLVE_CACHE.set(cacheKey, JSON.stringify(result));

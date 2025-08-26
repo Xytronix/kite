@@ -33,17 +33,42 @@ const HEADING_SELECTOR = 'h1,h2,h3,h4,h5,h6,[role="heading"],.question-title,.qu
 const GENERIC_WORDS = new Set([
   'government', 'ministry', 'minister', 'state', 'agency', 'committee', 'commission',
   'university', 'college', 'council', 'assembly', 'department', 'court', 'bank',
-  'company', 'corporation', 'inc', 'organisation', 'organization'
+  'company', 'corporation', 'inc', 'organisation', 'organization',
+  // Add common symbols-only matches that aren't real organizations
+  '&', 'h&m', 'at&t' // These will be handled by the enhanced regex but filtered out if too generic
 ]);
 
 // old searchWiki removed – use resolver
 
 export async function autoLinkOrgs(root: HTMLElement) {
   if (!root || !experimental.showWikipediaTooltips) return;
+  
+  // Skip auto-linking in OnThisDay content since it already has backend-provided QIDs
+  if (root.closest('.onthisday-content') || root.classList.contains('onthisday-content')) {
+    console.debug('Skipping org auto-linking: OnThisDay content detected');
+    return;
+  }
+  
+  // Also skip if this element or any parent already has Wikipedia links
+  if (root.querySelector('[data-wiki-id]') || root.closest('[data-wiki-id]')) {
+    console.debug('Skipping org auto-linking: Existing Wikipedia links detected');
+    return;
+  }
 
-  // Regex captures phrases like "Apple Inc.", "World Health Organization", "The United Nations"
+  // Additional check: if any OnThisDay content exists in the document, be more conservative
+  if (document.querySelector('.onthisday-content [data-wiki-id]')) {
+    console.debug('OnThisDay content with Wikipedia links detected in document, being conservative with auto-linking');
+    // Only auto-link if we're clearly outside any content area that might have backend links
+    if (root.closest('article, .story-content, .content, main')) {
+      console.debug('Skipping auto-linking: Near content areas that might have backend Wikipedia links');
+      return;
+    }
+  }
+
+  // Regex captures phrases like "Apple Inc.", "World Health Organization", "The United Nations", "AT&T", "H&M"
   const suffixes = '(?:Inc|Corp|Corporation|Ltd|LLC|University|College|Bank|Agency|Committee|Organization|Organisation|Institute|Association|Company)\\.?' ;
-  const orgRegex = new RegExp(`\\b(?:The\\s+)?([A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+){0,3}\\s+${suffixes}|[A-Z][a-zA-Z]+(?:\\s+[A-Z][a-zA-Z]+){1,4})\\b`, 'g');
+  // Enhanced regex to handle symbols like &, apostrophes, hyphens, and Unicode characters
+  const orgRegex = new RegExp(`\\b(?:The\\s+)?([A-Z][\\p{L}\\p{N}'&-]+(?:\\s+[A-Z&][\\p{L}\\p{N}'&-]*){0,3}\\s+${suffixes}|[A-Z][\\p{L}\\p{N}'&-]+(?:\\s+[A-Z&][\\p{L}\\p{N}'&-]*){1,4})\\b`, 'gu');
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -52,6 +77,7 @@ export async function autoLinkOrgs(root: HTMLElement) {
       // Skip inside existing wiki links or excluded areas
       const el = node.parentElement as HTMLElement;
       if (el?.closest('a')) return NodeFilter.FILTER_REJECT; // already inside link
+      if (el?.closest('[data-wiki-id]')) return NodeFilter.FILTER_REJECT; // already has Wikipedia ID
       if (el?.closest(SKIP_SELECTOR)) return NodeFilter.FILTER_REJECT;
       if (experimental.disableWikiTooltipsInHeadlines && el?.closest(HEADING_SELECTOR)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
@@ -70,8 +96,12 @@ export async function autoLinkOrgs(root: HTMLElement) {
       const start = m.index + (m[0].length - phrase.length);
 
       tasks.push((async () => {
-        // skip if generic term
-        if (GENERIC_WORDS.has(phrase.trim().toLowerCase())) return;
+        // skip if generic term or too short with symbols
+        const cleanPhrase = phrase.trim().toLowerCase();
+        if (GENERIC_WORDS.has(cleanPhrase)) return;
+        
+        // Skip if it's mostly symbols or very short
+        if (phrase.length < 3 || /^[&'-]+$/.test(phrase)) return;
 
         const res: WikiResolveResult | null = await resolveWikiTitleWithContext(phrase, 'organisation');
         if (!res) return;

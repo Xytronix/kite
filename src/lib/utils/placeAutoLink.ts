@@ -10,17 +10,17 @@ import { resolveQIdToWikipediaUrl } from './qidResolver.js';
 
 // Map language codes used in UI to Wikipedia sub-domains
 function normalizeWikiLang(lang: string | undefined): string {
-    if (!lang) return 'en';
-    const lower = lang.toLowerCase();
-    const overrides: Record<string, string> = {
-        'pt-br': 'pt',
-        'zh-hans': 'zh',
-        'zh-hant': 'zh',
-        'nb': 'no'
-    };
-    if (overrides[lower]) return overrides[lower];
-    // Take first segment before dash (e.g. "en-us" -> "en")
-    return lower.split('-')[0] || 'en';
+  if (!lang) return 'en';
+  const lower = lang.toLowerCase();
+  const overrides: Record<string, string> = {
+    'pt-br': 'pt',
+    'zh-hans': 'zh',
+    'zh-hant': 'zh',
+    'nb': 'no'
+  };
+  if (overrides[lower]) return overrides[lower];
+  // Take first segment before dash (e.g. "en-us" -> "en")
+  return lower.split('-')[0] || 'en';
 }
 import { resolveWikiTitleWithContext, type WikiResolveResult } from '$lib/utils/wikiResolver';
 import { validateWikipediaEntry } from '$lib/services/wikipediaService';
@@ -126,17 +126,39 @@ const GENERIC_WORDS = new Set([
 // Comprehensive list of UN-recognised sovereign states (short English names)
 // Lower-cased for quick look-ups
 const COUNTRY_NAMES = new Set([
-  'afghanistan','albania','algeria','andorra','angola','antigua and barbuda','argentina','armenia','australia',
-  'austria','azerbaijan','bahamas','bahrain','bangladesh','barbados','belarus','belgium','belize','benin','bhutan','bolivia','bosnia and herzegovina','botswana','brazil','brunei','bulgaria','burkina faso','burundi','cabo verde','cambodia','cameroon','canada','central african republic','chad','chile','china','colombia','comoros','congo','costa rica','cote d’ivoire','croatia','cuba','cyprus','czechia','democratic republic of the congo','denmark','djibouti','dominica','dominican republic','ecuador','egypt','el salvador','equatorial guinea','eritrea','estonia','eswatini','ethiopia','fiji','finland','france','gabon','gambia','georgia','germany','ghana','greece','grenada','guatemala','guinea','guinea-bissau','guyana','haiti','honduras','hungary','iceland','india','indonesia','iran','iraq','ireland','israel','italy','jamaica','japan','jordan','kazakhstan','kenya','kiribati','kuwait','kyrgyzstan','laos','latvia','lebanon','lesotho','liberia','libya','liechtenstein','lithuania','luxembourg','madagascar','malawi','malaysia','maldives','mali','malta','marshall islands','mauritania','mauritius','mexico','micronesia','moldova','monaco','mongolia','montenegro','morocco','mozambique','myanmar','namibia','nauru','nepal','netherlands','new zealand','nicaragua','niger','nigeria','north korea','north macedonia','norway','oman','pakistan','palau','panama','papua new guinea','paraguay','peru','philippines','poland','portugal','qatar','romania','russia','rwanda','saint kitts and nevis','saint lucia','saint vincent and the grenadines','samoa','san marino','sao tome and principe','saudi arabia','senegal','serbia','seychelles','sierra leone','singapore','slovakia','slovenia','solomon islands','somalia','south africa','south korea','south sudan','spain','sri lanka','sudan','suriname','sweden','switzerland','syria','tajikistan','tanzania','thailand','timor-leste','togo','tonga','trinidad and tobago','tunisia','turkey','turkmenistan','tuvalu','uganda','ukraine','united arab emirates','united kingdom','united states','uruguay','uzbekistan','vanuatu','venezuela','vietnam','yemen','zambia','zimbabwe'
+  'afghanistan', 'albania', 'algeria', 'andorra', 'angola', 'antigua and barbuda', 'argentina', 'armenia', 'australia',
+  'austria', 'azerbaijan', 'bahamas', 'bahrain', 'bangladesh', 'barbados', 'belarus', 'belgium', 'belize', 'benin', 'bhutan', 'bolivia', 'bosnia and herzegovina', 'botswana', 'brazil', 'brunei', 'bulgaria', 'burkina faso', 'burundi', 'cabo verde', 'cambodia', 'cameroon', 'canada', 'central african republic', 'chad', 'chile', 'china', 'colombia', 'comoros', 'congo', 'costa rica', 'cote d’ivoire', 'croatia', 'cuba', 'cyprus', 'czechia', 'democratic republic of the congo', 'denmark', 'djibouti', 'dominica', 'dominican republic', 'ecuador', 'egypt', 'el salvador', 'equatorial guinea', 'eritrea', 'estonia', 'eswatini', 'ethiopia', 'fiji', 'finland', 'france', 'gabon', 'gambia', 'georgia', 'germany', 'ghana', 'greece', 'grenada', 'guatemala', 'guinea', 'guinea-bissau', 'guyana', 'haiti', 'honduras', 'hungary', 'iceland', 'india', 'indonesia', 'iran', 'iraq', 'ireland', 'israel', 'italy', 'jamaica', 'japan', 'jordan', 'kazakhstan', 'kenya', 'kiribati', 'kuwait', 'kyrgyzstan', 'laos', 'latvia', 'lebanon', 'lesotho', 'liberia', 'libya', 'liechtenstein', 'lithuania', 'luxembourg', 'madagascar', 'malawi', 'malaysia', 'maldives', 'mali', 'malta', 'marshall islands', 'mauritania', 'mauritius', 'mexico', 'micronesia', 'moldova', 'monaco', 'mongolia', 'montenegro', 'morocco', 'mozambique', 'myanmar', 'namibia', 'nauru', 'nepal', 'netherlands', 'new zealand', 'nicaragua', 'niger', 'nigeria', 'north korea', 'north macedonia', 'norway', 'oman', 'pakistan', 'palau', 'panama', 'papua new guinea', 'paraguay', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'romania', 'russia', 'rwanda', 'saint kitts and nevis', 'saint lucia', 'saint vincent and the grenadines', 'samoa', 'san marino', 'sao tome and principe', 'saudi arabia', 'senegal', 'serbia', 'seychelles', 'sierra leone', 'singapore', 'slovakia', 'slovenia', 'solomon islands', 'somalia', 'south africa', 'south korea', 'south sudan', 'spain', 'sri lanka', 'sudan', 'suriname', 'sweden', 'switzerland', 'syria', 'tajikistan', 'tanzania', 'thailand', 'timor-leste', 'togo', 'tonga', 'trinidad and tobago', 'tunisia', 'turkey', 'turkmenistan', 'tuvalu', 'uganda', 'ukraine', 'united arab emirates', 'united kingdom', 'united states', 'uruguay', 'uzbekistan', 'vanuatu', 'venezuela', 'vietnam', 'yemen', 'zambia', 'zimbabwe'
 ]);
 
 export async function autoLinkPlaces(root: HTMLElement) {
   if (!root || !experimental.showWikipediaTooltips) return;
 
-  // Regex: optional preposition + location phrase of 1-4 capitalised words (supports Unicode letters)
-  // Using Unicode property escapes to include characters like "ö" or "É".
-  // The `u` flag is mandatory when using `\p{L}`.
-  const placeRegex = /\b(?:in|at|from|near|over|across|around|into)?\s*([A-Z][\p{L}]+(?:\s+[A-Z][\p{L}]+){0,3})\b/gu;
+  // Skip auto-linking in OnThisDay content since it already has backend-provided QIDs
+  if (root.closest('.onthisday-content') || root.classList.contains('onthisday-content')) {
+    console.debug('Skipping place auto-linking: OnThisDay content detected');
+    return;
+  }
+
+  // Also skip if this element or any parent already has Wikipedia links
+  if (root.querySelector('[data-wiki-id]') || root.closest('[data-wiki-id]')) {
+    console.debug('Skipping place auto-linking: Existing Wikipedia links detected');
+    return;
+  }
+
+  // Additional check: if any OnThisDay content exists in the document, be more conservative
+  if (document.querySelector('.onthisday-content [data-wiki-id]')) {
+    console.debug('OnThisDay content with Wikipedia links detected in document, being conservative with auto-linking');
+    // Only auto-link if we're clearly outside any content area that might have backend links
+    if (root.closest('article, .story-content, .content, main')) {
+      console.debug('Skipping auto-linking: Near content areas that might have backend Wikipedia links');
+      return;
+    }
+  }
+
+  // Enhanced regex: optional preposition + location phrase of 1-4 words with symbols support
+  // Handles places like "O'Hare Airport", "New York-Presbyterian", "São Paulo"
+  // Using Unicode property escapes for international characters
+  const placeRegex = /\b(?:in|at|from|near|over|across|around|into)?\s*([A-Z][\p{L}\p{N}'-]+(?:\s+[A-Z][\p{L}\p{N}'-]+){0,3})\b/gu;
 
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -146,6 +168,7 @@ export async function autoLinkPlaces(root: HTMLElement) {
       // Skip if inside an existing wiki link or excluded area
       const el = node.parentElement as HTMLElement;
       if (el?.closest('a')) return NodeFilter.FILTER_REJECT; // already has link
+      if (el?.closest('[data-wiki-id]')) return NodeFilter.FILTER_REJECT; // already has Wikipedia ID
       if (el?.closest(SKIP_SELECTOR)) return NodeFilter.FILTER_REJECT;
       if (experimental.disableWikiTooltipsInHeadlines && el?.closest(HEADING_SELECTOR)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
@@ -169,11 +192,14 @@ export async function autoLinkPlaces(root: HTMLElement) {
       if (GENERIC_WORDS.has(lcPlace)) continue;
       if (wordCount === 1 && place.length <= 3) continue; // avoid 3-letter fragments like "Rio", "Die", "Beh"
 
+      // Skip if it's mostly symbols
+      if (/^['-]+$/.test(place)) continue;
+
       // Allow single-word match only if it exactly equals a recognised country name
       if (wordCount === 1 && !COUNTRY_NAMES.has(lcPlace)) continue;
       const index = match.index + (match[0].length - place.length); // start of place within node
 
-              tasks.push(
+      tasks.push(
         (async () => {
           const res: WikiResolveResult | null = await resolveWikiTitleWithContext(place, 'place');
           if (!res) return;
@@ -191,7 +217,7 @@ export async function autoLinkPlaces(root: HTMLElement) {
           const anchor = document.createElement('a');
           anchor.textContent = place;
           anchor.setAttribute('data-wiki-id', checkWikiId);
-          
+
           // For Q-IDs, resolve to proper Wikipedia URL immediately
           const currentLang = (browser ? language.ui : 'en') || 'en';
           const wikiLang = normalizeWikiLang(currentLang);
@@ -202,13 +228,13 @@ export async function autoLinkPlaces(root: HTMLElement) {
           } else {
             wikiUrl = `https://${wikiLang}.wikipedia.org/wiki/${checkWikiId}`;
           }
-          
+
           anchor.setAttribute('data-url', wikiUrl);
           anchor.setAttribute('href', wikiUrl);
           anchor.setAttribute('target', '_blank');
           anchor.setAttribute('rel', 'noopener noreferrer');
           anchor.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });
-          
+
           anchor.className = 'text-blue-500 hover:underline cursor-pointer';
 
           // Replace using Range to avoid cutting words

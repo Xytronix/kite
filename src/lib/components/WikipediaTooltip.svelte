@@ -80,11 +80,11 @@ const floating = useFloating({
 	middleware: [
 		offset(8), // 8px gap from trigger
 		flip({
-			fallbackPlacements: ['top-start', 'bottom-end', 'top-end']
-		}), // Flip to opposite side if no space
+			fallbackPlacements: ['top-start', 'bottom-end', 'top-end', 'bottom', 'top']
+		}), // More fallback options for better positioning
 		shift({ 
 			padding: 8,
-			crossAxis: false // Don't shift on cross axis to prevent centering
+			crossAxis: true // Allow cross-axis shifting for better positioning with virtual references
 		}), // Shift within viewport with padding
 		size({
 			apply({ availableHeight, availableWidth, elements }) {
@@ -112,10 +112,14 @@ let isMobile = $state(false);
 let isLoading = $state(false);
 let tooltipFlag = $state('');
 let currentWikiId = $state('');
+let currentWikiAttrId = $state('');
 
 // Elements
 let arrowElement: HTMLElement;
 let hideTimeout: number | null = null;
+let showTimeout: number | null = null;
+let lastProcessedId = $state('');
+let lastProcessedTime = $state(0);
 
 // OverlayScrollbars instance
 let tooltipScrollbars: any = $state();
@@ -123,6 +127,103 @@ let tooltipScrollbars: any = $state();
 // Detect mobile device
 function detectMobile() {
 	return 'ontouchstart' in window || window.innerWidth < 768;
+}
+
+// Create a virtual reference element for better positioning on multi-line text
+function createVirtualReference(event: Event, element: HTMLElement) {
+	const mouseEvent = event as MouseEvent;
+	const touchEvent = event as TouchEvent;
+	
+	let clientX: number | undefined;
+	let clientY: number | undefined;
+	
+	// Get coordinates from mouse or touch event
+	if (mouseEvent.clientX !== undefined && mouseEvent.clientY !== undefined) {
+		clientX = mouseEvent.clientX;
+		clientY = mouseEvent.clientY;
+	} else if (touchEvent.touches && touchEvent.touches.length > 0) {
+		clientX = touchEvent.touches[0].clientX;
+		clientY = touchEvent.touches[0].clientY;
+	}
+	
+	// Try to get the text range at the interaction position for more precise positioning
+	if (document.caretRangeFromPoint && clientX !== undefined && clientY !== undefined) {
+		try {
+			const range = document.caretRangeFromPoint(clientX, clientY);
+			if (range) {
+				// Check if the range is within our target element or its children
+				const rangeContainer = range.startContainer.nodeType === Node.TEXT_NODE 
+					? range.startContainer.parentElement 
+					: range.startContainer as Element;
+				
+				if (rangeContainer && (element.contains(rangeContainer) || rangeContainer === element)) {
+					const rect = range.getBoundingClientRect();
+					if (rect.width > 0 && rect.height > 0) {
+						return {
+							getBoundingClientRect() {
+								return {
+									width: Math.max(rect.width, 1),
+									height: Math.max(rect.height, 1),
+									top: rect.top,
+									right: rect.right,
+									bottom: rect.bottom,
+									left: rect.left,
+									x: rect.x,
+									y: rect.y,
+								};
+							},
+						};
+					}
+				}
+			}
+		} catch (error) {
+			console.debug('Range detection failed, using mouse position:', error);
+		}
+	}
+	
+	// Fallback: create a virtual reference based on mouse/touch position
+	if (clientX !== undefined && clientY !== undefined) {
+		return {
+			getBoundingClientRect() {
+				return {
+					width: 1,
+					height: 1,
+					top: clientY,
+					right: clientX + 1,
+					bottom: clientY + 1,
+					left: clientX,
+					x: clientX,
+					y: clientY,
+				};
+			},
+		};
+	}
+	
+	// Final fallback: use the original element but try to get a better position
+	// For multi-line elements, use the first line's position
+	const elementRect = element.getBoundingClientRect();
+	const computedStyle = window.getComputedStyle(element);
+	const lineHeight = parseFloat(computedStyle.lineHeight) || elementRect.height;
+	
+	// If the element is much taller than a single line, position at the first line
+	if (elementRect.height > lineHeight * 1.5) {
+		return {
+			getBoundingClientRect() {
+				return {
+					width: elementRect.width,
+					height: lineHeight,
+					top: elementRect.top,
+					right: elementRect.right,
+					bottom: elementRect.top + lineHeight,
+					left: elementRect.left,
+					x: elementRect.x,
+					y: elementRect.y,
+				};
+			},
+		};
+	}
+	
+	return element;
 }
 
 // Handle Wikipedia link interaction
@@ -134,10 +235,32 @@ export async function handleWikipediaInteraction(event: Event) {
 	
 	if (wikiLink) {
 		const interactionType = event.type;
-		const wikiId = wikiLink.getAttribute('data-wiki-id') || '';
+		let wikiId = wikiLink.getAttribute('data-wiki-id') || '';
+		currentWikiAttrId = wikiId;
 		const title = wikiLink.getAttribute('title') || wikiLink.textContent?.trim() || wikiId || '';
 		const href = wikiLink.getAttribute('href') || wikiLink.getAttribute('data-url') || '';
+		
+		// Properly decode URL-encoded Wikipedia IDs
+		if (wikiId.includes('%')) {
+			try {
+				const decoded = decodeURIComponent(wikiId);
+				console.debug('Decoded Wikipedia ID:', wikiId, '->', decoded);
+				wikiId = decoded;
+			} catch (error) {
+				console.debug('Failed to decode Wikipedia ID:', wikiId, error);
+			}
+		}
+		
 		const tooltipId = `${wikiId}-${title}`;
+		const now = Date.now();
+		
+		// Debounce rapid tooltip changes (prevent flickering from multiple rapid events)
+		if (lastProcessedId === tooltipId && (now - lastProcessedTime) < 100) {
+			console.debug('Debouncing rapid tooltip change for same ID:', tooltipId);
+			return;
+		}
+		lastProcessedId = tooltipId;
+		lastProcessedTime = now;
 		
 		isMobile = detectMobile();
 		
@@ -156,19 +279,69 @@ export async function handleWikipediaInteraction(event: Event) {
 			return;
 		}
 		
-		// Clear any existing timeout
+		// Clear any existing timeouts
 		if (hideTimeout) {
 			clearTimeout(hideTimeout);
 			hideTimeout = null;
 		}
+		if (showTimeout) {
+			clearTimeout(showTimeout);
+			showTimeout = null;
+		}
 		
-		// Set reference element for floating UI - use the actual link element
-		floating.elements.reference = wikiLink;
+		// Create a virtual reference element for better positioning on multi-line text
+		const virtualReference = createVirtualReference(event, wikiLink);
+		floating.elements.reference = virtualReference;
 		
 		// Set initial state
 		currentTooltipId = tooltipId;
 		currentWikiId = wikiId; // Store the current wikiId for location detection
 		tooltipTitle = title; // Use the actual title instead of "Loading..." to reduce flicker
+		
+		// Check for conflicts with auto-linking
+		const isOnThisDay = wikiLink.closest('.onthisday-content') !== null;
+		const hasBackendQID = wikiId.startsWith('Q');
+		const allSameElements = document.querySelectorAll(`[data-wiki-id="${wikiLink.getAttribute('data-wiki-id')}"]`);
+		
+		// Debug: Log the Wikipedia ID being processed
+		console.debug('WikipediaTooltip processing:', {
+			originalWikiId: wikiLink.getAttribute('data-wiki-id'),
+			decodedWikiId: wikiId,
+			title,
+			href,
+			isQID: hasBackendQID,
+			element: wikiLink.tagName,
+			content: wikiLink.textContent?.substring(0, 50),
+			interactionType,
+			isOnThisDay,
+			duplicateCount: allSameElements.length,
+			elementIndex: Array.from(allSameElements).indexOf(wikiLink)
+		});
+		
+		// Handle conflicts between backend QIDs and auto-linked content
+		if (allSameElements.length > 1) {
+			console.debug('Multiple elements with same wiki-id detected:', allSameElements.length);
+			
+			// If this is OnThisDay content with a backend QID, prioritize it over auto-linked content
+			if (isOnThisDay && hasBackendQID) {
+				// Remove any auto-linked duplicates that might conflict
+				allSameElements.forEach((el, index) => {
+					if (el !== wikiLink && !el.closest('.onthisday-content')) {
+						console.debug('Removing conflicting auto-linked element:', el);
+						// Replace the auto-linked element with plain text
+						const textNode = document.createTextNode(el.textContent || '');
+						el.parentNode?.replaceChild(textNode, el);
+					}
+				});
+			} else {
+				// For non-OnThisDay content, only process the first element to avoid conflicts
+				const firstElement = allSameElements[0];
+				if (wikiLink !== firstElement) {
+					console.debug('Skipping duplicate element, processing only the first occurrence');
+					return;
+				}
+			}
+		}
 		tooltipContent = '';
 		tooltipImage = '';
 		tooltipFullImage = '';
@@ -176,39 +349,71 @@ export async function handleWikipediaInteraction(event: Event) {
 		if (wikiId.startsWith('Q')) {
 			tooltipWikiUrl = ''; // Will be set after Q-ID resolution
 		} else {
-			tooltipWikiUrl = href || `https://en.wikipedia.org/wiki/${wikiId}`;
+			tooltipWikiUrl = href || `https://en.wikipedia.org/wiki/${encodeURIComponent(wikiId.replace(/ /g, '_'))}`;
 		}
+		// Check if this element is still valid after conflict resolution
+		if (!wikiLink.parentNode) {
+			console.debug('Element was removed during conflict resolution, aborting tooltip');
+			return;
+		}
+		
+		// For desktop hover, add a small delay to prevent flickering on quick mouse movements
+		const showDelay = (!isMobile && event.type === 'mouseover') ? 200 : 0;
+		
 		// Start with loading state
 		isLoading = true;
 		
-		// Show tooltip - the floating element will be bound when the template renders
-		showTooltip = true;
+		// Show tooltip with optional delay
+		if (showDelay > 0) {
+			showTimeout = window.setTimeout(() => {
+				showTooltip = true;
+				showTimeout = null;
+			}, showDelay);
+		} else {
+			showTooltip = true;
+		}
 		
 		// Fetch Wikipedia content with enhanced features
 		try {
 			let loadedData: WikipediaContent | null = null;
 			
+			// Debug: Check for multiple elements with same data-wiki-id
+			const allSameElements = document.querySelectorAll(`[data-wiki-id="${wikiLink.getAttribute('data-wiki-id')}"]`);
+			if (allSameElements.length > 1) {
+				console.debug('Multiple elements found with same wiki-id:', wikiId, 'count:', allSameElements.length);
+			}
+			
 			// Priority 1: For Q-IDs, always use direct Wikipedia API to resolve properly
 			if (wikiId.startsWith('Q')) {
+				console.debug('Fetching Q-ID content:', wikiId);
 				loadedData = await fetchWikipediaContent(wikiId);
 			}
-			// Priority 2: For location-like names (containing comma or common location indicators), use enhanced location search
-			else if (wikiId.includes(',') || /\b(city|town|village|county|state|province|territory|island|mountain|river|lake)\b/i.test(wikiId)) {
-				// Use the same enhanced location search logic as StorySummary
-				loadedData = await fetchWikipediaContentForLocation(wikiId);
-			}
-			// Priority 3: Enhanced search with Knowledge Graph (server-side, secure) for regular titles
+			// Priority 2: Direct Wikipedia API for exact titles (most reliable for backend-provided links)
 			else {
-				loadedData = await fetchWikipediaContentWithEnhancedSearch(wikiId);
-			}
-			
-			// Priority 4: Direct Wikipedia API (reliable fallback)
-			if (!loadedData) {
+				console.debug('Fetching direct Wikipedia content:', wikiId);
 				loadedData = await fetchWikipediaContent(wikiId);
+				
+				// Priority 3: For location-like names, try enhanced location search if direct fetch failed
+				if (!loadedData && (wikiId.includes(',') || /\b(city|town|village|county|state|province|territory|island|mountain|river|lake)\b/i.test(wikiId))) {
+					console.debug('Trying enhanced location search:', wikiId);
+					loadedData = await fetchWikipediaContentForLocation(wikiId);
+				}
+				
+				// Priority 4: Enhanced search with Knowledge Graph as final fallback
+				if (!loadedData) {
+					console.debug('Trying enhanced search fallback:', wikiId);
+					loadedData = await fetchWikipediaContentWithEnhancedSearch(wikiId);
+				}
 			}
 			
-			// Update tooltip if it's still showing for the same ID
-			if (showTooltip && currentTooltipId === tooltipId) {
+			// Update tooltip if it's still showing for the same ID (or about to show)
+			if ((showTooltip || showTimeout) && currentTooltipId === tooltipId) {
+				// If we have a show timeout, clear it and show immediately since we have content
+				if (showTimeout) {
+					clearTimeout(showTimeout);
+					showTimeout = null;
+					showTooltip = true;
+				}
 				if (loadedData && loadedData.extract && loadedData.extract !== 'Failed to load Wikipedia content.') {
 					// Valid content found - update tooltip
 					tooltipTitle = loadedData.title || title; // Use the resolved Wikipedia title or fallback to original title
@@ -266,16 +471,32 @@ export async function handleWikipediaInteraction(event: Event) {
 						}
 					}, 10);
 				} else {
-					// No valid content found - hide tooltip
-					console.debug('No valid Wikipedia content found for tooltip, hiding:', wikiId);
-					hideTooltip();
+					// No valid content found - show error message instead of hiding
+					console.debug('No valid Wikipedia content found for tooltip:', wikiId, 'loadedData:', loadedData);
+					tooltipContent = 'Wikipedia content not available for this item.';
+					tooltipImage = '';
+					tooltipFullImage = '';
+					isLoading = false;
+					
+					// For mobile clicks, still hide since there's no useful content
+					if (interactionType === 'click' && isMobile) {
+						hideTooltip();
+					}
 				}
 			}
 		} catch (error) {
 			console.error('Error loading Wikipedia content:', error);
-			// Hide tooltip when content fails to load
-			if (showTooltip && currentTooltipId === tooltipId) {
-				hideTooltip();
+			// Show error message instead of hiding tooltip
+			if ((showTooltip || showTimeout) && currentTooltipId === tooltipId) {
+				if (showTimeout) {
+					clearTimeout(showTimeout);
+					showTimeout = null;
+					showTooltip = true;
+				}
+				tooltipContent = 'Error loading Wikipedia content.';
+				tooltipImage = '';
+				tooltipFullImage = '';
+				isLoading = false;
 			}
 		}
 	}
@@ -285,24 +506,31 @@ export async function handleWikipediaInteraction(event: Event) {
 export function handleWikipediaLeave(event: Event) {
 	if (isMobile) return; // Mobile tooltips are manually closed
 	
+	// Cancel any pending show timeout
+	if (showTimeout) {
+		clearTimeout(showTimeout);
+		showTimeout = null;
+		return;
+	}
+	
 	const relatedTarget = (event as MouseEvent).relatedTarget as Node;
 	const tooltip = floating.elements.floating;
-	const reference = floating.elements.reference;
 	
 	// If moving to the tooltip itself, don't hide it
 	if (tooltip && relatedTarget && tooltip.contains(relatedTarget)) {
 		return;
 	}
 	
-	// Key improvement: Check if we're moving to ANY part of the same Wikipedia element
-	// This treats the entire element as a single hover zone
-	if (relatedTarget && relatedTarget instanceof Element) {
+	// For virtual references, we need to check the original Wikipedia element
+	const currentWikiElement = (event.target as HTMLElement).closest('[data-wiki-id]') as HTMLElement;
+	
+	// Check if we're moving to ANY part of the same Wikipedia element
+	if (relatedTarget && relatedTarget instanceof Element && currentWikiElement) {
 		const targetWikiLink = relatedTarget.closest('[data-wiki-id]');
-		const currentWikiLink = reference as Element;
 		
 		// If we're moving to the same Wikipedia element (same data-wiki-id), don't hide
-		if (targetWikiLink && currentWikiLink && 
-			targetWikiLink.getAttribute('data-wiki-id') === currentWikiLink.getAttribute('data-wiki-id')) {
+		if (targetWikiLink && 
+			targetWikiLink.getAttribute('data-wiki-id') === currentWikiElement.getAttribute('data-wiki-id')) {
 			return;
 		}
 	}
@@ -318,17 +546,22 @@ function handleTooltipLeave(event: MouseEvent) {
 	if (isMobile) return;
 	
 	const relatedTarget = event.relatedTarget as Node;
-	const reference = floating.elements.reference;
 	
-	// If moving back to the Wikipedia element, don't hide
-	if (relatedTarget && relatedTarget instanceof Element) {
+	// If moving back to any Wikipedia element with the same ID, don't hide
+	if (relatedTarget && relatedTarget instanceof Element && (currentWikiAttrId || currentWikiId)) {
 		const targetWikiLink = relatedTarget.closest('[data-wiki-id]');
-		const currentWikiLink = reference as Element;
-		
-		// If we're moving to the same Wikipedia element (same data-wiki-id), don't hide
-		if (targetWikiLink && currentWikiLink && 
-			targetWikiLink.getAttribute('data-wiki-id') === currentWikiLink.getAttribute('data-wiki-id')) {
-			return;
+		if (targetWikiLink) {
+			const attrVal = targetWikiLink.getAttribute('data-wiki-id') || '';
+			// Prefer raw attribute comparison; fallback to decoded/normalized comparison
+			if (currentWikiAttrId && attrVal === currentWikiAttrId) {
+				return;
+			}
+			try {
+				const decodedAttr = attrVal.includes('%') ? decodeURIComponent(attrVal) : attrVal;
+				if (currentWikiId && decodedAttr.replace(/ /g, '_') === currentWikiId.replace(/ /g, '_')) {
+					return;
+				}
+			} catch {}
 		}
 	}
 	
@@ -348,8 +581,14 @@ function handleTooltipEnter() {
 
 // Hide tooltip
 function hideTooltip() {
+	// Clear any pending show timeout
+	if (showTimeout) {
+		clearTimeout(showTimeout);
+		showTimeout = null;
+	}
 	showTooltip = false;
 	currentTooltipId = '';
+	currentWikiAttrId = '';
 	isLoading = false;
 }
 
@@ -414,9 +653,25 @@ onMount(() => {
 
     function isInside(el: Node | null): boolean {
         const tooltip = floating.elements.floating as HTMLElement | undefined;
-        const reference = floating.elements.reference as HTMLElement | undefined;
         if (!el || !(el instanceof Element)) return false;
-        return !!((tooltip && tooltip.contains(el)) || (reference && reference.contains(el)));
+        
+        // Check if inside tooltip
+        if (tooltip && tooltip.contains(el)) return true;
+        
+        // For virtual references, check if inside any Wikipedia element with the same ID
+        const wikiElement = el.closest('[data-wiki-id]');
+        if (wikiElement) {
+            const attrVal = wikiElement.getAttribute('data-wiki-id') || '';
+            if (currentWikiAttrId && attrVal === currentWikiAttrId) return true;
+            try {
+                const decodedAttr = attrVal.includes('%') ? decodeURIComponent(attrVal) : attrVal;
+                if (currentWikiId && decodedAttr.replace(/ /g, '_') === currentWikiId.replace(/ /g, '_')) {
+                    return true;
+                }
+            } catch {}
+        }
+        
+        return false;
     }
 
     function handleGlobalPointerMove(e: PointerEvent) {
@@ -449,6 +704,9 @@ onMount(() => {
 onDestroy(() => {
 	if (hideTimeout) {
 		clearTimeout(hideTimeout);
+	}
+	if (showTimeout) {
+		clearTimeout(showTimeout);
 	}
 	if (browser) {
 		window.removeEventListener('scroll', hideTooltipOnScroll);
