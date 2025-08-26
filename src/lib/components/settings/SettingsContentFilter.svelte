@@ -4478,8 +4478,28 @@
         </div>
       {/if}
 
-      <!-- Advanced Category Weight Overrides Section (with nested collapses) -->
-      <div class="flex flex-col space-y-2">
+      <!-- Advanced Weights top-level divider -->
+      <button
+        type="button"
+        class="my-3 flex w-full items-center text-left"
+        onclick={() => (showAdvancedWeights = !showAdvancedWeights)}
+        aria-expanded={showAdvancedWeights}
+        aria-controls="advanced-weights-section"
+      >
+        <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+        <span class="px-2 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {s("settings.contentFilter.advancedWeights.parent") || "Advanced Weights"}
+        </span>
+        <Icon
+          icon="tabler:chevron-right"
+          class="ml-2 h-4 w-4 text-gray-400 transition-transform duration-200 {showAdvancedWeights ? 'rotate-90' : ''}"
+          aria-hidden="true"
+        />
+        <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+      </button>
+
+      {#if showAdvancedWeights}
+      <div id="advanced-weights-section" class="flex flex-col space-y-2">
         <div class="mb-1 flex items-center gap-2">
           <Icon
             icon="tabler:scale"
@@ -4568,11 +4588,11 @@
                   max="100"
                   step="5"
                   value={smartContentFilter.preferences.globalTitleImportance}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "globalTitleImportance",
                       parseInt((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -4616,11 +4636,11 @@
                   max="100"
                   step="5"
                   value={smartContentFilter.preferences.globalContentImportance}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "globalContentImportance",
                       parseInt((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -4664,11 +4684,11 @@
                   max="100"
                   step="5"
                   value={smartContentFilter.preferences.globalContextEvidence}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "globalContextEvidence",
                       parseInt((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -4741,12 +4761,12 @@
                 <button
                   type="button"
                   class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                  onclick={() => {
+                  onclick={createSafeAction(() => {
                     smartContentFilter.updatePreference(
                       "categoryWeightOverrides",
                       undefined,
                     );
-                  }}
+                  })}
                 >
                   Clear All Overrides
                 </button>
@@ -4861,11 +4881,11 @@
                             <button
                               type="button"
                               class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                              onclick={() =>
+                              onclick={createSafeAction(() =>
                                 smartContentFilter.setCategoryWeightOverride(
                                   category.key,
                                   undefined,
-                                )}
+                                ))}
                             >
                               Reset
                             </button>
@@ -4873,7 +4893,7 @@
                           <button
                             type="button"
                             class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-                            onclick={() => {
+                            onclick={createSafeAction(() => {
                               if (!hasOverride) {
                                 smartContentFilter.setCategoryWeightOverride(
                                   category.key,
@@ -4890,7 +4910,7 @@
                                   },
                                 );
                               }
-                            }}
+                            })}
                           >
                             {hasOverride ? "Customize" : "Override"}
                           </button>
@@ -4923,7 +4943,7 @@
                               value={override.titleImportance ??
                                 smartContentFilter.preferences
                                   .globalTitleImportance}
-                              oninput={(e) => {
+                              oninput={createSafeAction((e) => {
                                 const currentOverride =
                                   smartContentFilter.preferences
                                     .categoryWeightOverrides?.[category.key] ||
@@ -4937,7 +4957,7 @@
                                     ),
                                   },
                                 );
-                              }}
+                              })}
                               class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                             />
                           </div>
@@ -4966,7 +4986,7 @@
                               value={override.contentImportance ??
                                 smartContentFilter.preferences
                                   .globalContentImportance}
-                              oninput={(e) => {
+                              oninput={createSafeAction((e) => {
                                 const currentOverride =
                                   smartContentFilter.preferences
                                     .categoryWeightOverrides?.[category.key] ||
@@ -4980,7 +5000,7 @@
                                     ),
                                   },
                                 );
-                              }}
+                              })}
                               class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                             />
                           </div>
@@ -5009,7 +5029,7 @@
                               value={override.contextEvidence ??
                                 smartContentFilter.preferences
                                   .globalContextEvidence}
-                              oninput={(e) => {
+                              oninput={createSafeAction((e) => {
                                 const currentOverride =
                                   smartContentFilter.preferences
                                     .categoryWeightOverrides?.[category.key] ||
@@ -5023,7 +5043,7 @@
                                     ),
                                   },
                                 );
-                              }}
+                              })}
                               class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                             />
                           </div>
@@ -5183,7 +5203,7 @@
                         <!-- Preset Sensitivity -->
                         <Select
                           value={hasPresetOverride ? currentOverride : "global"}
-                          onChange={(value) => {
+                          onChange={createSafeAction((value) => {
                             if (value === "global") {
                               smartContentFilter.updateCategoryOverride(
                                 category.key,
@@ -5195,7 +5215,7 @@
                                 value,
                               );
                             }
-                          }}
+                          })}
                           options={[
                             { value: "global", label: "Global" },
                             { value: "loose", label: "Loose" },
@@ -5214,7 +5234,7 @@
                             max="100"
                             step="5"
                             value={hasNumericOverride ? currentOverride : 50}
-                            oninput={(e) => {
+                            oninput={createSafeAction((e) => {
                               const value = parseInt(
                                 (e.target as HTMLInputElement).value,
                               );
@@ -5224,7 +5244,7 @@
                                   Math.max(0, Math.min(100, value)),
                                 );
                               }
-                            }}
+                            })}
                             class="w-16 rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700"
                             placeholder="0-100"
                           />
@@ -5309,11 +5329,11 @@
                   max="1"
                   step="0.05"
                   value={smartContentFilter.preferences.minimumQuality}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "minimumQuality",
                       parseFloat((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -5358,11 +5378,11 @@
                   max="1"
                   step="0.05"
                   value={smartContentFilter.preferences.minimumRelevance}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "minimumRelevance",
                       parseFloat((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -5407,11 +5427,11 @@
                   max="1"
                   step="0.05"
                   value={smartContentFilter.preferences.minimumSentiment}
-                  oninput={(e) =>
+                  oninput={createSafeAction((e) =>
                     smartContentFilter.updatePreference(
                       "minimumSentiment",
                       parseFloat((e.target as HTMLInputElement).value),
-                    )}
+                    ))}
                   class="slider h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
                 <div
@@ -5452,6 +5472,7 @@
           </div>
         </div>
       </div>
+      {/if}
 
 
 

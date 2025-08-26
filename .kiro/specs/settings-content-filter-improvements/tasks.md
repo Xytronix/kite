@@ -204,14 +204,14 @@ onclick={() => {
   - **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 9. Create new Advanced Weights top-level divider
+- [x] 9. Create new Advanced Weights top-level divider
   - Create new standalone top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
   - Use horizontal lines, uppercase label with "settings.contentFilter.advancedWeights.parent" key, and chevron icon
   - Add state variable: showAdvancedWeights = $state(false)
   - Ensure consistent styling with other top-level dividers using `my-3` spacing
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 9.1. Convert existing Advanced Category Weight Overrides to content within Advanced Weights divider
+- [x] 9.1. Convert existing Advanced Category Weight Overrides to content within Advanced Weights divider
   - **CURRENT STATUS**: Advanced Category Weight Overrides section currently exists as standalone section in the component
   - Convert existing "Advanced Category Weight Overrides Section" to use new top-level divider pattern
   - Move existing Global Weight Settings (Title Importance, Content Importance, Context Evidence) under new divider
