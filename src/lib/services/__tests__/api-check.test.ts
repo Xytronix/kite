@@ -10,8 +10,11 @@ describe('API Availability Check', () => {
     }
 
     try {
-      // Try to fetch from the API
-      const response = await fetch('http://localhost:5173/api/batches/latest?lang=en');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      // Try to fetch from the API (short timeout to avoid hanging CI)
+      const response = await fetch('http://localhost:5173/api/batches/latest?lang=en', { signal: controller.signal });
+      clearTimeout(timeout);
       
       if (!response.ok) {
         console.warn(`API returned status ${response.status}. Make sure the dev server is running with: bun run dev`);

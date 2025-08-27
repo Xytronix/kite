@@ -2,12 +2,14 @@
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
+import SectionSources from './SectionSources.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
 import { getSectionIcon } from '$lib/constants/sections';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -30,6 +32,43 @@ const displayReactions = $derived.by(() => {
 // Get all cited articles from all reactions
 const allCitedArticles = $derived.by(() => {
 	return aggregateCitationsFromTexts(displayReactions, citationMapping, articles);
+});
+
+// Get paragraph-level citations for more granular context
+const paragraphCitations = $derived.by(() => {
+	if (!citationMapping) return [];
+
+	return displayReactions
+		.map((reaction, index) => {
+			const citationNumbers = new Set<number>();
+
+			// Extract citation numbers from this specific reaction
+			const citationMatches = reaction.match(/\[(\d+)\]/g);
+			if (citationMatches) {
+				citationMatches.forEach((match) => {
+					const num = parseInt(match.replace(/[\[\]]/g, ""));
+					if (!isNaN(num)) {
+						citationNumbers.add(num);
+					}
+				});
+			}
+
+			// Get articles for these specific citation numbers
+			const reactionArticles: Article[] = [];
+			citationNumbers.forEach((num) => {
+				const article = citationMapping.numberToArticle.get(num);
+				if (article) {
+					reactionArticles.push(article);
+				}
+			});
+
+			const parsedReaction = parseReaction(reaction);
+			return {
+				articles: reactionArticles,
+				title: parsedReaction.country ? `${parsedReaction.country}` : `Reaction ${index + 1}`,
+			};
+		})
+		.filter((p) => p.articles.length > 0); // Only include reactions with actual citations
 });
 
 // Parse reaction text using structured text utility
@@ -89,6 +128,16 @@ function parseReaction(reaction: string) {
 			</div>
 		{/each}
 	</div>
+
+	<!-- Section-level sources -->
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources
+			articles={allCitedArticles.citedArticles}
+			{citationMapping}
+			sectionTitle={s('section.internationalReactions') || 'International Reactions'}
+			{paragraphCitations}
+		/>
+	{/if}
 </section>
 
 <!-- Shared Source Tooltip -->

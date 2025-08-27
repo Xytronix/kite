@@ -309,7 +309,6 @@
             e,
             allArticleDomains,
             undefined,
-            articles,
           )}
         onmouseleave={(e) => sourceTooltip?.handleSourceLeave(e)}
         onfocus={(e) =>
@@ -317,7 +316,6 @@
             e,
             allArticleDomains,
             undefined,
-            articles,
           )}
         onblur={(e) => sourceTooltip?.handleSourceLeave(e)}
         onclick={(e) =>
@@ -325,7 +323,6 @@
             e,
             allArticleDomains,
             undefined,
-            articles,
           )}
         onkeydown={(e) =>
           ((e as KeyboardEvent).key === "Enter" ||
@@ -334,7 +331,6 @@
             e,
             allArticleDomains,
             undefined,
-            articles,
           )}
       />
       <span>{s("section.sources") || "Sources"}</span>

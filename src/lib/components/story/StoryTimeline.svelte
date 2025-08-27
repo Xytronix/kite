@@ -8,6 +8,8 @@
   } from "$lib/utils/citationContext";
   import CitationText from "./CitationText.svelte";
   import SourceTooltip from "./SourceTooltip.svelte";
+  import SectionSources from "./SectionSources.svelte";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
 
   // import { parseTimelineEvent } from '$lib/utils/textParsing';
 
@@ -98,6 +100,44 @@
       citedArticles,
     };
   });
+
+  // Get paragraph-level citations for more granular context
+  const paragraphCitations = $derived.by(() => {
+    if (!citationMapping) return [];
+
+    return timelineData.displayEvents
+      .map((event, index) => {
+        const citationNumbers = new Set<number>();
+
+        // Extract citation numbers from this specific event description
+        if (event.description) {
+          const citationMatches = event.description.match(/\[(\d+)\]/g);
+          if (citationMatches) {
+            citationMatches.forEach((match) => {
+              const num = parseInt(match.replace(/[\[\]]/g, ""));
+              if (!isNaN(num)) {
+                citationNumbers.add(num);
+              }
+            });
+          }
+        }
+
+        // Get articles for these specific citation numbers
+        const eventArticles: Article[] = [];
+        citationNumbers.forEach((num) => {
+          const article = citationMapping.numberToArticle.get(num);
+          if (article) {
+            eventArticles.push(article);
+          }
+        });
+
+        return {
+          articles: eventArticles,
+          title: `Event ${index + 1}${event.date ? ` (${event.date})` : ''}`,
+        };
+      })
+      .filter((p) => p.articles.length > 0); // Only include events with actual citations
+  });
 </script>
 
 <section class="mt-6">
@@ -144,6 +184,16 @@
       </div>
     {/each}
   </div>
+
+  <!-- Section-level sources -->
+  {#if experimental.sourceIconPosition === 'section-end'}
+    <SectionSources
+      articles={timelineData.citedArticles.citedArticles}
+      {citationMapping}
+      sectionTitle={s("section.timeline") || "Timeline"}
+      {paragraphCitations}
+    />
+  {/if}
 </section>
 
 <!-- Shared Source Tooltip -->

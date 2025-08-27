@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { sections } from '$lib/stores/sections.svelte.js';
 	import { s } from '$lib/client/localization.svelte';
+	import { experimental } from '$lib/stores/experimental.svelte.js';
 	import { buildCitationMapping, replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 	import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
 	import CitationText from './CitationText.svelte';
@@ -134,7 +135,16 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 			});
 		}
 
-		return aggregateCitationsFromTexts(texts, citationMapping, story.articles || []);
+		const result = aggregateCitationsFromTexts(texts, citationMapping, story.articles || []);
+		console.log('Business Angle Debug:', {
+			texts,
+			citationMapping: !!citationMapping,
+			articles: story.articles?.length || 0,
+			citedArticles: result.citedArticles.length,
+			citedArticlesDomains: result.citedArticles.map(a => a?.domain).filter(Boolean),
+			experimental: experimental.sourceIconPosition
+		});
+		return result;
 	});
 
 	// Get paragraph-level citations for business angle
@@ -150,11 +160,25 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 		}
 
 		const perParagraphCitations = aggregateCitationsPerPerspective(paragraphs, citationMapping, story.articles || []);
-		return perParagraphCitations.map((citation, index) => ({
+		const result = perParagraphCitations.map((citation, index) => ({
 			articles: citation.citedArticles,
 			title: index === 0 && story.business_angle_text ? 'Main Text' : `Point ${index + (story.business_angle_text ? 0 : 1)}`
 		}));
+		
+		console.log('Business Angle Paragraph Citations Debug:', {
+			paragraphs: paragraphs.length,
+			perParagraphCitations: perParagraphCitations.length,
+			result: result.length,
+			resultArticles: result.flatMap(r => r.articles).length,
+			resultDomains: result.flatMap(r => r.articles).map(a => a?.domain).filter(Boolean)
+		});
+		
+		return result;
 	});
+
+	// Business Angle layout - align spacing with StorySummary (no reserved min-height)
+	const businessAngleContainerClasses = $derived('flex flex-col');
+	const businessAngleContentClasses = $derived('flex-grow');
 </script>
 
 <div class="story-sections">
@@ -215,8 +239,8 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
                 <Icon icon={getSectionIcon('businessAngle')} class="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 <span>{s('section.businessAngle') || 'Business Angle'}</span>
             </h3>
-			<div class="min-h-[200px] flex flex-col">
-				<div class="flex-grow pb-2 mb-2">
+			<div class="{businessAngleContainerClasses}">
+				<div class="{businessAngleContentClasses}">
 					{#if story.business_angle_text}
 						<p class="mb-4 text-gray-700 dark:text-gray-300">
 							<CitationText 
@@ -250,14 +274,16 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 				</div>
 				
 				<!-- Section-level sources -->
-				<div class="mt-auto">
-					<SectionSources 
-						articles={businessAngleCitedArticles.citedArticles} 
-						{citationMapping} 
-						sectionTitle={s('section.businessAngle') || 'Business Angle'}
-						paragraphCitations={businessAngleParagraphCitations}
-					/>
-				</div>
+				{#if experimental.sourceIconPosition === 'section-end'}
+					<div class="mt-auto">
+						<SectionSources 
+							articles={businessAngleCitedArticles.citedArticles} 
+							{citationMapping} 
+							sectionTitle={s('section.businessAngle') || 'Business Angle'}
+							paragraphCitations={businessAngleParagraphCitations}
+						/>
+					</div>
+				{/if}
 			</div>
 			
 		<!-- Shared Source Tooltip for Business Angle -->

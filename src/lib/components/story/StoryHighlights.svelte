@@ -9,6 +9,7 @@ import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
 import { getSectionIcon } from '$lib/constants/sections';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -43,7 +44,7 @@ const allCitedArticles = $derived.by(() => {
 		{#each displayPoints as point, index}
 			{@const parsed = parseStructuredText(point)}
 			<div class="relative border-b border-dashed border-gray-300 py-4 pl-10 dark:border-gray-600">
-				<div class="absolute top-4 left-0">
+				<div class="absolute left-0 top-1/2 -translate-y-1/2">
 					<div class="flex h-6 w-6 items-center justify-center rounded-full bg-[#F9D9B8]">
 						<span class="text-sm font-semibold text-gray-800">{index + 1}</span>
 					</div>
@@ -60,7 +61,7 @@ const allCitedArticles = $derived.by(() => {
 								citationTooltip={citationTooltip}
 							/>
 						</h4>
-						<p class="-ml-10 text-gray-700 dark:text-gray-300">
+						<p class="text-gray-700 dark:text-gray-300">
                             <CitationText 
                                 text={parsed.content} 
                                 showFavicons={true}
@@ -88,7 +89,9 @@ const allCitedArticles = $derived.by(() => {
 	</div>
 	
 	<!-- Section-level sources -->
-	<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle={s('section.highlights') || 'Key Points'} />
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle={s('section.highlights') || 'Key Points'} />
+	{/if}
 </section>
 
 <!-- Shared Source Tooltip -->

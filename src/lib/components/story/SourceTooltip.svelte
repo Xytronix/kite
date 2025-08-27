@@ -197,6 +197,9 @@
   let isMobile = $state(false);
   let highlightedNumber = $state<number | undefined>(undefined);
   let hideTimeout: number | null = null;
+  // Track the actual DOM element that triggered the tooltip. This is important
+  // because we often use a virtual reference for positioning which is not an HTMLElement.
+  let activeReferenceElement: HTMLElement | null = $state(null);
   let displayItems = $state<
     Array<{
       article: Article | null;
@@ -340,6 +343,9 @@
       target.closest(".citation-sources") ||
       target;
 
+    // Persist the concrete HTMLElement that served as the trigger for better outside detection
+    activeReferenceElement = (wrapper as HTMLElement) ?? null;
+
     if (wrapper) {
       const tooltipId = `sources-${domains.join("-")}`;
 
@@ -446,15 +452,26 @@
             }
           }
 
-          // Only show cited articles from the context - don't show non-cited articles
-          // This ensures we only show articles that are actually referenced in this specific context
-          displayItems = cited.sort(
-            (a, b) => (a.number || 0) - (b.number || 0),
-          );
-
-          // If no cited articles found in the context, don't show anything
-          if (displayItems.length === 0) {
-            return; // Don't show empty tooltip
+          // If we have cited articles, show them first
+          if (cited.length > 0) {
+            displayItems = cited.sort(
+              (a, b) => (a.number || 0) - (b.number || 0),
+            );
+          } else {
+            // No cited articles found - show all override articles as non-cited
+            displayItems = overrideArticles
+              .filter((a) => {
+                const k = getArticleKey(a);
+                if (seenLinks.has(k)) return false;
+                seenLinks.add(k);
+                return true;
+              })
+              .map((article) => ({
+                article,
+                number: -1,
+                isCommon: false,
+                isCited: false,
+              }));
           }
         } else {
           // No mapping: just unique articles in given order, but only if they seem relevant
@@ -599,7 +616,7 @@
 
     const relatedTarget = (event as MouseEvent).relatedTarget as Node;
     const tooltip = floating.elements.floating;
-    const reference = floating.elements.reference;
+    const referenceEl = activeReferenceElement;
 
     // If moving to the tooltip itself, don't hide it
     if (tooltip && relatedTarget && tooltip.contains(relatedTarget)) {
@@ -617,7 +634,7 @@
         relatedTarget.closest(".section-sources") ||
         relatedTarget.closest(".citation-sources") ||
         relatedTarget.closest(".source-item");
-      if (targetWrapper && targetWrapper === reference) {
+      if (targetWrapper && referenceEl && targetWrapper === referenceEl) {
         return;
       }
     }
@@ -632,7 +649,7 @@
     if (isMobile) return;
 
     const relatedTarget = event.relatedTarget as Node;
-    const reference = floating.elements.reference;
+    const referenceEl = activeReferenceElement;
 
     // If moving back to the sources, don't hide
     if (relatedTarget && relatedTarget instanceof Element) {
@@ -642,7 +659,7 @@
         relatedTarget.closest(".section-sources") ||
         relatedTarget.closest(".citation-sources") ||
         relatedTarget.closest(".source-item");
-      if (targetWrapper && targetWrapper === reference) {
+      if (targetWrapper && referenceEl && targetWrapper === referenceEl) {
         return;
       }
     }
@@ -936,17 +953,19 @@
     // Global guards: hide if pointer leaves both reference and tooltip
     function isInside(el: Node | null): boolean {
       const tooltip = floating.elements.floating as HTMLElement | undefined;
-      const reference = floating.elements.reference as HTMLElement | undefined;
+      const referenceEl = activeReferenceElement as HTMLElement | null;
       if (!el || !(el instanceof Element)) return false;
-      // Consider ANY valid trigger wrapper as inside to avoid hiding while transitioning
-      const anyWrapper = el.closest(
-        ".citation-sources, .source-item, .citation-number",
-      );
-      return !!(
-        (tooltip && tooltip.contains(el)) ||
-        (reference && reference.contains(el)) ||
-        anyWrapper
-      );
+
+      // Directly inside the tooltip or the active reference element
+      if ((tooltip && tooltip.contains(el)) || (referenceEl && referenceEl.contains(el))) {
+        return true;
+      }
+
+      // Allow moving between citation numbers without hiding
+      if (el.closest(".citation-number")) return true;
+
+      // Otherwise, treat as outside to ensure the tooltip can dismiss when moving away
+      return false;
     }
     function handleGlobalPointerMove(e: PointerEvent) {
       if (isMobile || !showTooltip) return;

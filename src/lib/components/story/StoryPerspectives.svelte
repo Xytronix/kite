@@ -261,7 +261,7 @@
     />
     <span>{s("section.perspectives") || "Perspectives"}</span>
   </h3>
-  <div class="flex min-h-[200px] flex-col">
+  <div class="flex flex-col">
     <div class="flex-grow">
       <div
         class="horizontal-scroll-container mb-2 flex flex-row gap-3 overflow-x-auto pb-2"
@@ -553,14 +553,16 @@
     </div>
 
     <!-- Section-level sources -->
-    <div class="mt-auto">
-      <SectionSources
-        articles={allCitedArticles.citedArticles}
-        {citationMapping}
-        sectionTitle={s("section.perspectives") || "Perspectives"}
-        {paragraphCitations}
-      />
-    </div>
+    {#if experimental.sourceIconPosition === "section-end"}
+      <div class="mt-auto">
+        <SectionSources
+          articles={allCitedArticles.citedArticles}
+          {citationMapping}
+          sectionTitle={s("section.perspectives") || "Perspectives"}
+          {paragraphCitations}
+        />
+      </div>
+    {/if}
   </div>
 </section>
 

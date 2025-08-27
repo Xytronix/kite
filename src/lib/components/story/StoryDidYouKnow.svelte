@@ -6,6 +6,7 @@ import { useCitationProcessing } from '$lib/utils/citationProcessing';
 import type { CitationProps } from '$lib/types/citation';
 import Icon from '@iconify/svelte';
 import { getSectionIcon } from '$lib/constants/sections';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props extends CitationProps {
@@ -56,8 +57,17 @@ const sectionCitedArticles = $derived.by(() => {
 		<span>{s('section.didYouKnow') || 'Did You Know?'}</span>
 	</h3>
 	<p class="text-gray-700 dark:text-gray-200">
-		<CitationText text={displayContent} inline={false} {articles} {citationMapping} />
+		<CitationText 
+			text={displayContent} 
+			inline={false} 
+			showFavicons={true}
+			{articles} 
+			allArticles={articles}
+			{citationMapping} 
+		/>
 	</p>
 	
-	<SectionSources articles={sectionCitedArticles} {citationMapping} sectionTitle="Did You Know?" />
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources articles={sectionCitedArticles} {citationMapping} sectionTitle="Did You Know?" />
+	{/if}
 </section> 

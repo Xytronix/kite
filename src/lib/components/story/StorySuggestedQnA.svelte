@@ -2,11 +2,13 @@
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
+import SectionSources from './SectionSources.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromQnA } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
 import { getSectionIcon } from '$lib/constants/sections';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -35,6 +37,43 @@ const displayQna = $derived.by(() => {
 // Get all cited articles from all Q&A pairs
 const allCitedArticles = $derived.by(() => {
 	return aggregateCitationsFromQnA(displayQna, citationMapping, articles);
+});
+
+// Get paragraph-level citations for more granular context
+const paragraphCitations = $derived.by(() => {
+	if (!citationMapping) return [];
+
+	return displayQna
+		.map((qa, index) => {
+			const citationNumbers = new Set<number>();
+
+			// Extract citation numbers from both question and answer
+			const combinedText = `${qa.question} ${qa.answer}`;
+			const citationMatches = combinedText.match(/\[(\d+)\]/g);
+			if (citationMatches) {
+				citationMatches.forEach((match) => {
+					const num = parseInt(match.replace(/[\[\]]/g, ""));
+					if (!isNaN(num)) {
+						citationNumbers.add(num);
+					}
+				});
+			}
+
+			// Get articles for these specific citation numbers
+			const qaArticles: Article[] = [];
+			citationNumbers.forEach((num) => {
+				const article = citationMapping.numberToArticle.get(num);
+				if (article) {
+					qaArticles.push(article);
+				}
+			});
+
+			return {
+				articles: qaArticles,
+				title: `Q&A ${index + 1}`,
+			};
+		})
+		.filter((p) => p.articles.length > 0); // Only include Q&A pairs with actual citations
 });
 </script>
 
@@ -74,6 +113,16 @@ const allCitedArticles = $derived.by(() => {
 			</div>
 		{/each}
 	</div>
+
+	<!-- Section-level sources -->
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources
+			articles={allCitedArticles.citedArticles}
+			{citationMapping}
+			sectionTitle={s('section.suggestedQnA') || 'Q&A'}
+			{paragraphCitations}
+		/>
+	{/if}
 </section>
 
 <!-- Shared Source Tooltip -->

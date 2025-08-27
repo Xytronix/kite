@@ -63,7 +63,22 @@
       });
     }
     
-    return Array.from(domains);
+    const result = Array.from(domains);
+    
+    // Debug logging for business angle section
+    if (sectionTitle?.includes('Business')) {
+      console.log('SectionSources Debug for Business Angle:', {
+        sectionTitle,
+        articlesLength: articles.length,
+        paragraphCitationsLength: paragraphCitations.length,
+        paragraphCitationsArticles: paragraphCitations.flatMap(p => p.articles).length,
+        domainsFound: result,
+        experimental: experimental.sourceIconPosition,
+        shouldShow: result.length > 0 && experimental.sourceIconPosition === "section-end"
+      });
+    }
+    
+    return result;
   });
 
   // Citation tooltip reference

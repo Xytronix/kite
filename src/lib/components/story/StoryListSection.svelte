@@ -6,6 +6,7 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -45,6 +46,9 @@ const paragraphCitations = $derived.by(() => {
 		title: `Item ${index + 1}`
 	}));
 });
+
+// Container classes - align with StorySummary (no reserved min-height)
+const containerClasses = $derived('flex flex-col');
 </script>
 
 <section class="mt-6">
@@ -54,7 +58,7 @@ const paragraphCitations = $derived.by(() => {
         {/if}
         <span>{title}</span>
     </h3>
-	<div class="min-h-[200px] flex flex-col">
+	<div class="{containerClasses}">
 		<div class="flex-grow">
 			{#if showAsList}
 		        <ul class="mb-4 list-inside list-disc space-y-2 text-gray-700 dark:text-gray-300">
@@ -92,9 +96,11 @@ const paragraphCitations = $derived.by(() => {
 		</div>
 		
 		<!-- Section-level sources -->
-		<div class="mt-auto">
-			<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle={title} {paragraphCitations} />
-		</div>
+		{#if experimental.sourceIconPosition === 'section-end'}
+			<div class="mt-auto">
+				<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle={title} {paragraphCitations} />
+			</div>
+		{/if}
 	</div>
 </section>
 

@@ -276,7 +276,9 @@ const allCitedArticles = $derived.by(() => {
 	{/if}
 	
 	<!-- Section-level sources -->
-	<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle="Summary" />
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources articles={allCitedArticles.citedArticles} {citationMapping} sectionTitle="Summary" />
+	{/if}
 
 </section>
 

@@ -33,6 +33,14 @@ let {
 	citationTooltip: externalTooltip
 }: Props = $props();
 
+// Decode HTML entities to render text like R&amp;D as R&D
+function decodeHtmlEntities(text: string): string {
+    if (typeof document === 'undefined') return text;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+}
+
 // Parse text and format citations
 const parsedData = $derived.by(() => {
 	// Ensure text is a string
@@ -208,7 +216,7 @@ const allArticleDomains = $derived.by(() => {
 			<!-- Inline rendering for list items -->
 			{#each parsedData.formattedSegments as segment}
 				{#if segment.type === 'text'}
-					{segment.content}
+					{decodeHtmlEntities(segment.content)}
 				{:else if segment.type === 'citation'}
 					{#if showNumbers}
 						<span class="citation-number text-blue-600 dark:text-blue-400 text-xs align-super cursor-help" title="Source: {segment.citation?.domain}">
@@ -239,7 +247,7 @@ const allArticleDomains = $derived.by(() => {
 			<p class="mb-2">
 				{#each parsedData.formattedSegments as segment}
 					{#if segment.type === 'text'}
-						{segment.content}
+						{decodeHtmlEntities(segment.content)}
 					{:else if segment.type === 'citation'}
 						{#if showNumbers}
 							<span class="citation-number text-blue-600 dark:text-blue-400 text-xs align-super cursor-help" title="Source: {segment.citation?.domain}">

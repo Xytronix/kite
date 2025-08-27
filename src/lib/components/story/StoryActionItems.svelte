@@ -2,11 +2,13 @@
 import { s } from '$lib/client/localization.svelte';
 import CitationText from './CitationText.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
+import SectionSources from './SectionSources.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
 import { getSectionIcon } from '$lib/constants/sections';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -30,6 +32,42 @@ const displayItems = $derived.by(() => {
 const allCitedArticles = $derived.by(() => {
 	return aggregateCitationsFromTexts(displayItems, citationMapping, articles);
 });
+
+// Get paragraph-level citations for more granular context
+const paragraphCitations = $derived.by(() => {
+	if (!citationMapping) return [];
+
+	return displayItems
+		.map((item, index) => {
+			const citationNumbers = new Set<number>();
+
+			// Extract citation numbers from this specific action item
+			const citationMatches = item.match(/\[(\d+)\]/g);
+			if (citationMatches) {
+				citationMatches.forEach((match) => {
+					const num = parseInt(match.replace(/[\[\]]/g, ""));
+					if (!isNaN(num)) {
+						citationNumbers.add(num);
+					}
+				});
+			}
+
+			// Get articles for these specific citation numbers
+			const itemArticles: Article[] = [];
+			citationNumbers.forEach((num) => {
+				const article = citationMapping.numberToArticle.get(num);
+				if (article) {
+					itemArticles.push(article);
+				}
+			});
+
+			return {
+				articles: itemArticles,
+				title: `Action Item ${index + 1}`,
+			};
+		})
+		.filter((p) => p.articles.length > 0); // Only include items with actual citations
+});
 </script>
 
 <section class="mt-6 rounded-lg bg-[#F1FAE8] p-4 dark:bg-[#2B411C]">
@@ -52,6 +90,16 @@ const allCitedArticles = $derived.by(() => {
 			</li>
 		{/each}
 	</ul>
+
+	<!-- Section-level sources -->
+	{#if experimental.sourceIconPosition === 'section-end'}
+		<SectionSources
+			articles={allCitedArticles.citedArticles}
+			{citationMapping}
+			sectionTitle={s('section.actionItems') || 'Action Items'}
+			{paragraphCitations}
+		/>
+	{/if}
 </section>
 
 <!-- Shared Source Tooltip -->

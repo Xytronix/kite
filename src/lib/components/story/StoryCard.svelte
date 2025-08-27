@@ -161,7 +161,7 @@ function handleWikiLeave(e: Event) {
     wikipediaTooltip?.handleWikipediaLeave(e);
 }
 
-// Scroll to story when expanded, and cancel pending scroll when collapsed
+// Scroll to story when expanded: always align the title at the top (below header)
 $effect(() => {
     // Clean up any previous timeout whenever the dependency array changes
     if (scrollTimeout) {
@@ -169,60 +169,45 @@ $effect(() => {
         scrollTimeout = null;
     }
 
-    // Skip scrolling if disabled in experimental settings
+    // Respect experimental setting: do nothing if scrolling is disabled
     if (experimental.disableStoryScrolling) {
         return;
     }
 
     if (isExpanded && browser && storyElement) {
-        // Small delay to ensure the content is rendered
-        scrollTimeout = setTimeout(() => {
-            // Store current scroll position to prevent unwanted jumps
-            const initialScrollY = window.pageYOffset;
-            
-            // Get the story element's position BEFORE expansion
-            const rect = storyElement.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const storyTop = rect.top;
-            const storyHeight = rect.height;
-
-            // Calculate header height (fallback to 60px if not found)
+        const getHeaderHeight = () => {
             const headerEl = document.querySelector('header') || document.querySelector('nav');
-            const headerHeight = headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
+            return headerEl ? (headerEl as HTMLElement).offsetHeight : 60;
+        };
 
-            // Estimate expanded content height (rough approximation)
-            const estimatedExpandedHeight = storyHeight + 400; // Assume ~400px of additional content when expanded
-            const storyBottom = storyTop + estimatedExpandedHeight;
+        const computeTargetY = () => {
+            const headerHeight = getHeaderHeight();
+            const rect = storyElement.getBoundingClientRect();
+            const target = window.pageYOffset + rect.top - headerHeight - 16; // small padding
+            return Math.max(0, target);
+        };
 
-            // Smart scrolling logic:
-            // 1. Scroll if title is hidden behind header
-            const isTitleHiddenBehindHeader = storyTop < headerHeight + 10;
-            
-            // 2. Scroll if the expanded story won't fit in the viewport
-            const availableSpace = viewportHeight - headerHeight - 40; // 40px padding
-            const storyWontFitInViewport = estimatedExpandedHeight > availableSpace && storyTop > headerHeight + 50;
-            
-            // 3. Scroll if story is mostly cut off at the bottom (less than 30% visible)
-            const visibleAtBottom = viewportHeight - storyTop;
-            const isMostlyCutOffAtBottom = visibleAtBottom < estimatedExpandedHeight * 0.3 && storyTop > headerHeight + 50;
-            
-            const shouldScroll = isTitleHiddenBehindHeader || storyWontFitInViewport || isMostlyCutOffAtBottom;
+        const scrollInstant = () => window.scrollTo({ top: computeTargetY(), behavior: 'auto' });
+        const scrollSmooth = () => window.scrollTo({ top: computeTargetY(), behavior: 'smooth' });
 
-            if (shouldScroll) {
-                // Scroll to show the story title with some padding
-                const targetY = initialScrollY + storyTop - headerHeight - 20;
+        // Phase 1: after next microtask, jump to the top instantly (prevents header overlap)
+        tick().then(() => {
+            if (!storyElement) return;
+            scrollInstant();
 
-                // Use requestAnimationFrame to ensure smooth scrolling
-                requestAnimationFrame(() => {
-                    window.scrollTo({
-                        top: Math.max(0, targetY),
-                        behavior: 'smooth'
-                    });
-                });
-            }
+            // Phase 2: after layout settles a bit, correct position smoothly
+            requestAnimationFrame(() => {
+                if (!storyElement) return;
+                scrollInstant();
+            });
 
-            scrollTimeout = null; // clear ref after execution
-        }, 150); // Slightly longer delay to ensure DOM is stable
+            // Phase 3: after transition (~300ms) and image loads begin, smooth-correct again
+            scrollTimeout = setTimeout(() => {
+                if (!storyElement) return;
+                scrollSmooth();
+                scrollTimeout = null;
+            }, 350);
+        });
     }
 
     // Cleanup when component is destroyed

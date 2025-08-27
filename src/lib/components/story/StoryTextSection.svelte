@@ -5,6 +5,7 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
 import type { Article } from '$lib/types';
 import Icon from '@iconify/svelte';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
@@ -37,6 +38,9 @@ const paragraphCitations = $derived.by(() => {
 		title: title
 	}));
 });
+
+// Container classes - align spacing behavior with StorySummary (no reserved height)
+const containerClasses = $derived('flex flex-col');
 </script>
 
 <section class="mt-6">
@@ -46,7 +50,7 @@ const paragraphCitations = $derived.by(() => {
 		{/if}
 		<span>{title}</span>
 	</h3>
-	<div class="min-h-[200px] flex flex-col">
+	<div class="{containerClasses}">
 		<div class="flex-grow">
 			<div class="mb-4 text-gray-700 dark:text-gray-300">
 		        <CitationText text={displayContent} showFavicons={true} showNumbers={false} {articles} allArticles={articles} {citationMapping} />
@@ -54,8 +58,10 @@ const paragraphCitations = $derived.by(() => {
 		</div>
 		
 		<!-- Section-level sources -->
-		<div class="mt-auto">
-			<SectionSources articles={citedArticles} {citationMapping} sectionTitle={title} {paragraphCitations} />
-		</div>
+		{#if experimental.sourceIconPosition === 'section-end'}
+			<div class="mt-auto">
+				<SectionSources articles={citedArticles} {citationMapping} sectionTitle={title} {paragraphCitations} />
+			</div>
+		{/if}
 	</div>
 </section> 

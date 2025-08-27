@@ -18,10 +18,13 @@ This plan implements a streamlined, collapsible divider-based architecture for S
 - ✅ **News Types & Wellness & Mental Health & Custom Keywords**: Converted to collapsible sub-sections with complete smart behavior
 - ✅ **State Management**: Fixed initial state handling, transition detection, and previous state tracking
 - ✅ **Debug Controls**: Added comprehensive logging and test buttons for validation
-- ✅ **Existing Sections**: Filter Scope & Mode, Advanced Similarity, Advanced Weights, Active Filters, System Controls all exist but need conversion to new divider structure
-- ⏳ **New Top-Level Dividers**: Filter Scope & Mode, Advanced Weights need implementation (content exists, needs restructuring)
+- ✅ **New Top-Level Dividers**: Filter Scope & Mode, Advanced Weights FULLY IMPLEMENTED with proper divider structure
+- ✅ **Filter Scope & Advanced Similarity**: Converted to sub-sections within Filter Scope & Mode divider
+- ✅ **System Controls**: Maintained as standalone section at bottom with proper functionality
+- ✅ **Localization**: Keys added to en.json for all major sections and dividers
 - ⏳ **Section Reorganization**: Active Filters and Filter Statistics need to be moved to top priority positions
-- ⏳ **Localization**: Keys added to en.json, need translation to other locale files
+- ⏳ **Localization**: Keys need translation to other locale files (de.json, es.json, etc.)
+- ⏳ **Production Polish**: Remove debug controls, comprehensive testing, visual regression testing
 
 ### Implementation Pattern
 
@@ -81,20 +84,20 @@ onclick={() => {
 }}
 ```
 
-- [x] 1. Audit entire SettingsContentFilter.svelte for sections that need divider treatment
-  - Identify all major sections that currently lack the collapsible divider approach
-  - Map out the current section structure vs. the desired divider-based structure
-  - Identify sections like Content Quality, Topics & Subjects, News Types, Wellness & Mental Health, Custom Keywords, Filter Scope, Active Filters, System Controls, etc.
-  - Document which sections already use dividers and which need to be converted
-  - Create a comprehensive plan for implementing consistent divider approach throughout
+- [x] 1. Audit entire SettingsContentFilter.svelte for sections that need divider treatment ✅ COMPLETED
+  - ✅ Identify all major sections that currently lack the collapsible divider approach
+  - ✅ Map out the current section structure vs. the desired divider-based structure
+  - ✅ Identify sections like Content Quality, Topics & Subjects, News Types, Wellness & Mental Health, Custom Keywords, Filter Scope, Active Filters, System Controls, etc.
+  - ✅ Document which sections already use dividers and which need to be converted
+  - ✅ Create a comprehensive plan for implementing consistent divider approach throughout
   - _Requirements: 1.1, 3.1_
 
-- [x] 2. Create localization keys for all new section dividers
-  - Add localization keys for all major sections that will get divider treatment
-  - Add keys like "settings.contentFilter.contentQuality.parent", "settings.contentFilter.topicsSubjects.parent", etc.
-  - Add the missing "settings.contentFilter.filters.parent" key to src/lib/locales/en.json
-  - Follow the existing naming convention pattern (.parent for divider labels)
-  - Include proper translationContext for each new divider key
+- [x] 2. Create localization keys for all new section dividers ✅ COMPLETED
+  - ✅ Add localization keys for all major sections that will get divider treatment
+  - ✅ Add keys like "settings.contentFilter.contentQuality.parent", "settings.contentFilter.topicsSubjects.parent", etc.
+  - ✅ Add the missing "settings.contentFilter.filters.parent" key to src/lib/locales/en.json
+  - ✅ Follow the existing naming convention pattern (.parent for divider labels)
+  - ✅ Include proper translationContext for each new divider key
   - _Requirements: 1.2, 3.2_
 
 - [x] 3. Convert Content Quality to collapsible sub-section within Filters divider ✅ COMPLETED
@@ -173,55 +176,55 @@ onclick={() => {
   - **BEHAVIOR**: All sections use smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1, 4.1, 4.2_
 
-- [x] 8. Create new Filter Scope & Mode top-level divider
-  - Create new top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
-  - Use horizontal lines, uppercase label with "settings.contentFilter.filterScopeMode.parent" key, and chevron icon
-  - Add state variable: showFilterScopeMode = $state(false)
-  - Ensure consistent styling with other top-level dividers using `my-3` spacing
+- [x] 8. Create new Filter Scope & Mode top-level divider ✅ COMPLETED
+  - ✅ Create new top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
+  - ✅ Use horizontal lines, uppercase label with "settings.contentFilter.filterScopeMode.parent" key, and chevron icon
+  - ✅ Add state variable: showFilterScopeMode = $state(false)
+  - ✅ Ensure consistent styling with other top-level dividers using `my-3` spacing
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [x] 8.1. Convert Filter Scope to collapsible sub-section within Filter Scope & Mode divider
-  - Convert the Filter Scope section to use the established sub-section pattern within the new Filter Scope & Mode divider
-  - Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
-  - Include icon (`tabler:target`), localized title using "settings.contentFilter.filterScope.parent" key, and active count indicator
-  - Maintain existing filter scope functionality (All Content, Headlines Only, Full Articles)
-  - Ensure all scope buttons use `handleFilterClick(e, () => smartContentFilter.togglePreference("filterName"))` pattern for consistent scroll preservation
-  - Ensure consistent styling with other sub-sections using `mb-6` container spacing
-  - Add state variable: showFilterScope = $state(false)
-  - **IMPORTANT**: Update onclick handler to track manual collapse: `onclick={() => { showFilterScope = !showFilterScope; if (!showFilterScope && hasFilterScopeFilters) manuallyCollapsedFilterScope = true; }}`
-  - **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
+- [x] 8.1. Convert Filter Scope to collapsible sub-section within Filter Scope & Mode divider ✅ COMPLETED
+  - ✅ Convert the Filter Scope section to use the established sub-section pattern within the new Filter Scope & Mode divider
+  - ✅ Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
+  - ✅ Include icon (`tabler:target`), localized title using "settings.contentFilter.filterScope.parent" key, and active count indicator
+  - ✅ Maintain existing filter scope functionality (All Content, Headlines Only, Full Articles)
+  - ✅ Ensure all scope buttons use `handleFilterClick(e, () => smartContentFilter.togglePreference("filterName"))` pattern for consistent scroll preservation
+  - ✅ Ensure consistent styling with other sub-sections using `mb-6` container spacing
+  - ✅ Add state variable: showFilterScope = $state(false)
+  - ✅ **IMPORTANT**: Update onclick handler to track manual collapse: `onclick={() => { showFilterScope = !showFilterScope; if (!showFilterScope && hasFilterScopeFilters) manuallyCollapsedFilterScope = true; }}`
+  - ✅ **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [x] 8.2. Convert Advanced Similarity to collapsible sub-section within Filter Scope & Mode divider
-  - Convert the Advanced Similarity section to use the established sub-section pattern within the new Filter Scope & Mode divider
-  - Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
-  - Include icon (`tabler:adjustments`), localized title using "settings.contentFilter.advancedSimilarity.parent" key, and active count indicator
-  - Maintain existing advanced similarity functionality (similarity thresholds, duplicate detection settings)
-  - Ensure all similarity controls use the `createSafeAction` pattern for scroll preservation
-  - Ensure proper spacing and layout within the collapsible sub-section using `mb-6` container spacing
-  - Add state variable: showAdvancedSimilarity = $state(false)
-  - **IMPORTANT**: Update onclick handler to track manual collapse: `onclick={() => { showAdvancedSimilarity = !showAdvancedSimilarity; if (!showAdvancedSimilarity && hasAdvancedSimilarityFilters) manuallyCollapsedAdvancedSimilarity = true; }}`
-  - **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
+- [x] 8.2. Convert Advanced Similarity to collapsible sub-section within Filter Scope & Mode divider ✅ COMPLETED
+  - ✅ Convert the Advanced Similarity section to use the established sub-section pattern within the new Filter Scope & Mode divider
+  - ✅ Use sub-section pattern: `class="flex w-full items-center justify-between text-left mb-3"` with icon, title, and chevron
+  - ✅ Include icon (`tabler:adjustments`), localized title using "settings.contentFilter.advancedSimilarity.parent" key, and active count indicator
+  - ✅ Maintain existing advanced similarity functionality (similarity thresholds, duplicate detection settings)
+  - ✅ Ensure all similarity controls use the `createSafeAction` pattern for scroll preservation
+  - ✅ Ensure proper spacing and layout within the collapsible sub-section using `mb-6` container spacing
+  - ✅ Add state variable: showAdvancedSimilarity = $state(false)
+  - ✅ **IMPORTANT**: Update onclick handler to track manual collapse: `onclick={() => { showAdvancedSimilarity = !showAdvancedSimilarity; if (!showAdvancedSimilarity && hasAdvancedSimilarityFilters) manuallyCollapsedAdvancedSimilarity = true; }}`
+  - ✅ **BEHAVIOR**: Section uses smart auto-expand with manual override tracking - auto-expands when filters become active but respects user's manual collapse choices
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [x] 9. Create new Advanced Weights top-level divider
-  - Create new standalone top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
-  - Use horizontal lines, uppercase label with "settings.contentFilter.advancedWeights.parent" key, and chevron icon
-  - Add state variable: showAdvancedWeights = $state(false)
-  - Ensure consistent styling with other top-level dividers using `my-3` spacing
+- [x] 9. Create new Advanced Weights top-level divider ✅ COMPLETED
+  - ✅ Create new standalone top-level divider using the established top-level divider pattern: `class="my-3 flex w-full items-center text-left"`
+  - ✅ Use horizontal lines, uppercase label with "settings.contentFilter.advancedWeights.parent" key, and chevron icon
+  - ✅ Add state variable: showAdvancedWeights = $state(false)
+  - ✅ Ensure consistent styling with other top-level dividers using `my-3` spacing
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [x] 9.1. Convert existing Advanced Category Weight Overrides to content within Advanced Weights divider
-  - **CURRENT STATUS**: Advanced Category Weight Overrides section currently exists as standalone section in the component
-  - Convert existing "Advanced Category Weight Overrides Section" to use new top-level divider pattern
-  - Move existing Global Weight Settings (Title Importance, Content Importance, Context Evidence) under new divider
-  - Move existing Per-Category Weight Overrides controls under new divider
-  - Move existing Sensitivity Override Controls under new divider
-  - Move existing Advanced Parameter Controls (Quality/Relevance/Sentiment thresholds) under new divider
-  - Maintain all existing functionality including sliders, overrides, and parameter controls
-  - Ensure all weight controls use the `createSafeAction` pattern for scroll preservation
-  - Keep the content as direct content within the divider (not as sub-sections since they're all related weight controls)
-  - Ensure proper spacing and layout within the collapsible divider using appropriate container spacing
+- [x] 9.1. Convert existing Advanced Category Weight Overrides to content within Advanced Weights divider ✅ COMPLETED
+  - ✅ **CURRENT STATUS**: Advanced Category Weight Overrides section currently exists as standalone section in the component
+  - ✅ Convert existing "Advanced Category Weight Overrides Section" to use new top-level divider pattern
+  - ✅ Move existing Global Weight Settings (Title Importance, Content Importance, Context Evidence) under new divider
+  - ✅ Move existing Per-Category Weight Overrides controls under new divider
+  - ✅ Move existing Sensitivity Override Controls under new divider
+  - ✅ Move existing Advanced Parameter Controls (Quality/Relevance/Sentiment thresholds) under new divider
+  - ✅ Maintain all existing functionality including sliders, overrides, and parameter controls
+  - ✅ Ensure all weight controls use the `createSafeAction` pattern for scroll preservation
+  - ✅ Keep the content as direct content within the divider (not as sub-sections since they're all related weight controls)
+  - ✅ Ensure proper spacing and layout within the collapsible divider using appropriate container spacing
   - _Requirements: 1.1, 1.3, 2.1_
 
 - [ ] 10. Reorganize Active Filters and Filter Statistics as top priority sections
@@ -234,33 +237,33 @@ onclick={() => {
   - **CURRENT STATUS**: Filter Statistics is currently embedded within the component but needs to be moved to top priority position
   - _Requirements: 1.1, 2.1, 3.1_
 
-- [ ] 10.1. Convert existing Filter Scope & Mode section to new divider structure
-  - **CURRENT STATUS**: Filter Scope & Mode controls currently exist as standalone sections in the component
-  - Convert existing "Filter Scope & Mode Controls Section" to use the new top-level divider pattern
-  - Move existing Filter Scope selection (All Content, Headlines Only, Full Articles) under new divider as sub-section
-  - Move existing Filter Mode selection (Hide, Blur) under new divider as sub-section  
-  - Move existing Show Filtered Count toggle under new divider as sub-section
-  - Move existing Global Filter Sensitivity controls under new divider as sub-section
-  - Ensure all existing functionality is preserved during conversion
+- [x] 10.1. Convert existing Filter Scope & Mode section to new divider structure ✅ COMPLETED
+  - ✅ **CURRENT STATUS**: Filter Scope & Mode controls currently exist as standalone sections in the component
+  - ✅ Convert existing "Filter Scope & Mode Controls Section" to use the new top-level divider pattern
+  - ✅ Move existing Filter Scope selection (All Content, Headlines Only, Full Articles) under new divider as sub-section
+  - ✅ Move existing Filter Mode selection (Hide, Blur) under new divider as sub-section  
+  - ✅ Move existing Show Filtered Count toggle under new divider as sub-section
+  - ✅ Move existing Global Filter Sensitivity controls under new divider as sub-section
+  - ✅ Ensure all existing functionality is preserved during conversion
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 10.2. Convert existing Advanced Similarity section to sub-section within Filter Scope & Mode divider
-  - **CURRENT STATUS**: Advanced Similarity section currently exists as standalone section in the component
-  - Convert existing "Advanced Similarity Section" to use sub-section pattern within Filter Scope & Mode divider
-  - Maintain all existing similarity detection functionality (threshold, mode, scope, weights, presets)
-  - Ensure all existing controls and settings are preserved during conversion
-  - Add proper collapsible behavior with smart auto-expand system
+- [x] 10.2. Convert existing Advanced Similarity section to sub-section within Filter Scope & Mode divider ✅ COMPLETED
+  - ✅ **CURRENT STATUS**: Advanced Similarity section currently exists as standalone section in the component
+  - ✅ Convert existing "Advanced Similarity Section" to use sub-section pattern within Filter Scope & Mode divider
+  - ✅ Maintain all existing similarity detection functionality (threshold, mode, scope, weights, presets)
+  - ✅ Ensure all existing controls and settings are preserved during conversion
+  - ✅ Add proper collapsible behavior with smart auto-expand system
   - _Requirements: 1.1, 1.3, 2.1_
 
-- [ ] 11. Keep System Controls as standalone section at bottom
-  - **CURRENT STATUS**: System Controls section currently exists as standalone section in the component
-  - Maintain System Controls (Import/Export/Reset functionality) as regular section header at bottom
-  - Keep as standalone section (NOT under any divider) for easy access to system-level controls
-  - Maintain existing import/export, reset, and backup/restore functionality
-  - Maintain existing Import Confirmation Dialog functionality
-  - Add state variable: showSystemControls = $state(false) for optional collapsibility
-  - Ensure consistent styling with other standalone sections
-  - **NOTE**: Section is already properly implemented, just needs optional collapsibility added
+- [x] 11. Keep System Controls as standalone section at bottom ✅ COMPLETED
+  - ✅ **CURRENT STATUS**: System Controls section currently exists as standalone section in the component
+  - ✅ Maintain System Controls (Import/Export/Reset functionality) as regular section header at bottom
+  - ✅ Keep as standalone section (NOT under any divider) for easy access to system-level controls
+  - ✅ Maintain existing import/export, reset, and backup/restore functionality
+  - ✅ Maintain existing Import Confirmation Dialog functionality
+  - ✅ Add state variable: showSystemControls = $state(false) for optional collapsibility
+  - ✅ Ensure consistent styling with other standalone sections
+  - ✅ **NOTE**: Section is already properly implemented, just needs optional collapsibility added
   - _Requirements: 1.1, 2.1_
 
 - [ ] 12. Add missing localization keys to all other locale files
