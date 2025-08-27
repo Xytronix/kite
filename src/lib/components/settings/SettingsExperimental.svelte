@@ -52,6 +52,18 @@ function toggleCollapseOtherStories() {
 	experimental.toggleFeature('collapseOtherStories');
 }
 
+function toggleEnableTimeTravel() {
+	experimental.toggleFeature('enableTimeTravel');
+}
+
+function toggleEnableHistoricalLoadMore() {
+	experimental.toggleFeature('enableHistoricalLoadMore');
+}
+
+function toggleAutoTopUpShortDays() {
+	experimental.toggleFeature('autoTopUpShortDays');
+}
+
 // Article/Category display helper functions
 // Unified decoration style and target toggles
 type VisualMode = 'none' | 'icons' | 'emojis';
@@ -575,4 +587,98 @@ function toggleCategories() {
             When enabled (default), opening a new story will automatically collapse any previously expanded stories. When disabled, multiple stories can be expanded simultaneously.
         </p>
     </div>
+
+	<!-- Enable History Manager / Time Travel -->
+	<div class="mb-6">
+		<div class="mb-2 flex items-center justify-between">
+			<label for="enable-time-travel" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:clock" class="w-4 h-4 mr-2" />
+				Enable History Manager / Time Travel
+			</label>
+			<button
+				id="enable-time-travel"
+				onclick={toggleEnableTimeTravel}
+				type="button"
+				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+				class:bg-blue-600={experimental.enableTimeTravel}
+				class:bg-gray-200={!experimental.enableTimeTravel}
+				class:dark:bg-gray-600={!experimental.enableTimeTravel}
+				role="switch"
+				aria-checked={experimental.enableTimeTravel}
+			>
+				<span class="sr-only">Enable Time Travel</span>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+					class:translate-x-6={experimental.enableTimeTravel}
+					class:translate-x-1={!experimental.enableTimeTravel}
+				></span>
+			</button>
+		</div>
+		<p class="text-xs text-gray-500 dark:text-gray-400">
+			Show the history/time-travel button and enable URL history management.
+		</p>
+	</div>
+
+	<!-- Enable Historical Load More -->
+	<div class="mb-6">
+		<div class="mb-2 flex items-center justify-between">
+			<label for="enable-historical-load" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:history" class="w-4 h-4 mr-2" />
+				Enable Historical Load More
+			</label>
+			<button
+				id="enable-historical-load"
+				onclick={toggleEnableHistoricalLoadMore}
+				type="button"
+				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+				class:bg-blue-600={experimental.enableHistoricalLoadMore}
+				class:bg-gray-200={!experimental.enableHistoricalLoadMore}
+				class:dark:bg-gray-600={!experimental.enableHistoricalLoadMore}
+				role="switch"
+				aria-checked={experimental.enableHistoricalLoadMore}
+			>
+				<span class="sr-only">Enable historical load more</span>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+					class:translate-x-6={experimental.enableHistoricalLoadMore}
+					class:translate-x-1={!experimental.enableHistoricalLoadMore}
+				></span>
+			</button>
+		</div>
+		<p class="text-xs text-gray-500 dark:text-gray-400">
+			Show the load-more control below the story list. When disabled (default), the button only appears in the empty-state card.
+		</p>
+	</div>
+
+	<!-- Auto top-up short days -->
+	<div class="mb-6">
+		<div class="mb-2 flex items-center justify-between">
+			<label for="auto-topup" class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+				<Icon icon="tabler:download" class="w-4 h-4 mr-2" />
+				Auto top-up short days
+			</label>
+			<button
+				id="auto-topup"
+				onclick={toggleAutoTopUpShortDays}
+				type="button"
+				class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+				class:bg-blue-600={experimental.autoTopUpShortDays}
+				class:bg-gray-200={!experimental.autoTopUpShortDays}
+				class:dark:bg-gray-600={!experimental.autoTopUpShortDays}
+				role="switch"
+				aria-checked={experimental.autoTopUpShortDays}
+			>
+				<span class="sr-only">Auto top-up short days</span>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+					class:translate-x-6={experimental.autoTopUpShortDays}
+					class:translate-x-1={!experimental.autoTopUpShortDays}
+				></span>
+			</button>
+		</div>
+		<p class="text-xs text-gray-500 dark:text-gray-400">
+			When a category has very few stories today (≤ 3), automatically fetch a small number of recent stories from yesterday to fill the list.
+		</p>
+	</div>
+
 </div> 

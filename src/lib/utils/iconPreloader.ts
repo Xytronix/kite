@@ -64,7 +64,8 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'📢': 'heroicons-outline:megaphone',
 	'📣': 'heroicons-outline:speaker-wave',
 	'📠': 'material-symbols:fax',
-	'🤝': 'material-symbols:handshake',
+	'🤝': 'mdi:handshake',
+	'🤝🏼': 'mdi:handshake',
 
 	// Files, Documents & Office
 	'📁': 'heroicons-outline:folder',
@@ -317,37 +318,75 @@ export function preloadStoryIcons(stories: any[], highPriority: boolean = false)
 
 	// Preload all unique icons
 	if (iconsToPreload.size > 0) {
-		console.log(`📰 Found ${iconsToPreload.size} story icons to preload from ${stories.length} stories${highPriority ? ' (high priority)' : ''}`);
+		// Only log for significant batches
+		if (import.meta.env.DEV && iconsToPreload.size > 5) {
+			console.log(`📰 Preloading ${iconsToPreload.size} story icons${highPriority ? ' (high priority)' : ''}`);
+		}
 		iconService.preload(Array.from(iconsToPreload), highPriority);
 	}
 }
+
+// Known domain to icon mappings for major news sources
+// Only includes domains where we're confident the icon exists
+const DOMAIN_TO_ICON: Record<string, string> = {
+	'reddit.com': 'simple-icons:reddit',
+	'bbc.com': 'simple-icons:bbc',
+	'cnn.com': 'simple-icons:cnn',
+	'nytimes.com': 'simple-icons:nytimes',
+	'theguardian.com': 'simple-icons:theguardian',
+	'washingtonpost.com': 'simple-icons:washingtonpost',
+	'reuters.com': 'simple-icons:reuters',
+	'npr.org': 'simple-icons:npr',
+	'pbs.org': 'simple-icons:pbs',
+	'foxnews.com': 'simple-icons:fox',
+	'bloomberg.com': 'simple-icons:bloomberg',
+	'economist.com': 'simple-icons:theeconomist',
+	'aljazeera.com': 'simple-icons:aljazeera',
+	'france24.com': 'simple-icons:france24',
+	'rt.com': 'simple-icons:rt',
+	'lemonde.fr': 'simple-icons:lemonde',
+	'spiegel.de': 'simple-icons:spiegel',
+	'elpais.com': 'simple-icons:elpais',
+	// Tech/Social
+	'twitter.com': 'simple-icons:twitter',
+	'x.com': 'simple-icons:x',
+	'facebook.com': 'simple-icons:facebook',
+	'instagram.com': 'simple-icons:instagram',
+	'linkedin.com': 'simple-icons:linkedin',
+	'youtube.com': 'simple-icons:youtube',
+	'github.com': 'simple-icons:github',
+	'medium.com': 'simple-icons:medium',
+	// Other major sources that definitely have icons
+	'wikipedia.org': 'simple-icons:wikipedia',
+	'stackoverflow.com': 'simple-icons:stackoverflow',
+	'hackernews.com': 'simple-icons:ycombinator'
+};
 
 /**
  * Preload domain-specific icons from story sources
  */
 export function preloadSourceIcons(stories: any[]): void {
 	const sourceIcons = new Set<string>();
-	
+
+	// Always add fallback icons
+	sourceIcons.add('mdi:newspaper');
+	sourceIcons.add('heroicons-outline:globe-alt');
+
 	stories.forEach(story => {
 		if (story.articles) {
 			story.articles.forEach((article: any) => {
 				if (article.domain) {
-					// Add common source icons that might be used
-					// These are common iconify icons used for news sources
-					const commonSourceIcons = [
-						'simple-icons:' + article.domain.toLowerCase().replace(/[^a-z0-9]/g, ''),
-						'logos:' + article.domain.toLowerCase().replace(/[^a-z0-9]/g, ''),
-						'mdi:newspaper',
-						'heroicons-outline:globe-alt'
-					];
-					commonSourceIcons.forEach(icon => sourceIcons.add(icon));
+					// Only add icons for domains we know exist
+					const knownIcon = DOMAIN_TO_ICON[article.domain.toLowerCase()];
+					if (knownIcon) {
+						sourceIcons.add(knownIcon);
+					}
 				}
 			});
 		}
 	});
 
-	if (sourceIcons.size > 0) {
-		console.log(`🌐 Preloading ${sourceIcons.size} potential source icons`);
+	if (sourceIcons.size > 2) { // More than just the fallbacks
 		iconService.preload(Array.from(sourceIcons), false);
 	}
 }
@@ -357,43 +396,56 @@ export function preloadSourceIcons(stories: any[]): void {
  */
 export async function preloadStoryCitations(story: any): Promise<void> {
 	if (!story || !story.articles) return;
-	
+
 	const domains = new Set<string>();
-	
+
 	// Extract all unique domains from the story's articles
 	story.articles.forEach((article: any) => {
 		if (article.domain) {
 			domains.add(article.domain);
 		}
 	});
-	
+
 	if (domains.size === 0) return;
-	
-	console.log(`📰 Preloading citation data for ${domains.size} domains in story`);
-	
+
 	// Import the preload function from citationUtils
 	const { preloadCommonFavicons } = await import('$lib/utils/citationUtils');
-	
+
 	// Create a fake category structure with just this story
 	const fakeCategories = { story: [story] };
-	
+
 	// Preload all favicon data for these domains
 	await preloadCommonFavicons(fakeCategories, ['story']);
-	
-	// Also preload potential iconify icons
-	const iconifyIcons = new Set<string>();
+
+	// Only preload icons for domains we know exist
+	const knownIcons = new Set<string>();
 	domains.forEach(domain => {
-		// Try common icon patterns
-		const patterns = [
-			'simple-icons:' + domain.toLowerCase().replace(/[^a-z0-9]/g, ''),
-			'logos:' + domain.toLowerCase().replace(/[^a-z0-9]/g, ''),
-		];
-		patterns.forEach(icon => iconifyIcons.add(icon));
+		const knownIcon = DOMAIN_TO_ICON[domain.toLowerCase()];
+		if (knownIcon) {
+			knownIcons.add(knownIcon);
+		}
 	});
-	
-	if (iconifyIcons.size > 0) {
-		iconService.preload(Array.from(iconifyIcons), true); // High priority for story details
+
+	// Always add fallbacks
+	knownIcons.add('mdi:newspaper');
+	knownIcons.add('heroicons-outline:globe-alt');
+
+	if (knownIcons.size > 0) {
+		iconService.preload(Array.from(knownIcons), true); // High priority for story details
 	}
+}
+
+/**
+ * Get icon name for a domain with fallback logic
+ */
+export function getDomainIcon(domain: string): string {
+	const knownIcon = DOMAIN_TO_ICON[domain.toLowerCase()];
+	if (knownIcon) {
+		return knownIcon;
+	}
+
+	// Fallback to generic news icon
+	return 'mdi:newspaper';
 }
 
 /**
@@ -423,7 +475,11 @@ export function preloadCommonIcons(): void {
 		'mdi:newspaper'
 	];
 
-	console.log('🎨 Preloading common UI icons');
+	// Only log once at startup
+	if (import.meta.env.DEV && typeof window !== 'undefined' && !window.__common_icons_logged) {
+		console.log('🎨 Preloading common UI icons');
+		window.__common_icons_logged = true;
+	}
 	iconService.preload(commonIcons, true); // High priority for UI icons
 }
 

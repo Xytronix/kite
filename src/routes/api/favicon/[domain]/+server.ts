@@ -46,7 +46,6 @@ async function fetchSiteFavicon(domain: string): Promise<string | null> {
           contentType.includes('image/') || 
           contentType.includes('application/octet-stream') // Some ICO files
         )) {
-          console.log(`✅ Found favicon for ${domain}: ${url}`);
           return url;
         }
       }
@@ -56,7 +55,6 @@ async function fetchSiteFavicon(domain: string): Promise<string | null> {
     }
   }
   
-  console.log(`❌ No favicon found for ${domain}`);
   return null;
 }
 
@@ -110,7 +108,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
     }
 
   } catch (error) {
-    console.error(`Favicon fetch error for ${domain}:`, error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`Favicon fetch error for ${domain}:`, error);
+    }
     return json({ 
       error: 'Failed to fetch favicon',
       domain: domain 

@@ -2967,6 +2967,22 @@
     "text": "Something went wrong, there are no stories here!",
     "translationContext": "Message shown when no stories are found"
   },
+  "stories.noneTodayTitle": {
+    "text": "No stories today",
+    "translationContext": "Title shown when a category has no stories for today"
+  },
+  "stories.noneTodayMsg": {
+    "text": "Looks like there are no stories for this category today. Check back tomorrow.",
+    "translationContext": "Friendly message explaining no stories today"
+  },
+  "stories.loadMoreFromPrevious": {
+    "text": "Load stories from previous days",
+    "translationContext": "Button label to load historical stories when none are available today"
+  },
+  "stories.loadMoreTodayThenYesterday": {
+    "text": "Load more (finish today, then yesterday)",
+    "translationContext": "Button label to complete remaining stories for today first, then fetch from previous day"
+  },
   "stories.restoreToToday": {
     "text": "Show only today's stories",
     "translationContext": "Button text to restore view to today's stories only"

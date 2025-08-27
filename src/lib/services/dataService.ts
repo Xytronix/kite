@@ -11,12 +11,16 @@ export const dataReloadService = {
 	// Register a callback to be called on reload
 	onReload(callback: () => Promise<void>) {
 		reloadCallbacks.push(callback);
-		console.log("🔧 Reload callback registered");
+		if (import.meta.env.DEV) {
+			console.log("🔧 Reload callback registered");
+		}
 	},
 
 	// Trigger all reload callbacks
 	async reloadData() {
-		console.log("🔄 Reloading data...");
+		if (import.meta.env.DEV) {
+			console.log("🔄 Reloading data...");
+		}
 		// Call all registered callbacks
 		await Promise.all(reloadCallbacks.map(cb => cb()));
 	},

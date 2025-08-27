@@ -34,7 +34,9 @@ export const GET: RequestHandler = async ({ url }) => {
 			return json({ error: 'Entity not found' }, { status: 404 });
 		}
 	} catch (error) {
-		console.error('MID lookup API error:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('MID lookup API error:', error);
+		}
 		return json({ error: 'Failed to lookup entity' }, { status: 500 });
 	}
 };
@@ -94,7 +96,9 @@ async function lookupEntityByMID(mid: string, lang: string): Promise<WikipediaCo
 			};
 		}
 	} catch (error) {
-		console.debug('Enterprise Knowledge Graph MID lookup failed:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.debug('Enterprise Knowledge Graph MID lookup failed:', error);
+		}
 	}
 	
 	return null;
@@ -162,7 +166,9 @@ async function getGoogleCloudAccessToken(): Promise<string | null> {
 		const tokenData = await tokenResponse.json();
 		return tokenData.access_token;
 	} catch (error) {
-		console.error('Failed to get Google Cloud access token:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('Failed to get Google Cloud access token:', error);
+		}
 		return null;
 	}
 }

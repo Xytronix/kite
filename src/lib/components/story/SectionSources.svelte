@@ -45,8 +45,9 @@
   const citedDomains = $derived.by(() => {
     const domains = new Set<string>();
     
-    // If we have paragraph-level citations, use those for more granular context
-    if (paragraphCitations.length > 0) {
+    // Only use paragraph-level citations if at least one paragraph has cited articles
+    const hasParagraphCitations = paragraphCitations.some(p => (p.articles?.length || 0) > 0);
+    if (hasParagraphCitations) {
       paragraphCitations.forEach((paragraph) => {
         paragraph.articles.forEach((article) => {
           if (article?.domain) {

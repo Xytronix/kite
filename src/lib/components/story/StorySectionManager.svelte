@@ -5,9 +5,9 @@
 	import { buildCitationMapping, replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 	import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
 	import CitationText from './CitationText.svelte';
-import SectionSources from './SectionSources.svelte';
-import StoryEndSources from './StoryEndSources.svelte';
-import SourceTooltip from './SourceTooltip.svelte';
+	import SectionSources from './SectionSources.svelte';
+	import StoryEndSources from './StoryEndSources.svelte';
+	import SourceTooltip from './SourceTooltip.svelte';
 	import StorySummary from './StorySummary.svelte';
 	import StoryHighlights from './StoryHighlights.svelte';
 	import StoryQuote from './StoryQuote.svelte';
@@ -159,7 +159,12 @@ let businessAngleCitationTooltip = $state<SourceTooltip | undefined>();
 			});
 		}
 
-		const perParagraphCitations = aggregateCitationsPerPerspective(paragraphs, citationMapping, story.articles || []);
+		// Ensure texts use numbered citations so aggregation can detect them
+		const numberedParagraphs = paragraphs.map(({ text }) => ({
+			text: citationMapping ? replaceWithNumberedCitations(text, citationMapping) : text
+		}));
+
+		const perParagraphCitations = aggregateCitationsPerPerspective(numberedParagraphs, citationMapping, story.articles || []);
 		const result = perParagraphCitations.map((citation, index) => ({
 			articles: citation.citedArticles,
 			title: index === 0 && story.business_angle_text ? 'Main Text' : `Point ${index + (story.business_angle_text ? 0 : 1)}`

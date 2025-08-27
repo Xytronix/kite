@@ -19,6 +19,12 @@ export interface ExperimentalFeatures {
   sourceIconPosition: 'none' | 'inline' | 'section-end' | 'story-end';
   /** When true, collapse previously expanded stories when opening a new story (default behavior). When false, allow multiple stories to be expanded simultaneously. */
   collapseOtherStories: boolean;
+  /** When true, enable the History Manager / Time Travel feature and show its UI. */
+  enableTimeTravel: boolean;
+  /** When true, show load-more controls and enable historical loading at the end of lists. When false, allow loading only from empty-state. */
+  enableHistoricalLoadMore: boolean;
+  /** When true, automatically top-up with recent historical stories when the current day has too few stories. */
+  autoTopUpShortDays: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -36,6 +42,9 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   disableStoryScrolling: false,
   sourceIconPosition: 'section-end',
   collapseOtherStories: true,
+  enableTimeTravel: false,
+  enableHistoricalLoadMore: false,
+  autoTopUpShortDays: false,
 };
 
 // Initialize experimental features state
@@ -48,8 +57,13 @@ function getInitialFeatures(): ExperimentalFeatures {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...DEFAULT_FEATURES, ...parsed };
+      const parsed: any = JSON.parse(stored);
+      // Migration: invert legacy hideTimeTravelIcon -> enableTimeTravel
+      if (typeof parsed.hideTimeTravelIcon === 'boolean' && typeof parsed.enableTimeTravel === 'undefined') {
+        parsed.enableTimeTravel = !parsed.hideTimeTravelIcon;
+        delete parsed.hideTimeTravelIcon;
+      }
+      return { ...DEFAULT_FEATURES, ...parsed } as ExperimentalFeatures;
     }
   } catch (error) {
     console.warn(
@@ -126,6 +140,18 @@ export const experimental = {
 
   get collapseOtherStories() {
     return experimentalState.collapseOtherStories;
+  },
+
+  get enableTimeTravel() {
+    return experimentalState.enableTimeTravel;
+  },
+
+  get enableHistoricalLoadMore() {
+    return experimentalState.enableHistoricalLoadMore;
+  },
+
+  get autoTopUpShortDays() {
+    return experimentalState.autoTopUpShortDays;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

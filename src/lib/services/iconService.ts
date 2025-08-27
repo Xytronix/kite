@@ -65,10 +65,10 @@ class IconService {
 
 		// Fetch remaining icons
 		if (toFetch.length > 0) {
-			const fetchPromises = toFetch.map(iconName => 
+			const fetchPromises = toFetch.map(iconName =>
 				this.getIcon(iconName).then(data => ({ iconName, data }))
 			);
-			
+
 			const fetchResults = await Promise.allSettled(fetchPromises);
 			fetchResults.forEach(result => {
 				if (result.status === 'fulfilled') {
@@ -86,7 +86,9 @@ class IconService {
 	private async fetchIcon(iconName: string): Promise<IconData | null> {
 		const parts = iconName.split(':');
 		if (parts.length !== 2) {
-			console.warn(`Invalid icon name format: ${iconName}`);
+			if (import.meta.env.DEV) {
+				console.warn(`Invalid icon name format: ${iconName}`);
+			}
 			return null;
 		}
 
@@ -110,7 +112,9 @@ class IconService {
 			const data = await response.json();
 
 			if (!data?.icons?.[name]) {
-				console.warn(`Icon not found in API response: ${iconName}`);
+				if (import.meta.env.DEV) {
+					console.warn(`Icon not found in API response: ${iconName}`);
+				}
 				return null;
 			}
 
@@ -128,30 +132,53 @@ class IconService {
 			return iconData;
 
 		} catch (error) {
-			if (error instanceof Error && error.name === 'AbortError') {
-				console.warn(`Icon fetch timeout: ${iconName}`);
-			} else {
-				console.warn(`Failed to fetch icon: ${iconName}`, error);
+			if (import.meta.env.DEV) {
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.warn(`Icon fetch timeout: ${iconName}`);
+				} else {
+					console.warn(`Failed to fetch icon: ${iconName}`, error);
+				}
 			}
 			return null;
 		}
 	}
 
 	/**
+	 * Validate icon name format
+	 */
+	private isValidIconName(iconName: string): boolean {
+		const parts = iconName.split(':');
+		if (parts.length !== 2) return false;
+
+		const [prefix, name] = parts;
+		// Basic validation - prefix and name should contain valid characters
+		return /^[a-z0-9-]+$/.test(prefix) && /^[a-z0-9-_]+$/.test(name);
+	}
+
+	/**
 	 * Add icons to preload queue
 	 */
 	preload(iconNames: string[], highPriority: boolean = false): void {
-		const newIcons = iconNames.filter(name => !this.cache.has(name));
-		if (newIcons.length > 0) {
-			console.log(`🎨 Preloading ${newIcons.length} icons${highPriority ? ' (high priority)' : ''}:`, newIcons);
-			
+		// Filter out invalid icon names and already cached icons
+		const validNewIcons = iconNames.filter(name =>
+			this.isValidIconName(name) && !this.cache.has(name)
+		);
+
+		if (validNewIcons.length > 0) {
+			// Only log for large batches or high priority
+			if (import.meta.env.DEV && (validNewIcons.length > 10 || highPriority)) {
+				console.log(`🎨 Preloading ${validNewIcons.length} icons${highPriority ? ' (high priority)' : ''}`);
+			}
+
 			if (highPriority) {
 				// For high priority, start immediate preload
-				this.preloadImmediate(newIcons).catch(error => {
-					console.warn('High priority preload failed:', error);
+				this.preloadImmediate(validNewIcons).catch(error => {
+					if (import.meta.env.DEV) {
+						console.warn('High priority preload failed:', error);
+					}
 				});
 			} else {
-				newIcons.forEach(name => this.preloadQueue.add(name));
+				validNewIcons.forEach(name => this.preloadQueue.add(name));
 				this.processPreloadQueue();
 			}
 		}
@@ -184,10 +211,10 @@ class IconService {
 		});
 
 		// Fetch icons by prefix in batch requests
-		const promises = Array.from(iconsByPrefix.entries()).map(([prefix, names]) => 
+		const promises = Array.from(iconsByPrefix.entries()).map(([prefix, names]) =>
 			this.fetchIconBatch(prefix, names)
 		);
-		
+
 		await Promise.allSettled(promises);
 
 		this.isPreloading = false;
@@ -220,10 +247,14 @@ class IconService {
 
 			const data = await response.json();
 
+			// Track found and missing icons
+			const foundIcons: string[] = [];
+			const missingIcons: string[] = [];
+
 			// Process each icon in the batch
 			names.forEach(name => {
 				const iconName = `${prefix}:${name}`;
-				
+
 				if (data?.icons?.[name]) {
 					const iconProps = data.icons[name];
 					const iconData: IconData = {
@@ -236,16 +267,24 @@ class IconService {
 
 					// Cache the result
 					this.cache.set(iconName, iconData);
+					foundIcons.push(iconName);
 				} else {
-					console.warn(`Icon not found in batch response: ${iconName}`);
+					missingIcons.push(iconName);
 				}
 			});
 
+			// Only log if we have a significant number of missing icons or if debugging
+			if (import.meta.env.DEV && missingIcons.length > 0 && (missingIcons.length > 3 || foundIcons.length === 0)) {
+				console.warn(`${missingIcons.length} icons not found in ${prefix}: ${missingIcons.slice(0, 5).join(', ')}${missingIcons.length > 5 ? '...' : ''}`);
+			}
+
 		} catch (error) {
-			if (error instanceof Error && error.name === 'AbortError') {
-				console.warn(`Icon batch fetch timeout: ${prefix}:${names.join(',')}`);
-			} else {
-				console.warn(`Failed to fetch icon batch: ${prefix}:${names.join(',')}`, error);
+			if (import.meta.env.DEV) {
+				if (error instanceof Error && error.name === 'AbortError') {
+					console.warn(`Icon batch fetch timeout: ${prefix}:${names.join(',')}`);
+				} else {
+					console.warn(`Failed to fetch icon batch: ${prefix}:${names.join(',')}`, error);
+				}
 			}
 		}
 	}
@@ -265,14 +304,70 @@ class IconService {
 	}
 
 	/**
+	 * Check if an icon exists in the API (with caching)
+	 */
+	private iconExistsCache = new Map<string, boolean>();
+
+	async checkIconExists(iconName: string): Promise<boolean> {
+		// Return cached result if available
+		if (this.iconExistsCache.has(iconName)) {
+			return this.iconExistsCache.get(iconName)!;
+		}
+
+		// If already in main cache, it exists
+		if (this.cache.has(iconName)) {
+			this.iconExistsCache.set(iconName, true);
+			return true;
+		}
+
+		const parts = iconName.split(':');
+		if (parts.length !== 2) {
+			this.iconExistsCache.set(iconName, false);
+			return false;
+		}
+
+		const [prefix, name] = parts;
+
+		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+			const response = await fetch(
+				`https://api.iconify.design/${prefix}.json?icons=${name}`,
+				{ signal: controller.signal }
+			);
+
+			clearTimeout(timeoutId);
+
+			if (!response.ok) {
+				this.iconExistsCache.set(iconName, false);
+				return false;
+			}
+
+			const data = await response.json();
+			const exists = !!(data?.icons?.[name]);
+
+			this.iconExistsCache.set(iconName, exists);
+			return exists;
+
+		} catch (error) {
+			this.iconExistsCache.set(iconName, false);
+			return false;
+		}
+	}
+
+	/**
 	 * Preload icons immediately and return a promise that resolves when all are loaded
 	 */
 	async preloadImmediate(iconNames: string[]): Promise<void> {
 		const uncachedIcons = iconNames.filter(name => !this.cache.has(name));
 		if (uncachedIcons.length === 0) return;
 
-		console.log(`🚀 Immediate preload of ${uncachedIcons.length} icons`);
-		
+		// Only log for significant preloads
+		if (import.meta.env.DEV && uncachedIcons.length > 5) {
+			console.log(`🚀 Immediate preload of ${uncachedIcons.length} icons`);
+		}
+
 		// Group by prefix for batch loading
 		const iconsByPrefix = new Map<string, string[]>();
 		uncachedIcons.forEach(iconName => {
@@ -286,13 +381,13 @@ class IconService {
 		});
 
 		// Fetch all prefixes concurrently with short timeout
-		const promises = Array.from(iconsByPrefix.entries()).map(([prefix, names]) => 
+		const promises = Array.from(iconsByPrefix.entries()).map(([prefix, names]) =>
 			Promise.race([
 				this.fetchIconBatch(prefix, names),
 				new Promise(resolve => setTimeout(() => resolve(null), 1000)) // 1s timeout
 			])
 		);
-		
+
 		await Promise.allSettled(promises);
 	}
 
@@ -432,8 +527,12 @@ class IconService {
 			this.cache.set(iconName, data);
 		});
 
-		console.log(`⚡ Preloaded ${Object.keys(criticalIconData).length} critical icons synchronously`);
-		
+		// Only log once at startup
+		if (import.meta.env.DEV && typeof window !== 'undefined' && !window.__critical_icons_logged) {
+			console.log(`⚡ Preloaded ${Object.keys(criticalIconData).length} critical icons synchronously`);
+			window.__critical_icons_logged = true;
+		}
+
 		// Also immediately start preloading the most common additional icons
 		this.preloadImmediate([
 			// Fallback icons for SmartImage

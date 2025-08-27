@@ -45,7 +45,10 @@
           themeColorMeta.setAttribute("content", newColor);
         }
       } catch (e) {
-        console.error("Theme detection error:", e);
+        // Only log theme errors in development
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.error("Theme detection error:", e);
+        }
       }
     })();
   </script>

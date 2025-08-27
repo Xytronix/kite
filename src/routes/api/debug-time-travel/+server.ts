@@ -3,7 +3,9 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
     try {
-        console.log('[DEBUG] Time travel state check requested');
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[DEBUG] Time travel state check requested');
+        }
         
         // Return basic info about server state
         return json({ 
@@ -12,7 +14,9 @@ export const GET: RequestHandler = async () => {
             instructions: 'This endpoint helps debug time travel batch issues. Check the browser sessionStorage for "kite-time-travel-batch" and the terminal logs for batch validation messages.'
         });
     } catch (error) {
-        console.error('Debug endpoint error:', error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Debug endpoint error:', error);
+        }
         return json({ error: String(error) }, { status: 500 });
     }
 };
@@ -22,7 +26,9 @@ export const POST: RequestHandler = async ({ request }) => {
         const { action } = await request.json();
         
         if (action === 'clear-time-travel') {
-            console.log('[DEBUG] Manual time travel clear requested');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[DEBUG] Manual time travel clear requested');
+            }
             return json({ 
                 message: 'Time travel clear logged - this clears client-side state via browser',
                 timestamp: new Date().toISOString()
@@ -31,7 +37,9 @@ export const POST: RequestHandler = async ({ request }) => {
         
         return json({ error: 'Unknown action' }, { status: 400 });
     } catch (error) {
-        console.error('Debug endpoint error:', error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Debug endpoint error:', error);
+        }
         return json({ error: String(error) }, { status: 500 });
     }
 }; 

@@ -34,7 +34,9 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json(logoData);
 
 	} catch (error) {
-		console.error('Logo API error:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('Logo API error:', error);
+		}
 		return json({ error: 'Failed to fetch logo' }, { status: 500 });
 	}
 };

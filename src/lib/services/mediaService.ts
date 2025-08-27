@@ -56,7 +56,9 @@ class MediaService {
 			
 			return data.mediaData;
 		} catch (error) {
-			console.error("Error loading media data:", error);
+			if (import.meta.env.DEV) {
+				console.error("Error loading media data:", error);
+			}
 			this.mediaDataPromise = null;
 			throw error;
 		}
@@ -73,7 +75,9 @@ class MediaService {
 			const mediaData = await this.loadMediaData(language);
 			return mediaData.find((info) => info.domains.includes(domain)) || null;
 		} catch (error) {
-			console.error("Error getting media info for domain:", error);
+			if (import.meta.env.DEV) {
+				console.error("Error getting media info for domain:", error);
+			}
 			return null;
 		}
 	}
@@ -98,9 +102,6 @@ class MediaService {
 					info.domains.some(domain => domain === host || domain.endsWith(`.${host}`) || host.endsWith(`.${domain}`))
 				);
 				this.hostCache.set(cacheKey, found || null);
-				if (found) {
-					console.log('⚡ Media data cache hit for:', host);
-				}
 				return found || null;
 			}
 			
@@ -111,12 +112,11 @@ class MediaService {
 					info.domains.some(domain => domain === host || domain.endsWith(`.${host}`) || host.endsWith(`.${domain}`))
 				);
 				this.hostCache.set(cacheKey, found || null);
-				if (found) {
-					console.log('✅ Media data found in full cache for:', host);
-				}
 				return found || null;
 			} catch (cacheError) {
-				console.warn('Failed to load from cache, falling back to API:', cacheError);
+				if (import.meta.env.DEV) {
+					console.warn('Failed to load from cache, falling back to API:', cacheError);
+				}
 			}
 			
 			// Final fallback: use the host-specific API endpoint
@@ -134,10 +134,11 @@ class MediaService {
 			}
 			const data = await response.json();
 			this.hostCache.set(cacheKey, data.mediaInfo);
-			console.log('🌐 Media data loaded from API for:', host);
 			return data.mediaInfo;
 		} catch (error) {
-			console.error("Error loading media data for host:", error);
+			if (import.meta.env.DEV) {
+				console.error("Error loading media data for host:", error);
+			}
 			this.hostCache.set(cacheKey, null);
 			return null;
 		}
@@ -149,11 +150,11 @@ class MediaService {
 	 */
 	async preloadMediaData(language: string = "en"): Promise<void> {
 		try {
-			console.log('🚀 Preloading media data...');
 			await this.loadMediaData(language);
-			console.log('✅ Media data preloaded successfully');
 		} catch (error) {
-			console.warn('Failed to preload media data:', error);
+			if (import.meta.env.DEV) {
+				console.warn('Failed to preload media data:', error);
+			}
 		}
 	}
 }

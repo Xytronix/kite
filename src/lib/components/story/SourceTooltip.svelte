@@ -147,24 +147,10 @@
           "bottom",
           "top",
         ],
-        padding: ({ elements }) => {
-          // Use much larger padding for inline citations and small elements
-          const referenceRect = elements.reference?.getBoundingClientRect();
-          const isInlineCitation = referenceRect && referenceRect.height < 30;
-          const isSmallElement =
-            referenceRect &&
-            (referenceRect.width < 32 || referenceRect.height < 32);
-          const needsExtraSpace = isInlineCitation || isSmallElement;
-          return needsExtraSpace ? 16 : 12;
-        },
+        padding: 12,
       }),
       shift({
-        padding: ({ elements }) => {
-          // Use larger padding for inline citations
-          const referenceRect = elements.reference?.getBoundingClientRect();
-          const isInlineCitation = referenceRect && referenceRect.height < 30;
-          return isInlineCitation ? 14 : 10;
-        },
+        padding: 10,
         crossAxis: true, // Allow cross-axis shifting for better positioning with virtual references
       }),
       // Size middleware for height calculation

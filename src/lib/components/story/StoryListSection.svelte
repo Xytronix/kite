@@ -4,14 +4,14 @@ import SectionSources from './SectionSources.svelte';
 import SourceTooltip from './SourceTooltip.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import { aggregateCitationsFromTexts, aggregateCitationsPerPerspective } from '$lib/utils/citationAggregator';
-import type { Article } from '$lib/types';
+import type { Article, TechnicalDetailItem } from '$lib/types';
 import Icon from '@iconify/svelte';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 
 // Props
 interface Props {
 	title: string;
-	items?: Array<string>;
+	items?: Array<string | TechnicalDetailItem>;
 	showAsList?: boolean;
 	articles?: Article[];
 	citationMapping?: CitationMapping;
@@ -23,27 +23,83 @@ let { title, items = [], showAsList = true, articles = [], citationMapping, icon
 // Shared tooltip reference
 let citationTooltip = $state<SourceTooltip | undefined>();
 
+// Normalize incoming items: group XML-like <detail> blocks into structured items
+function normalizeItems(input: Array<string | TechnicalDetailItem>): Array<string | TechnicalDetailItem> {
+	const result: Array<string | TechnicalDetailItem> = [];
+	for (let i = 0; i < input.length; i++) {
+		const current = input[i];
+		if (typeof current !== 'string') {
+			result.push(current);
+			continue;
+		}
+		const line = current.trim();
+		// Combined single-line detail
+		const combined = line.match(/^<detail>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<description>([\s\S]*?)<\/description>[\s\S]*?<\/detail>$/i);
+		if (combined) {
+			result.push({ title: combined[1].trim(), description: combined[2].trim() });
+			continue;
+		}
+		// Start of multi-line detail
+		if (line.toLowerCase() === '<detail>') {
+			let titleText = '';
+			let descriptionText = '';
+			let j = i + 1;
+			for (; j < input.length; j++) {
+				const next = input[j];
+				if (typeof next !== 'string') break;
+				const t = next.trim();
+				const mTitle = t.match(/^<title>([\s\S]*?)<\/title>$/i);
+				if (mTitle) { titleText = mTitle[1].trim(); continue; }
+				const mDesc = t.match(/^<description>([\s\S]*?)<\/description>$/i);
+				if (mDesc) { descriptionText = mDesc[1].trim(); continue; }
+				if (t.toLowerCase() === '</detail>') { break; }
+			}
+			// Skip consumed lines
+			i = j;
+			result.push({ title: titleText, description: descriptionText });
+			continue;
+		}
+		// Fallback: keep as-is
+		result.push(current);
+	}
+	return result;
+}
+
 // Convert citations to numbered format if mapping is available
+const normalizedItems = $derived.by(() => normalizeItems(items));
 const displayItems = $derived.by(() => {
-	if (!citationMapping) return items;
-	return items.map(item => replaceWithNumberedCitations(item, citationMapping));
+	if (!citationMapping) return normalizedItems;
+	return normalizedItems.map((item) => {
+		if (typeof item === 'string') {
+			return replaceWithNumberedCitations(item, citationMapping);
+		}
+		return {
+			title: replaceWithNumberedCitations(item.title, citationMapping),
+			description: replaceWithNumberedCitations(item.description, citationMapping)
+		} as TechnicalDetailItem;
+	});
+});
+
+// Create plain texts for citation aggregation
+const textsForAggregation = $derived.by(() => {
+	return displayItems.map((item) => typeof item === 'string' ? item : `${item.title}. ${item.description}`);
 });
 
 // Get all cited articles from all items
 const allCitedArticles = $derived.by(() => {
-	return aggregateCitationsFromTexts(displayItems, citationMapping, articles);
+	return aggregateCitationsFromTexts(textsForAggregation, citationMapping, articles);
 });
 
 // Get paragraph-level citations (one per list item)
 const paragraphCitations = $derived.by(() => {
 	const perItemCitations = aggregateCitationsPerPerspective(
-		displayItems.map(item => ({ text: item })), 
-		citationMapping, 
+		displayItems.map((item) => ({ text: typeof item === 'string' ? item : item.description })),
+		citationMapping,
 		articles
 	);
 	return perItemCitations.map((citation, index) => ({
 		articles: citation.citedArticles,
-		title: `Item ${index + 1}`
+		title: typeof displayItems[index] === 'string' ? `Item ${index + 1}` : (displayItems[index] as TechnicalDetailItem).title
 	}));
 });
 
@@ -64,32 +120,64 @@ const containerClasses = $derived('flex flex-col');
 		        <ul class="mb-4 list-inside list-disc space-y-2 text-gray-700 dark:text-gray-300">
 		            {#each displayItems as item, index}
 						<li>
-		                    <CitationText 
-		                        text={item} 
-		                        showFavicons={true} 
-								showNumbers={false} 
-								inline={true} 
-		                        articles={allCitedArticles.citedArticles} 
-		                        allArticles={articles}
-								{citationMapping}
-								citationTooltip={citationTooltip}
-							/>
+							{#if typeof item === 'string'}
+								<CitationText 
+									text={item} 
+									showFavicons={true} 
+									showNumbers={false} 
+									inline={true} 
+									articles={allCitedArticles.citedArticles} 
+									allArticles={articles}
+									{citationMapping}
+									citationTooltip={citationTooltip}
+								/>
+							{:else}
+								<div>
+									<div class="font-semibold text-gray-800 dark:text-gray-200">{(item as TechnicalDetailItem).title}</div>
+									<CitationText 
+										text={(item as TechnicalDetailItem).description} 
+										showFavicons={true} 
+										showNumbers={false} 
+										inline={true} 
+										articles={allCitedArticles.citedArticles} 
+										allArticles={articles}
+										{citationMapping}
+										citationTooltip={citationTooltip}
+									/>
+								</div>
+							{/if}
 						</li>
 					{/each}
 				</ul>
 			{:else}
 				<div class="mb-4 space-y-2 text-gray-700 dark:text-gray-300">
 		            {#each displayItems as item, index}
-		                <CitationText 
-		                    text={item} 
-		                    showFavicons={true} 
-							showNumbers={false} 
-							inline={false} 
-		                    articles={allCitedArticles.citedArticles} 
-		                    allArticles={articles}
-							{citationMapping}
-							citationTooltip={citationTooltip}
-						/>
+		            	{#if typeof item === 'string'}
+		                	<CitationText 
+		                    	text={item} 
+		                    	showFavicons={true} 
+								showNumbers={false} 
+								inline={false} 
+		                    	articles={allCitedArticles.citedArticles} 
+		                    	allArticles={articles}
+								{citationMapping}
+								citationTooltip={citationTooltip}
+							/>
+						{:else}
+							<div>
+								<div class="font-semibold text-gray-800 dark:text-gray-200">{(item as TechnicalDetailItem).title}</div>
+								<CitationText 
+									text={(item as TechnicalDetailItem).description} 
+									showFavicons={true} 
+									showNumbers={false} 
+									inline={false} 
+									articles={allCitedArticles.citedArticles} 
+									allArticles={articles}
+									{citationMapping}
+									citationTooltip={citationTooltip}
+								/>
+							</div>
+						{/if}
 					{/each}
 				</div>
 			{/if}

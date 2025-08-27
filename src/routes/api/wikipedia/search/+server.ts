@@ -66,7 +66,9 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json(wikipediaResult);
 
 	} catch (error) {
-		console.error('Wikipedia search API error:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('Wikipedia search API error:', error);
+		}
 		return json({ error: 'Failed to search Wikipedia content' }, { status: 500 });
 	}
 };
@@ -95,7 +97,9 @@ async function searchEnterpriseKnowledgeGraph(query: string, lang: string): Prom
 			return transformKnowledgeGraphEntity(entity, query, lang);
 		}
 	} catch (error) {
-		console.debug('Enterprise Knowledge Graph search failed:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.debug('Enterprise Knowledge Graph search failed:', error);
+		}
 	}
 	return null;
 }
@@ -114,7 +118,9 @@ async function searchPublicKnowledgeGraph(query: string, lang: string): Promise<
 			return transformKnowledgeGraphEntity(entity, query, lang);
 		}
 	} catch (error) {
-		console.debug('Public Knowledge Graph search failed:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.debug('Public Knowledge Graph search failed:', error);
+		}
 	}
 	return null;
 }
@@ -238,7 +244,9 @@ async function getGoogleCloudAccessToken(): Promise<string | null> {
 		const tokenData = await tokenResponse.json();
 		return tokenData.access_token;
 	} catch (error) {
-		console.error('Failed to get Google Cloud access token:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('Failed to get Google Cloud access token:', error);
+		}
 		return null;
 	}
 }

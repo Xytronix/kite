@@ -253,10 +253,12 @@ class ImagePreloadingService {
     const messageLevelIndex = levels.indexOf(level);
 
     if (messageLevelIndex <= currentLevelIndex) {
-      if (level === 'errors') {
-        console.error(message);
-      } else {
-        console.log(message);
+      if (import.meta.env.DEV) {
+        if (level === 'errors') {
+          console.error(message);
+        } else {
+          console.log(message);
+        }
       }
     }
   }

@@ -1,3 +1,4 @@
+/// <reference path="./app.d.ts" />
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {

@@ -142,7 +142,9 @@ export class StoryStorageService {
 
 			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storedStories));
 		} catch (error) {
-			console.error('Failed to store story for similarity tracking:', error);
+			if (import.meta.env.DEV) {
+				console.error('Failed to store story for similarity tracking:', error);
+			}
 		}
 	}
 
@@ -162,7 +164,9 @@ export class StoryStorageService {
 				localStorage.setItem(this.STORAGE_KEY, JSON.stringify(validStories));
 			}
 		} catch (error) {
-			console.error('Failed to cleanup expired stories:', error);
+			if (import.meta.env.DEV) {
+				console.error('Failed to cleanup expired stories:', error);
+			}
 		}
 	}
 

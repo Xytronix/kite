@@ -223,7 +223,9 @@ onMount(async () => {
 			locationInfo.suggestedDataLanguage
 		);
 	} catch (error) {
-		console.warn('Failed to detect location for language initialization:', error);
+		if (import.meta.env.DEV) {
+			console.warn('Failed to detect location for language initialization:', error);
+		}
 		language.init(data.strings);
 	}
 	

@@ -18,6 +18,7 @@
     totalStoriesRead?: number;
     offlineMode?: boolean;
     getLastUpdated?: string;
+    batchTimestamp?: number; // Unix timestamp of the batch creation
     chaosIndex?: {
       score: number;
       summary: string;
@@ -30,6 +31,7 @@
     totalStoriesRead = 0,
     offlineMode = false,
     getLastUpdated = "Never",
+    batchTimestamp,
     chaosIndex,
   }: Props = $props();
 
@@ -98,13 +100,13 @@
         return capitalizeFirst(dateStr);
       }
 
-      // Default date format (today)
-      const now = new Date();
+      // Default date format (batch date or today)
+      const dateToShow = batchTimestamp ? new Date(batchTimestamp * 1000) : new Date();
       const dateStr = new Intl.DateTimeFormat(language.locale, {
         weekday: "long",
         month: "long",
         day: "numeric",
-      }).format(now);
+      }).format(dateToShow);
       return capitalizeFirst(dateStr);
     }
     if (dateClickCount === 1) {
@@ -273,18 +275,20 @@
 
 
 
-      <button
-        onclick={() => timeTravel.toggle()}
-        title={s("header.timeTravel") || "Time Travel"}
-        aria-label={s("header.timeTravel") || "Time Travel"}
-        class="ml-2"
-        type="button"
-      >
-        <Icon
-          icon="tabler:clock"
-          class="h-6 w-6 text-gray-600 dark:text-gray-400"
-        />
-      </button>
+      {#if experimental.enableTimeTravel}
+        <button
+          onclick={() => timeTravel.toggle()}
+          title={s("header.timeTravel") || "Time Travel"}
+          aria-label={s("header.timeTravel") || "Time Travel"}
+          class="ml-2"
+          type="button"
+        >
+          <Icon
+            icon="tabler:clock"
+            class="h-6 w-6 text-gray-600 dark:text-gray-400"
+          />
+        </button>
+      {/if}
 
       <button
         onclick={() => settings.open()}

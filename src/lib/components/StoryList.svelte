@@ -4,6 +4,7 @@ import { s } from '$lib/client/localization.svelte';
 import StoryCard from './story/StoryCard.svelte';
 import type { Story } from '$lib/types';
 import { settings } from '$lib/stores/settings.svelte.js';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
 import { feedDate } from '$lib/stores/feedDate.svelte';
 import { onDestroy, onMount } from 'svelte';
@@ -196,63 +197,90 @@ $effect(() => {
 	}
 });
 
+// Remove date dividers that are not followed by at least one story
+function removeOrphanDateDividers(items: Array<ListItem | any>): ListItem[] {
+	const output: ListItem[] = [];
+	let pendingDivider: any = null;
+	for (const it of items) {
+		if ((it as any)?.__dateDivider) {
+			pendingDivider = it;
+			continue;
+		}
+		// It's a story
+		if (pendingDivider) {
+			output.push(pendingDivider as any);
+			pendingDivider = null;
+		}
+		output.push(it as any);
+	}
+	// Drop trailing divider if present (pendingDivider not followed by a story)
+	return output;
+}
+
 const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
-    const storyOnly = stories.filter((it): it is Story => !(it as any).__dateDivider);
+	const storyOnly = stories.filter((it): it is Story => !(it as any).__dateDivider);
 
-    // Apply smart content filtering using a local service to keep the callback side-effect free
-    if (smartContentFilter.isEnabled) {
-        try {
-            const filterResult = _localFilterService.filterStories(storyOnly, smartContentFilter.preferences);
+	// Partition into today's stories and historical stories
+	const todaysStories: Story[] = [];
+	const historicalStories: Story[] = [];
+	for (const st of storyOnly) {
+		if ((st as any).__fromHistoricalBatch) historicalStories.push(st);
+		else todaysStories.push(st);
+	}
 
-            // Create a Set of story IDs to include based on filter mode
-            const storyIdsToShow = new Set<string>();
-            
-            if (showFilteredStories) {
-                // Show all stories (filtered + unfiltered)
-                [...filterResult.filtered, ...filterResult.removed.map(r => r.story)].forEach(story => {
-                    const storyId = story.cluster_number?.toString() || story.title;
-                    storyIdsToShow.add(storyId);
-                });
-            } else {
-                // Show only unfiltered stories
-                filterResult.filtered.forEach(story => {
-                    const storyId = story.cluster_number?.toString() || story.title;
-                    storyIdsToShow.add(storyId);
-                });
-            }
+	// Apply smart content filtering ONLY to today's stories to avoid hiding historical content
+	if (smartContentFilter.isEnabled) {
+		try {
+			const filterResult = _localFilterService.filterStories(todaysStories, smartContentFilter.preferences);
 
-            // Preserve original order of stories and date dividers, but filter stories based on our decision
-            const resultStories = stories.filter(item => {
-                if ((item as any).__dateDivider) {
-                    return true; // Always include date dividers
-                }
-                const story = item as Story;
-                const storyId = story.cluster_number?.toString() || story.title;
-                return storyIdsToShow.has(storyId);
-            });
+			// Build allowlist for today's stories based on filter mode
+			const allowedTodayIds = new Set<string>();
+			if (showFilteredStories) {
+				[...filterResult.filtered, ...filterResult.removed.map((r) => r.story)].forEach((story) => {
+					const storyId = story.cluster_number?.toString() || story.title;
+					allowedTodayIds.add(storyId);
+				});
+			} else {
+				filterResult.filtered.forEach((story) => {
+					const storyId = story.cluster_number?.toString() || story.title;
+					allowedTodayIds.add(storyId);
+				});
+			}
 
-            return {
-                displayedStories: resultStories as ListItem[],
-                filteredCount: filterResult.removed.length, // Always show actual filtered count
-                hiddenStories: showFilteredStories ? [] : filterResult.removed.map(r => r.story)
-            };
-        } catch (error) {
-            console.warn('Smart filtering error, falling back to showing all stories:', error);
-            // Fallback: show all stories if filtering fails
-            return {
-                displayedStories: stories as ListItem[],
-                filteredCount: 0,
-                hiddenStories: []
-            };
-        }
-    }
+			// Preserve original order and include:
+			// - All date dividers (cleaned up later)
+			// - All historical stories
+			// - Only allowed today's stories
+			const prelim = stories.filter((item) => {
+				if ((item as any).__dateDivider) return true;
+				const st = item as Story;
+				if ((st as any).__fromHistoricalBatch) return true; // never hide historical stories
+				const storyId = st.cluster_number?.toString() || st.title;
+				return allowedTodayIds.has(storyId);
+			});
 
-    // Smart filtering disabled – just return the stories as-is
-    return {
-        displayedStories: stories as ListItem[],
-        filteredCount: 0,
-        hiddenStories: []
-    };
+			const cleaned = removeOrphanDateDividers(prelim);
+			return {
+				displayedStories: cleaned as ListItem[],
+				filteredCount: filterResult.removed.length,
+				hiddenStories: showFilteredStories ? [] : filterResult.removed.map((r) => r.story)
+			};
+		} catch (error) {
+			console.warn('Smart filtering error, falling back to showing all stories:', error);
+			return {
+				displayedStories: removeOrphanDateDividers(stories as any) as ListItem[],
+				filteredCount: 0,
+				hiddenStories: []
+			};
+		}
+	}
+
+	// Smart filtering disabled – include everything, then clean orphan dividers
+	return {
+		displayedStories: removeOrphanDateDividers(stories as any) as ListItem[],
+		filteredCount: 0,
+		hiddenStories: []
+	};
 });
 
 // Check if all stories are read
@@ -674,13 +702,13 @@ onDestroy(() => {
             </svg>
         </div>
     {:else if displayedStories.length === 0}
-        <div class="py-8 text-center text-gray-500 dark:text-gray-400">
+        <div class="py-10">
             {#if smartContentFilter.isEnabled && filteredCount > 0}
 			<!-- All stories filtered message -->
-			<p class="text-base font-medium mb-2">
+			<p class="text-base font-medium mb-2 text-center text-gray-700 dark:text-gray-300">
 				{s('smartFilter.allStoriesFiltered') || 'All stories in this category were filtered'}
 			</p>
-			<p class="text-sm mb-4">
+			<p class="text-sm mb-4 text-center text-gray-500 dark:text-gray-400">
 				{s('smartFilter.allStoriesFilteredDescription') || 'Your smart filters have hidden all stories in this category for today.'}
 			</p>
 			<div class="flex flex-col sm:flex-row gap-2 justify-center">
@@ -701,23 +729,35 @@ onDestroy(() => {
 				</button>
 			</div>
 			{:else}
-				<p class="text-red-500 dark:text-red-400 font-medium">
-					{s('stories.noStories') || 'No stories available for this category.'}
-				</p>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					{s('stories.errorMessage') || 'Please check your connection or try again later.'}
-				</p>
-				<!-- Migration Notice (temporary) -->
-				<div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-900/20 dark:border-blue-800">
-					<h3 class="text-sm font-semibold text-blue-900 mb-1 dark:text-blue-300">Database Migration in Progress</h3>
-					<p class="text-sm text-gray-700 dark:text-gray-300">
-						Hey, we are wrapping up our database migration. Stories in translated languages will be available from <s>July 9</s> July 10, around noon UTC.
+				<div class="mx-auto max-w-md text-center">
+					<img src="/svg/doggo_1.svg" alt="No stories today" class="mx-auto h-28 w-auto opacity-90 dark:opacity-80" />
+					<h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+						{s('stories.noneTodayTitle') || 'No stories today'}
+					</h3>
+					<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+						{s('stories.noneTodayMsg') || 'Looks like there are no stories for this category today. Check back tomorrow.'}
 					</p>
+					{#if canLoadMore && !isLoading && pendingOperations === 0}
+						<button
+							onclick={() => triggerLoadMore()}
+							class="group mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-gray-700 via-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-700 dark:from-gray-600 dark:via-gray-600 dark:to-gray-700 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all"
+							aria-label={s('stories.loadMore') || 'Load stories from previous days'}
+						>
+							{s('stories.loadMoreFromPrevious') || 'Load stories from previous days'}
+							<svg class="h-4 w-4 opacity-90 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+								<path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z" />
+							</svg>
+						</button>
+					{:else}
+						<p class="mt-5 text-xs text-gray-400 dark:text-gray-500">
+							{s('stories.noMoreToday') || 'No historical stories available right now.'}
+						</p>
+					{/if}
 				</div>
 			{/if}
         </div>
     {:else}
-		{#each displayedStories as item, index (index)}
+		{#each displayedStories as item, index (((item as any).__dateDivider ? `divider:${(item as any).date}` : `${currentCategory}:${((item as any).__batchId || batchId)}:${(((item as any).cluster_number) ? (item as any).cluster_number.toString() : (item as any).title)}`))}
 			{#if (item as any).__dateDivider}
 				<div use:observeDateDivider data-date={(item as DateDivider).date} class="my-8 flex items-center justify-center">
 					<div class="flex items-center w-full max-w-xs">
@@ -800,8 +840,8 @@ onDestroy(() => {
 		
 
 		
-		<!-- Load more section -->
-		{#if canLoadMore && !isLoading && pendingOperations === 0}
+		<!-- Load more section (only when feature enabled) -->
+		{#if experimental.enableHistoricalLoadMore && canLoadMore && !isLoading && pendingOperations === 0 && settings.storyCount > 3}
 			{#if isMobile}
 				<!-- Mobile: Scroll to end and hold -->
 				<div use:setupScrollToEndObserver class="mt-6 flex justify-center py-8">
@@ -849,6 +889,7 @@ onDestroy(() => {
 				</div>
 			{:else}
 				<!-- Desktop: Clickable text -->
+				{#if settings.storyCount > 3}
 				<div class="mt-6 text-center">
 					{#if isLoadingMore}
 						<div class="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
@@ -856,17 +897,19 @@ onDestroy(() => {
 							<span class="text-sm">{s('loading.historicalStories') || 'Loading stories from previous days…'}</span>
 						</div>
 					{:else}
-						<span
-							role="button"
-							tabindex="0"
+						<button
 							onclick={handleDesktopLoadMore}
-							onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDesktopLoadMore(e); } }}
-							class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+							class="group inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-gray-700 via-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-700 dark:from-gray-600 dark:via-gray-600 dark:to-gray-700 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all"
+							aria-label={s('stories.loadMore') || 'Load more stories'}
 						>
-							{s('stories.loadMore') || 'Load more stories'}
-						</span>
+							<span>{s('stories.loadMore') || 'Load more stories'}</span>
+							<svg class="h-4 w-4 opacity-90 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+								<path d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z" />
+							</svg>
+						</button>
 					{/if}
 				</div>
+				{/if}
 			{/if}
 		{:else if pendingOperations > 0}
 			<!-- Show pending operation indicator -->
@@ -876,7 +919,7 @@ onDestroy(() => {
 					<span class="text-sm">Processing load more...</span>
 				</div>
 			</div>
-		{:else if displayedStories.length > 0}
+		{:else if experimental.enableHistoricalLoadMore && displayedStories.length > 0 && !canLoadMore}
 			<!-- Show message when no more content is available -->
 			<div class="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
 				{s('stories.noMoreToday') || 'No more stories available for today'}

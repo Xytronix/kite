@@ -27,6 +27,7 @@
 			allCategoryStories: Record<string, Story[]>;
 			categoryMap: Record<string, string>;
 			batchId: string;
+			batchTimestamp: number;
 			chaosIndex?: number;
 			chaosDescription?: string;
 			chaosLastUpdated?: string;
@@ -310,7 +311,7 @@
 			// Load initial data (batch info + categories) - pass batch info if we have it
 			const initialData = await dataService.loadInitialData(language.data, providedBatchInfo);
 			categories = initialData.categories;
-			const { batchId, categoryMap, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
+			const { batchId, categoryMap, timestamp, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
 			totalReadCount = initialData.totalReadCount;
 			
 			// Initialize categories store with loaded data
@@ -554,6 +555,7 @@
 						allCategoryStories, // Pass all preloaded stories
 						categoryMap,
 						batchId,
+						batchTimestamp: timestamp,
 						chaosIndex,
 						chaosDescription,
 						chaosLastUpdated,
@@ -676,7 +678,7 @@
 			// Load initial data (batch info + categories)
 			const initialData = await dataService.loadInitialData(language.data);
 			categories = initialData.categories;
-			const { batchId, categoryMap, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
+			const { batchId, categoryMap, timestamp, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
 			totalReadCount = initialData.totalReadCount;
 			
 			// Update categories store with new data
@@ -798,6 +800,7 @@
 					allCategoryStories,
 					categoryMap,
 					batchId,
+					batchTimestamp: timestamp,
 					chaosIndex,
 					chaosDescription,
 					chaosLastUpdated,

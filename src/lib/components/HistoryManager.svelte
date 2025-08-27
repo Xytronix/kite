@@ -109,8 +109,8 @@
         lastUrl = newUrl;
         console.log("🔄 HistoryManager: Navigating to:", newUrl);
         goto(newUrl, {
-          keepfocus: true,
-          noscroll: true,
+          keepFocus: true,
+          noScroll: true,
           state: { restored: false },
         });
       }

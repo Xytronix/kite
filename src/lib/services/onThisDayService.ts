@@ -35,7 +35,9 @@ class OnThisDayService {
 				}
 				if (response.status === 502 || response.status === 503) {
 					// Server temporarily unavailable
-					console.warn(`OnThisDay service temporarily unavailable (${response.status})`);
+					if (import.meta.env.DEV) {
+						console.warn(`OnThisDay service temporarily unavailable (${response.status})`);
+					}
 					return [];
 				}
 				throw new Error(
@@ -45,10 +47,14 @@ class OnThisDayService {
 			const data: LoadOnThisDayResponse = await response.json();
 			return data.events || [];
 		} catch (error) {
-			console.error("Error loading OnThisDay events:", error);
+			if (import.meta.env.DEV) {
+				console.error("Error loading OnThisDay events:", error);
+			}
 			// Return empty array instead of throwing to prevent UI breakage
 			if (error instanceof TypeError && error.message.includes('fetch')) {
-				console.warn("Network error loading OnThisDay events, returning empty array");
+				if (import.meta.env.DEV) {
+					console.warn("Network error loading OnThisDay events, returning empty array");
+				}
 				return [];
 			}
 			throw error;

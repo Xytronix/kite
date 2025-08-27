@@ -49,28 +49,30 @@ export function createProxy(endpoint: string): RequestHandler {
       const isStoriesRequest = targetPath.includes('/stories');
       
       if (!response.ok) {
-        console.error(`❌ Proxy request failed: ${response.status} ${response.statusText} for ${targetUrl.toString()}`);
-        
-        // Special logging for stories requests that might cause navigation
-        if (isStoriesRequest) {
-          console.error(`🚨 STORIES REQUEST FAILED - This might cause client navigation!`);
-          console.error(`📊 Status: ${response.status} ${response.statusText}`);
-          console.error(`📊 Type: ${response.type}`);
-          console.error(`📊 Redirected: ${response.redirected}`);
-          console.error(`📊 URL: ${response.url}`);
-          console.error(`📊 Headers:`, Object.fromEntries(response.headers.entries()));
-        }
-        
-        // Try to decode error body for logging
-        try {
-          const errorText = new TextDecoder().decode(body);
-          console.error(`Error body: ${errorText}`);
-        } catch (e) {
-          console.error('Could not decode error body');
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`❌ Proxy request failed: ${response.status} ${response.statusText} for ${targetUrl.toString()}`);
+          
+          // Special logging for stories requests that might cause navigation
+          if (isStoriesRequest) {
+            console.error(`🚨 STORIES REQUEST FAILED - This might cause client navigation!`);
+            console.error(`📊 Status: ${response.status} ${response.statusText}`);
+            console.error(`📊 Type: ${response.type}`);
+            console.error(`📊 Redirected: ${response.redirected}`);
+            console.error(`📊 URL: ${response.url}`);
+            console.error(`📊 Headers:`, Object.fromEntries(response.headers.entries()));
+          }
+          
+          // Try to decode error body for logging
+          try {
+            const errorText = new TextDecoder().decode(body);
+            console.error(`Error body: ${errorText}`);
+          } catch (e) {
+            console.error('Could not decode error body');
+          }
         }
       } else {
         // Check for redirects even on successful responses
-        if (isStoriesRequest && (response.redirected || [301, 302, 307, 308].includes(response.status))) {
+        if (process.env.NODE_ENV === 'development' && isStoriesRequest && (response.redirected || [301, 302, 307, 308].includes(response.status))) {
           console.warn(`🚨 STORIES REQUEST REDIRECTED - This might cause client navigation!`);
           console.warn(`🔄 Original URL: ${targetUrl.toString()}`);
           console.warn(`🔄 Final URL: ${response.url}`);
@@ -88,7 +90,9 @@ export function createProxy(endpoint: string): RequestHandler {
       });
       
     } catch (error) {
-      console.error('Proxy error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Proxy error:', error);
+      }
       return new Response(JSON.stringify({ error: 'Proxy request failed' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

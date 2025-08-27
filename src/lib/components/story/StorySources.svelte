@@ -226,6 +226,23 @@
     );
   }
 
+  // Narrow hover area: only trigger when cursor is over the favicon container
+  function handleSourceHoverIfOverIcon(event: MouseEvent, domain: any) {
+    const button = event.currentTarget as HTMLElement | null;
+    if (!button) return;
+    const iconEl = button.querySelector('.source-icon') as HTMLElement | null;
+    if (!iconEl) return;
+    const rect = iconEl.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+    const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    if (inside) {
+      handleSourceHover(event, domain);
+    } else {
+      handleSourceLeave(event);
+    }
+  }
+
   // Handle source hover leave
   function handleSourceLeave(event: Event) {
     if (!sourceTooltip) return;
@@ -301,9 +318,9 @@
       <Icon
         icon={getSectionIcon("sources")}
         class="h-5 w-5 cursor-pointer text-gray-500 dark:text-gray-400"
-        title={s("section.sources") || "Sources"}
+        aria-label={s("section.sources") || "Sources"}
         role="button"
-        tabindex="0"
+        tabindex={0}
         onmouseenter={(e) =>
           sourceTooltip?.handleSourceInteraction(
             e,
@@ -372,13 +389,13 @@
             e.stopPropagation();
             handleSourceClick(domain);
           }}
-          onmouseenter={(e) => handleSourceHover(e, domain)}
+          onmousemove={(e) => handleSourceHoverIfOverIcon(e as MouseEvent, domain)}
           onmouseleave={handleSourceLeave}
           aria-label={`Show articles from ${domain?.name || "Unknown"}`}
           title={`Show articles from ${domain?.name || "Unknown"}`}
         >
           <!-- Icon column centered across card -->
-          <div class="col-start-1 row-span-2 flex items-center justify-center">
+          <div class="source-icon col-start-1 row-span-2 flex items-center justify-center">
             <SmartImage
               domain={domain?.name}
               alt={`${domain?.name || "Unknown"} Favicon`}

@@ -113,6 +113,8 @@ let isLoading = $state(false);
 let tooltipFlag = $state('');
 let currentWikiId = $state('');
 let currentWikiAttrId = $state('');
+let imageObjectPosition = $state('50% 30%');
+let imageFitMode = $state('contain');
 
 // Elements
 let arrowElement: HTMLElement;
@@ -427,6 +429,37 @@ export async function handleWikipediaInteraction(event: Event) {
 					// Always use the resolved URL from the API which respects the language setting
 					tooltipWikiUrl = resolvedUrl || fallbackUrl;
 					
+					// Adjust image focal point to avoid cutting off faces in tall portraits
+					try {
+						const original = (loadedData as any)?.originalImage;
+						const thumb = (loadedData as any)?.thumbnail;
+						const width = original?.width || thumb?.width;
+						const height = original?.height || thumb?.height;
+						if (width && height) {
+							const aspect = width / height;
+							// Bias focal point upward to keep heads in-frame across orientations
+							if (aspect < 0.95) {
+								// Portrait
+								imageObjectPosition = '50% 30%';
+							} else if (aspect < 1.2) {
+								// Near-square
+								imageObjectPosition = '50% 40%';
+							} else if (aspect < 2.2) {
+								// Landscape (common) — lift slightly to avoid cutting off faces
+								imageObjectPosition = '50% 40%';
+							} else {
+								// Very wide panoramas — lift a bit more
+								imageObjectPosition = '50% 45%';
+							}
+
+							// Prefer contain to show as much of the image as possible
+							imageFitMode = 'contain';
+						} else {
+							imageObjectPosition = '50% 30%';
+							imageFitMode = 'contain';
+						}
+					} catch {}
+
 
 					// Country flag detection – if description contains 'country' etc.
 					const desc = (loadedData as any)?.description as string | undefined;
@@ -796,7 +829,8 @@ export function getFlagEmoji(countryName: string): string {
 								<img
 									src={tooltipImage}
 									alt={tooltipTitle}
-									class="mb-2 h-40 w-full rounded object-cover"
+									class="mb-2 h-40 w-full rounded"
+									style="object-fit: {imageFitMode}; object-position: {imageObjectPosition}"
 									loading="lazy"
 								/>
 							{/if}
@@ -866,7 +900,8 @@ export function getFlagEmoji(countryName: string): string {
 								<img
 									src={tooltipFullImage || tooltipImage}
 									alt={tooltipTitle}
-									class="mb-4 h-56 w-full rounded-lg object-cover shadow-sm"
+									class="mb-4 h-56 w-full rounded-lg shadow-sm"
+									style="object-fit: {imageFitMode}; object-position: {imageObjectPosition}"
 									loading="lazy"
 								/>
 							{/if}

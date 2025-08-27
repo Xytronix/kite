@@ -47,7 +47,10 @@
       })
       .catch((error: unknown) => {
         if (!isCancelled) {
-          console.warn(`Failed to load icon: ${icon}`, error);
+          // Only log warnings for unexpected errors, not missing icons
+          if (!(error instanceof Error) || !error.message.includes('not found')) {
+            console.warn(`Failed to load icon: ${icon}`, error);
+          }
           iconData = null;
           loadingState = "error";
         }

@@ -135,22 +135,18 @@ export async function autoLinkPlaces(root: HTMLElement) {
 
   // Skip auto-linking in OnThisDay content since it already has backend-provided QIDs
   if (root.closest('.onthisday-content') || root.classList.contains('onthisday-content')) {
-    console.debug('Skipping place auto-linking: OnThisDay content detected');
     return;
   }
 
   // Also skip if this element or any parent already has Wikipedia links
   if (root.querySelector('[data-wiki-id]') || root.closest('[data-wiki-id]')) {
-    console.debug('Skipping place auto-linking: Existing Wikipedia links detected');
     return;
   }
 
   // Additional check: if any OnThisDay content exists in the document, be more conservative
   if (document.querySelector('.onthisday-content [data-wiki-id]')) {
-    console.debug('OnThisDay content with Wikipedia links detected in document, being conservative with auto-linking');
     // Only auto-link if we're clearly outside any content area that might have backend links
     if (root.closest('article, .story-content, .content, main')) {
-      console.debug('Skipping auto-linking: Near content areas that might have backend Wikipedia links');
       return;
     }
   }

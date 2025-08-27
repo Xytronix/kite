@@ -9,14 +9,20 @@ export const POST: RequestHandler = async ({ request }) => {
         const logMessage = `[DEBUG ${timestamp}] ${message}`;
         
         if (data) {
-            console.log(logMessage, JSON.stringify(data, null, 2));
+            if (process.env.NODE_ENV === 'development') {
+                console.log(logMessage, JSON.stringify(data, null, 2));
+            }
         } else {
-            console.log(logMessage);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(logMessage);
+            }
         }
         
         return json({ success: true });
     } catch (error) {
-        console.error('Debug log error:', error);
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Debug log error:', error);
+        }
         return json({ success: false, error: String(error) });
     }
 }; 
