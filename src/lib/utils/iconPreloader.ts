@@ -40,7 +40,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'✏️': 'heroicons-outline:pencil',
 	'🗑️': 'heroicons-outline:trash',
 	'🚪': 'heroicons-outline:arrow-right-on-rectangle',
-	'🎛️': 'heroicons-outline:funnel',
+	'🎛️': 'tabler:sliders',
 	'📤': 'heroicons-outline:arrow-up-tray',
 	'👤': 'heroicons-outline:user',
 	'👥': 'heroicons-outline:users',
@@ -51,7 +51,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🧑‍💻': 'heroicons-outline:code-bracket',
 	'🧑‍🏫': 'heroicons-outline:academic-cap',
 	'🧑‍🎓': 'heroicons-outline:user-circle',
-	'🧑‍🎨': 'heroicons-outline:paint-brush',
+	'🧑‍🎨': 'mdi:palette',
 
 	// Communication
 	'📧': 'heroicons-outline:envelope',
@@ -63,9 +63,9 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🗨️': 'heroicons-outline:chat-bubble-left-ellipsis',
 	'📢': 'heroicons-outline:megaphone',
 	'📣': 'heroicons-outline:speaker-wave',
-	'📠': 'material-symbols:fax',
-	'🤝': 'mdi:handshake',
-	'🤝🏼': 'mdi:handshake',
+	'📠': 'mdi:fax',
+	'🤝': 'mdi:handshake-outline',
+	'🤝🏼': 'mdi:handshake-outline',
 
 	// Files, Documents & Office
 	'📁': 'heroicons-outline:folder',
@@ -80,19 +80,28 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🗃️': 'heroicons-outline:archive-box',
 	'📑': 'heroicons-outline:document-duplicate',
 	'📜': 'heroicons-outline:document-text',
-	'📰': 'heroicons-outline:newspaper',
-	'📓': 'heroicons-outline:book-open',
-	'📚': 'heroicons-outline:queue-list',
+	'📰': 'heroicons:newspaper',
+	'🗞️': 'heroicons:newspaper',
+	'📓': 'tabler:notebook',
+	'📚': 'tabler:books',
 	'💼': 'heroicons-outline:briefcase',
 	'🏢': 'heroicons-outline:building-office',
 	'🏪': 'heroicons-outline:building-storefront',
-	'🏦': 'heroicons-outline:building-library',
+	'🏦': 'tabler:building-bank',
 	'🖨️': 'heroicons-outline:printer',
 	'💾': 'material-symbols:save',
 	'🗳️': 'material-symbols:how-to-vote',
 	'🔖': 'heroicons-outline:bookmark',
 	'🗓️': 'heroicons-outline:calendar',
 	'📅': 'heroicons-outline:calendar-days',
+	'📝': 'heroicons-outline:pencil-square',
+	'🗣️': 'heroicons-outline:megaphone',
+	'🏛️': 'heroicons-outline:building-library',
+	'🏭': 'tabler:building-factory',
+	'🏫': 'tabler:school',
+	'🏥': 'tabler:building-hospital',
+	'🏺': 'tabler:building-museum',
+	'🧳': 'tabler:suitcase',
 
 	// Money & Finance
 	'💳': 'heroicons-outline:credit-card',
@@ -106,22 +115,24 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	// Technology & Devices
 	'💻': 'heroicons-outline:computer-desktop',
 	'⌨️': 'material-symbols:keyboard',
-	'🖱️': 'material-symbols:mouse',
-	'💿': 'material-symbols:album',
-	'🔌': 'material-symbols:power',
+	'🖱️': 'tabler:device-mouse',
+	'💿': 'tabler:disc',
+	'🔌': 'tabler:plug',
 	'🔋': 'heroicons-outline:battery-100',
-	'📡': 'material-symbols:signal-cellular-alt',
+	'📡': 'tabler:antenna',
+	'🖥️': 'heroicons-outline:computer-desktop',
+	'📦': 'heroicons-outline:cube',
 
 	// Space & Sci-Fi
 	'🧑‍🚀': 'mdi:astronaut',
 	'🤖': 'mdi:robot-outline',
 	'🧠': 'mdi:brain',
 	'🚀': 'mdi:rocket-launch-outline',
-	'🛰️': 'mdi:satellite-outline',
+	'🛰️': 'tabler:satellite',
 	'🪐': 'hugeicons:saturn',
 	'🌌': 'mdi:galaxy',
 	'🛸': 'mdi:ufo-outline',
-	'🌐': 'mdi:web',
+	'🌐': 'tabler:world',
 
 	// Media & Entertainment
 	'▶️': 'heroicons-outline:play',
@@ -137,17 +148,17 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🎬': 'heroicons-outline:film',
 	'🎵': 'heroicons-outline:musical-note',
 	'📺': 'heroicons-outline:tv',
-	'📻': 'heroicons-outline:radio',
-	'🎧': 'material-symbols:headphones',
-	'🎼': 'heroicons-outline:musical-note',
-	'🎹': 'material-symbols:piano',
-	'🥁': 'material-symbols:music-note',
-	'🎷': 'material-symbols:music-note',
-	'🎺': 'material-symbols:music-note',
-	'🎸': 'material-symbols:music-note',
-	'🪕': 'material-symbols:music-note',
-	'🎻': 'material-symbols:music-note',
-	'🎭': 'material-symbols:theater-comedy',
+	'📻': 'tabler:radio',
+	'🎧': 'tabler:headphones',
+	'🎼': 'tabler:music',
+	'🎹': 'mdi:piano',
+	'🥁': 'mdi:drum',
+	'🎷': 'mdi:saxophone',
+	'🎺': 'mdi:trumpet',
+	'🎸': 'mdi:guitar-electric',
+	'🪕': 'mdi:banjo',
+	'🎻': 'mdi:violin',
+	'🎭': 'mdi:comedy',
 	'🎪': 'material-symbols:festival',
 
 	// Transportation
@@ -162,6 +173,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🚜': 'material-symbols:tractor',
 	'🚲': 'material-symbols:directions-bike',
 	'🛵': 'material-symbols:two-wheeler',
+	'🛴': 'tabler:scooter',
 	'✈️': 'material-symbols:flight',
 	'🛫': 'material-symbols:flight-takeoff',
 	'🛬': 'material-symbols:flight-land',
@@ -171,51 +183,63 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🚠': 'material-symbols:cable-car',
 	'⛵': 'material-symbols:sailing',
 	'🛶': 'material-symbols:kayaking',
-	'🚤': 'material-symbols:directions-boat',
+	'🚤': 'fluent-emoji-high-contrast:speedboat',
 	'🚢': 'material-symbols:directions-boat',
 	'📍': 'heroicons-outline:map-pin',
 	'🧑‍✈️': 'material-symbols:flight',
+	'🚔': 'material-symbols:local-police',
+	'🚆': 'material-symbols:train',
+	'🚖': 'material-symbols:local-taxi',
+	'🚇': 'material-symbols:subway',
+	'🚊': 'material-symbols:tram',
+	'🛩️': 'material-symbols:flight',
+	'🏎️': 'mdi:racing-helmet',
+	'🚧': 'material-symbols:construction',
+	'⛽': 'tabler:gas-station',
+	'🌉': 'mdi:bridge',
+	'🚴': 'material-symbols:directions-bike',
+	'🚴‍♂️': 'material-symbols:directions-bike',
 
 	// Science & Health
 	'🔬': 'material-symbols:science',
 	'🧪': 'material-symbols:science',
-	'🧬': 'material-symbols:biotech',
+	'🧬': 'tabler:dna-2',
 	'💉': 'material-symbols:vaccines',
 	'💊': 'material-symbols:medication',
 	'🩺': 'material-symbols:stethoscope',
-	'🔭': 'material-symbols:telescope',
-	'🧲': 'material-symbols:magnet-on',
+	'🔭': 'tabler:telescope',
+	'🧲': 'tabler:magnet',
 	'🧑‍🔬': 'material-symbols:science',
-	'🧻': 'material-symbols:inventory',
-	'🧼': 'material-symbols:cleaning-services',
+	'🧻': 'tabler:toilet-paper',
+	'🧼': 'tabler:soap',
 	'❤️': 'heroicons-outline:heart',
 
 	// Nature & Weather
 	'☀️': 'heroicons-outline:sun',
-	'🌤️': 'material-symbols:partly-cloudy-day',
-	'⛅': 'material-symbols:cloud',
-	'☁️': 'heroicons-outline:cloud',
-	'🌦️': 'material-symbols:rainy',
-	'🌧️': 'material-symbols:rainy',
-	'⛈️': 'material-symbols:thunderstorm',
-	'🌨️': 'material-symbols:weather-snowy',
-	'❄️': 'material-symbols:ac-unit',
-	'🌬️': 'material-symbols:air',
+	'🌤️': 'mdi:weather-partly-cloudy',
+	'⛅': 'mdi:wb-cloudy',
+	'☁️': 'mdi:cloud',
+	'🌦️': 'mdi:weather-partly-rainy',
+	'🌧️': 'mdi:weather-rainy',
+	'⛈️': 'mdi:weather-lightning-rainy',
+	'🌨️': 'mdi:weather-snowy',
+	'❄️': 'tabler:snowflake',
+	'🌬️': 'tabler:wind',
 	'🌪️': 'material-symbols:tornado',
 	'🌫️': 'material-symbols:foggy',
-	'🌊': 'heroicons-outline:lifebuoy',
-	'💧': 'material-symbols:water-drop',
-	'🌡️': 'material-symbols:thermometer',
+	'🌊': 'tabler:waves',
+	'💧': 'tabler:droplet',
+	'🌡️': 'tabler:temperature',
 	'🌍': 'heroicons-outline:globe-europe-africa',
 	'🌎': 'heroicons-outline:globe-americas',
 	'🌏': 'heroicons-outline:globe-asia-australia',
-	'🕊️': 'material-symbols:eco',
-	'🌈': 'material-symbols:rainbow',
+	'🕊️': 'fa7-solid:dove',
+	'🌈': 'tabler:rainbow',
 	'🗻': 'material-symbols:landscape',
 	'🗿': 'material-symbols:landscape',
-	'🦚': 'material-symbols:emoji-nature',
-	'🦒': 'material-symbols:emoji-nature',
-	'🐓': 'material-symbols:pets',
+	'🦚': 'fluent-emoji-high-contrast:peacock',
+	'🦒': 'mdi:giraffe',
+	'🐓': 'mdi:rooster',
 
 	// Sports & Activities
 	'⚽': 'material-symbols:sports-soccer',
@@ -230,12 +254,28 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🥅': 'material-symbols:sports-soccer',
 	'🏑': 'material-symbols:sports-hockey',
 	'🏏': 'material-symbols:sports-cricket',
-	'🎱': 'material-symbols:sports-esports',
+	'🎱': 'mdi:billiards',
+	'🤿': 'tabler:scuba-mask',
 	'🏆': 'heroicons-outline:trophy',
 
 	// Food & Drink
 	'🥨': 'material-symbols:restaurant',
-	'🧋': 'material-symbols:local-drink',
+	'🧋': 'tabler:milkshake',
+	'🍦': 'tabler:ice-cream',
+	'🍧': 'tabler:ice-cream',
+	'🍨': 'tabler:ice-cream',
+	'🍩': 'tabler:donut',
+	'🍪': 'tabler:cookie',
+	'🍫': 'hugeicons:chocolate',
+	'🍬': 'tabler:candy',
+	'🍔': 'tabler:burger',
+	'🍟': 'mdi:french-fries',
+	'🍕': 'tabler:pizza',
+	'🍗': 'mdi:chicken-leg',
+	'🍖': 'tabler:meat',
+	'🍤': 'mdi:chicken-leg',
+	'🍢': 'mdi:chicken-leg',
+	'🍣': 'hugeicons:sushi-01',
 
 	// Shopping
 	'🛒': 'heroicons-outline:shopping-cart',
@@ -246,22 +286,109 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'⭐': 'heroicons-outline:star',
 	'⛔': 'heroicons-outline:no-symbol',
 	'❗': 'heroicons-outline:exclamation-circle',
-	'⚠️': 'heroicons-outline:exclamation-triangle',
+	'⚠️': 'tabler:alert-triangle',
 	'ℹ️': 'heroicons-outline:information-circle',
 	'❓': 'heroicons-outline:question-mark-circle',
-	'⏰': 'heroicons-outline:clock',
-	'⏳': 'heroicons-outline:hourglass',
-	'🎯': 'material-symbols:gps-fixed',
+	'⏰': 'tabler:alarm',
+	'⏳': 'tabler:hourglass',
+	'🎯': 'tabler:target',
 	'🎲': 'material-symbols:casino',
 	'🃏': 'material-symbols:casino',
-	'🆘': 'material-symbols:warning-outline-rounded',
+	'🆘': 'tabler:sos',
 	'💥': 'heroicons-outline:bolt',
-	'🪖': 'material-symbols:security',
-	'🪄': 'material-symbols:auto-awesome',
+	'🪖': 'mdi:tank',
+	'🪄': 'mdi:auto-fix',
 	'☮️': 'material-symbols:emoji-flags',
 	'♻️': 'material-symbols:recycling',
-	'🔗': 'heroicons-outline:link'
+	'🔗': 'heroicons-outline:link',
+	'🛡️': 'tabler:shield-filled',
+	'🚨': 'material-symbols:siren-outline',
+	'💡': 'heroicons-outline:light-bulb',
+	'✨': 'heroicons-outline:sparkles',
+	'🌟': 'heroicons-outline:star',
+	'🔥': 'heroicons-outline:fire',
+	'⚡': 'heroicons-outline:bolt',
+	'🌀': 'material-symbols:cyclone',
+	'☄️': 'tabler:comet',
+	'⚛️': 'tabler:atom',
+	'🔮': 'mdi:crystal-ball',
+	'🧩': 'tabler:puzzle',
+	'🎗️': 'tabler:ribbon',
+	'🎖️': 'heroicons-outline:trophy',
+	'🏅': 'heroicons-outline:trophy',
+	'🖤': 'heroicons-outline:heart',
+	'🙏': 'material-symbols:volunteer-activism',
+	'⌚': 'mdi:watch',
+	'🧭': 'tabler:compass',
+	'📵': 'tabler:phone-off',
+	'📶': 'tabler:antenna-bars-5',
+	'🕯️': 'tabler:candle',
+	'⛑️': 'tabler:ambulance',
+	'♿️': 'material-symbols:accessible',
+	'🧯': 'material-symbols:fire-extinguisher',
+	'🥈': 'heroicons-outline:trophy',
+	'💱': 'heroicons-outline:currency-dollar',
+	'☔': 'material-symbols:umbrella',
+	'☔️': 'material-symbols:umbrella',
+	'☕': 'tabler:coffee',
+	'🍽️': 'tabler:restaurant',
+	'🍺': 'tabler:beer',
+	'🥃': 'tabler:glass-cocktail',
+	'🍷': 'tabler:glass-wine',
+	'🍸': 'tabler:glass-cocktail',
+	'🍹': 'tabler:glass-cocktail',
+	'🍻': 'tabler:beer',
+	'🥂': 'tabler:glass-cocktail',
+	'🪧': 'tabler:sign-right',
+
+	// Additional mappings for previously unmapped emojis
+	'⚖️': 'heroicons-outline:scale',
+	'🛢️': 'tabler:barrel',
+	'🎓': 'heroicons-outline:academic-cap',
+	'💍': 'mdi:ring',
+	'💎': 'mdi:diamond',
+	'🎨': 'mdi:palette',
+	'🌱': 'tabler:plant',
+	'🦈': 'tabler:fish',
+	'🐛': 'tabler:bug',
+	'🐦': 'mdi:bird',
+	'⛳': 'tabler:golf',
+	'🎮': 'heroicons-outline:device-tablet',
+	'🛹': 'tabler:skateboard',
+	'🧛': 'tabler:ghost',
+	'🏁': 'tabler:flag',
+	'🐧': 'mdi:penguin',
+	'🐺': 'mdi:wolf',
+	'🦎': 'mdi:lizard',
+	'🏙️': 'heroicons-outline:building-office-2',
+	'🍁': 'tabler:leaf',
+	'🏒': 'mdi:hockey-sticks',
+	'🐖': 'tabler:pig',
+	'🐞': 'tabler:bug',
+	'🎡': 'mdi:ferris-wheel',
+	'🏔️': 'tabler:mountain',
+	'🎤': 'heroicons-outline:microphone',
+	'🌿': 'tabler:leaf',
+	'🐻': 'mdi:bear',
+	'🎉': 'tabler:confetti',
+	'👶': 'tabler:baby-carriage',
+	'🎒': 'tabler:backpack',
+	'🎢': 'mdi:roller-coaster',
+	'🎈': 'tabler:balloon',
+	'🐕': 'tabler:dog',
+	'🏟️': 'tabler:building-stadium',
+	'🥊': 'mdi:boxing-glove',
+	'🐾': 'tabler:paw',
+	'🎶': 'heroicons-outline:musical-note',
+	'🛟': 'tabler:lifebuoy',
+	'🐘': 'mdi:elephant',
+	'🌾': 'tabler:wheat',
+	'🦌': 'tabler:deer',
+	'🌳': 'tabler:tree'
 };
+
+// Track unmapped emojis for debugging
+const unmappedEmojis = new Set<string>();
 
 /**
  * Convert emoji to Iconify icon name
@@ -283,6 +410,12 @@ export function getIconName(emoji: string): string | null {
 			.map((char) => String.fromCodePoint(char.codePointAt(0)! - 0x1f1e6 + 0x61))
 			.join('');
 		return `circle-flags:${countryCode}`;
+	}
+
+	// Track unmapped emojis in development
+	if (import.meta.env.DEV && !unmappedEmojis.has(trimmed)) {
+		unmappedEmojis.add(trimmed);
+		console.log(`🚫 Unmapped emoji: "${trimmed}" (will show as raw emoji)`);
 	}
 
 	return null;
@@ -327,26 +460,26 @@ export function preloadStoryIcons(stories: any[], highPriority: boolean = false)
 }
 
 // Known domain to icon mappings for major news sources
-// Only includes domains where we're confident the icon exists
+// Updated to use working icons only
 const DOMAIN_TO_ICON: Record<string, string> = {
 	'reddit.com': 'simple-icons:reddit',
 	'bbc.com': 'simple-icons:bbc',
 	'cnn.com': 'simple-icons:cnn',
-	'nytimes.com': 'simple-icons:nytimes',
+	'nytimes.com': 'simple-icons:newyorktimes', // Fixed: was 'nytimes'
 	'theguardian.com': 'simple-icons:theguardian',
-	'washingtonpost.com': 'simple-icons:washingtonpost',
-	'reuters.com': 'simple-icons:reuters',
-	'npr.org': 'simple-icons:npr',
-	'pbs.org': 'simple-icons:pbs',
+	'washingtonpost.com': 'simple-icons:thewashingtonpost',
+	'reuters.com': 'arcticons:reuters',
+	'npr.org': 'arcticons:npr',
+	'pbs.org': 'cbi:pbs',
 	'foxnews.com': 'simple-icons:fox',
-	'bloomberg.com': 'simple-icons:bloomberg',
-	'economist.com': 'simple-icons:theeconomist',
-	'aljazeera.com': 'simple-icons:aljazeera',
-	'france24.com': 'simple-icons:france24',
-	'rt.com': 'simple-icons:rt',
-	'lemonde.fr': 'simple-icons:lemonde',
-	'spiegel.de': 'simple-icons:spiegel',
-	'elpais.com': 'simple-icons:elpais',
+
+	'economist.com': 'arcticons:economist',
+	'aljazeera.com': 'mdi:television', // Fixed: simple-icons version doesn't exist
+	'france24.com': 'mdi:television', // Fixed: simple-icons version doesn't exist
+	'rt.com': 'mdi:television', // Fixed: simple-icons version doesn't exist
+	'lemonde.fr': 'arcticons:le-monde',
+	'spiegel.de': 'arcticons:der-spiegel',
+	'elpais.com': 'arcticons:el-pais',
 	// Tech/Social
 	'twitter.com': 'simple-icons:twitter',
 	'x.com': 'simple-icons:x',
@@ -369,7 +502,7 @@ export function preloadSourceIcons(stories: any[]): void {
 	const sourceIcons = new Set<string>();
 
 	// Always add fallback icons
-	sourceIcons.add('mdi:newspaper');
+	sourceIcons.add('heroicons:newspaper');
 	sourceIcons.add('heroicons-outline:globe-alt');
 
 	stories.forEach(story => {
@@ -427,7 +560,7 @@ export async function preloadStoryCitations(story: any): Promise<void> {
 	});
 
 	// Always add fallbacks
-	knownIcons.add('mdi:newspaper');
+	knownIcons.add('heroicons:newspaper');
 	knownIcons.add('heroicons-outline:globe-alt');
 
 	if (knownIcons.size > 0) {
@@ -439,13 +572,151 @@ export async function preloadStoryCitations(story: any): Promise<void> {
  * Get icon name for a domain with fallback logic
  */
 export function getDomainIcon(domain: string): string {
-	const knownIcon = DOMAIN_TO_ICON[domain.toLowerCase()];
-	if (knownIcon) {
-		return knownIcon;
+	return getFixedDomainIcon(domain);
+}
+
+/**
+ * Get a report of all missing icons and suggest fixes
+ */
+export function getMissingIconsReport(): {
+	report: ReturnType<typeof iconService.exportMissingIconsReport>;
+	suggestions: Array<{ original: string; suggested: string; reason: string }>;
+} {
+	const report = iconService.exportMissingIconsReport();
+	const suggestions: Array<{ original: string; suggested: string; reason: string }> = [];
+
+	// Known fixes for common missing icons
+	const knownFixes: Record<string, { suggested: string; reason: string }> = {
+		'simple-icons:nytimes': {
+			suggested: 'simple-icons:newyorktimes',
+			reason: 'The New York Times icon uses the full name'
+		},
+		'simple-icons:npr': {
+			suggested: 'arcticons:npr',
+			reason: 'Simple Icons NPR not available, use Arcticons NPR'
+		},
+		'simple-icons:theeconomist': {
+			suggested: 'arcticons:economist',
+			reason: 'Simple Icons Economist not available, use Arcticons Economist'
+		},
+		'simple-icons:washingtonpost': {
+			suggested: 'simple-icons:thewashingtonpost',
+			reason: 'Simple Icons uses full name: thewashingtonpost'
+		},
+		'simple-icons:aljazeera': {
+			suggested: 'mdi:television',
+			reason: 'Al Jazeera icon not available, use generic TV icon'
+		},
+		'simple-icons:france24': {
+			suggested: 'mdi:television',
+			reason: 'France 24 icon not available, use generic TV icon'
+		},
+		'simple-icons:rt': {
+			suggested: 'mdi:television',
+			reason: 'RT icon not available, use generic TV icon'
+		},
+		'simple-icons:lemonde': {
+			suggested: 'arcticons:le-monde',
+			reason: 'Simple Icons Le Monde not available, use Arcticons Le Monde'
+		},
+		'simple-icons:spiegel': {
+			suggested: 'arcticons:der-spiegel',
+			reason: 'Simple Icons Spiegel not available, use Arcticons Der Spiegel'
+		},
+		'simple-icons:elpais': {
+			suggested: 'arcticons:el-pais',
+			reason: 'Simple Icons El País not available, use Arcticons El País'
+		},
+		'heroicons-outline:exclamation-triangle': {
+			suggested: 'tabler:alert-triangle',
+			reason: 'Heroicons exclamation-triangle not available, use Tabler alert-triangle'
+		},
+		'material-symbols:telescope': {
+			suggested: 'tabler:telescope',
+			reason: 'Material Symbols telescope not available, use Tabler telescope'
+		},
+		'heroicons-outline:hourglass': {
+			suggested: 'tabler:hourglass',
+			reason: 'Heroicons hourglass not available, use Tabler hourglass'
+		},
+		'material-symbols:power': {
+			suggested: 'tabler:battery-vertical-charging',
+			reason: 'Material Symbols power not available, use Tabler battery charging icon'
+		},
+		'material-symbols:rainbow': {
+			suggested: 'tabler:rainbow',
+			reason: 'Material Symbols rainbow not available, use Tabler rainbow'
+		},
+		'mdi:satellite-outline': {
+			suggested: 'tabler:satellite',
+			reason: 'MDI satellite-outline not available, use Tabler satellite'
+		},
+		'simple-icons:reuters': {
+			suggested: 'arcticons:reuters',
+			reason: 'Simple Icons Reuters not available, use Arcticons Reuters'
+		},
+		'simple-icons:pbs': {
+			suggested: 'cbi:pbs',
+			reason: 'Simple Icons PBS not available, use CBI PBS (Public Broadcasting Service)'
+		},
+	};
+
+	// Generate suggestions for missing icons
+	report.missingIcons.forEach(iconName => {
+		if (knownFixes[iconName]) {
+			suggestions.push({
+				original: iconName,
+				...knownFixes[iconName]
+			});
+		} else {
+			// Generic suggestions based on prefix
+			const [prefix] = iconName.split(':');
+			if (prefix === 'simple-icons') {
+				suggestions.push({
+					original: iconName,
+					suggested: 'heroicons:newspaper',
+					reason: 'Simple icon not found, use generic newspaper icon'
+				});
+			}
+		}
+	});
+
+	return { report, suggestions };
+}
+
+/**
+ * Apply automatic fixes for known missing icons
+ */
+export function getFixedDomainIcon(domain: string): string {
+	const originalIcon = DOMAIN_TO_ICON[domain.toLowerCase()];
+	
+	// If the original icon is known to be missing, return the fixed version
+	const fixes: Record<string, string> = {
+		'simple-icons:nytimes': 'simple-icons:newyorktimes',
+		'simple-icons:npr': 'arcticons:npr',
+		'simple-icons:theeconomist': 'arcticons:economist',
+		'simple-icons:washingtonpost': 'simple-icons:thewashingtonpost',
+		'simple-icons:aljazeera': 'mdi:television',
+		'simple-icons:france24': 'mdi:television',
+		'simple-icons:rt': 'mdi:television',
+		'simple-icons:lemonde': 'arcticons:le-monde',
+		'simple-icons:spiegel': 'arcticons:der-spiegel',
+		'simple-icons:elpais': 'arcticons:el-pais',
+		'heroicons-outline:exclamation-triangle': 'tabler:alert-triangle',
+		'material-symbols:telescope': 'tabler:telescope',
+		'heroicons-outline:hourglass': 'tabler:hourglass',
+		'material-symbols:power': 'tabler:battery-vertical-charging',
+		'material-symbols:rainbow': 'tabler:rainbow',
+		'mdi:satellite-outline': 'tabler:satellite',
+		'simple-icons:reuters': 'arcticons:reuters',
+		'simple-icons:pbs': 'cbi:pbs'
+	};
+
+	if (originalIcon && fixes[originalIcon]) {
+		return fixes[originalIcon];
 	}
 
-	// Fallback to generic news icon
-	return 'mdi:newspaper';
+	return originalIcon || 'heroicons:newspaper';
 }
 
 /**
@@ -454,13 +725,12 @@ export function getDomainIcon(domain: string): string {
 export function preloadCommonIcons(): void {
 	const commonIcons = [
 		'heroicons-outline:home',
-		'heroicons-outline:newspaper',
 		'heroicons-outline:globe-europe-africa',
 		'heroicons-outline:star',
 		'heroicons-outline:heart',
 		'heroicons-outline:check-circle',
 		'heroicons-outline:x-circle',
-		'heroicons-outline:exclamation-triangle',
+		'tabler:alert-triangle',
 		'heroicons-outline:information-circle',
 		'heroicons-outline:magnifying-glass',
 		'heroicons-outline:cog-6-tooth',
@@ -472,7 +742,7 @@ export function preloadCommonIcons(): void {
 		'tabler:external-link',
 		// SmartImage fallback icons
 		'heroicons-outline:globe-alt',
-		'mdi:newspaper'
+		'heroicons:newspaper'
 	];
 
 	// Only log once at startup
@@ -481,5 +751,39 @@ export function preloadCommonIcons(): void {
 		window.__common_icons_logged = true;
 	}
 	iconService.preload(commonIcons, true); // High priority for UI icons
+}
+
+
+
+/**
+ * Get report of unmapped emojis
+ */
+export function getUnmappedEmojisReport(): {
+	unmappedEmojis: string[];
+	count: number;
+} {
+	const emojis = Array.from(unmappedEmojis);
+	return {
+		unmappedEmojis: emojis,
+		count: emojis.length
+	};
+}
+
+// Expose helper functions globally in development
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+	(window as any).__getMissingIconsReport = getMissingIconsReport;
+	(window as any).__getUnmappedEmojisReport = getUnmappedEmojisReport;
+	(window as any).__checkUnmappedEmojis = () => {
+		const report = getUnmappedEmojisReport();
+		console.group('🚫 Unmapped Emojis Report');
+		console.log(`📊 Total unmapped emojis: ${report.count}`);
+		if (report.count > 0) {
+			console.log('🔍 Unmapped emojis:', report.unmappedEmojis);
+		} else {
+			console.log('✅ All emojis have icon mappings!');
+		}
+		console.groupEnd();
+		return report;
+	};
 }
 

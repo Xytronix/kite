@@ -15,6 +15,8 @@ class IconService {
 	private pendingRequests = new Map<string, Promise<IconData | null>>();
 	private preloadQueue = new Set<string>();
 	private isPreloading = false;
+	private missingIcons = new Set<string>();
+	private checkedIcons = new Set<string>();
 
 	constructor() {
 		// Immediately load critical icons synchronously
@@ -112,11 +114,15 @@ class IconService {
 			const data = await response.json();
 
 			if (!data?.icons?.[name]) {
+				this.missingIcons.add(iconName);
+				this.checkedIcons.add(iconName);
 				if (import.meta.env.DEV) {
 					console.warn(`Icon not found in API response: ${iconName}`);
 				}
 				return null;
 			}
+
+			this.checkedIcons.add(iconName);
 
 			const iconProps = data.icons[name];
 			const iconData: IconData = {
@@ -254,6 +260,7 @@ class IconService {
 			// Process each icon in the batch
 			names.forEach(name => {
 				const iconName = `${prefix}:${name}`;
+				this.checkedIcons.add(iconName);
 
 				if (data?.icons?.[name]) {
 					const iconProps = data.icons[name];
@@ -269,6 +276,7 @@ class IconService {
 					this.cache.set(iconName, iconData);
 					foundIcons.push(iconName);
 				} else {
+					this.missingIcons.add(iconName);
 					missingIcons.push(iconName);
 				}
 			});
@@ -560,6 +568,64 @@ class IconService {
 	}
 
 	/**
+	 * Get all missing icons that have been checked
+	 */
+	getMissingIcons(): string[] {
+		return Array.from(this.missingIcons);
+	}
+
+	/**
+	 * Get statistics about icon loading
+	 */
+	getStats(): {
+		cached: number;
+		missing: number;
+		checked: number;
+		successRate: number;
+	} {
+		const cached = this.cache.size;
+		const missing = this.missingIcons.size;
+		const checked = this.checkedIcons.size;
+		const successRate = checked > 0 ? ((checked - missing) / checked) * 100 : 0;
+
+		return {
+			cached,
+			missing,
+			checked,
+			successRate: Math.round(successRate * 100) / 100
+		};
+	}
+
+	/**
+	 * Export missing icons report
+	 */
+	exportMissingIconsReport(): {
+		missingIcons: string[];
+		byPrefix: Record<string, string[]>;
+		stats: ReturnType<typeof this.getStats>;
+	} {
+		const missingIcons = this.getMissingIcons();
+		const byPrefix: Record<string, string[]> = {};
+
+		// Group missing icons by prefix
+		missingIcons.forEach(iconName => {
+			const [prefix] = iconName.split(':');
+			if (prefix) {
+				if (!byPrefix[prefix]) {
+					byPrefix[prefix] = [];
+				}
+				byPrefix[prefix].push(iconName);
+			}
+		});
+
+		return {
+			missingIcons,
+			byPrefix,
+			stats: this.getStats()
+		};
+	}
+
+	/**
 	 * Get cache size for debugging
 	 */
 	getCacheSize(): number {
@@ -573,6 +639,8 @@ class IconService {
 		this.cache.clear();
 		this.pendingRequests.clear();
 		this.preloadQueue.clear();
+		this.missingIcons.clear();
+		this.checkedIcons.clear();
 	}
 }
 
@@ -582,4 +650,24 @@ export const iconService = new IconService();
 // Expose for debugging in development
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
 	(window as any).__iconService = iconService;
+	
+	// Add a global function to easily check missing icons
+	(window as any).__checkMissingIcons = () => {
+		const report = iconService.exportMissingIconsReport();
+		console.group('🔍 Icon Loading Report');
+		console.log('Stats:', report.stats);
+		
+		if (report.missingIcons.length > 0) {
+			console.group('❌ Missing Icons');
+			Object.entries(report.byPrefix).forEach(([prefix, icons]) => {
+				console.log(`${prefix}:`, icons.map(icon => icon.split(':')[1]));
+			});
+			console.groupEnd();
+		} else {
+			console.log('✅ All icons loaded successfully!');
+		}
+		
+		console.groupEnd();
+		return report;
+	};
 }

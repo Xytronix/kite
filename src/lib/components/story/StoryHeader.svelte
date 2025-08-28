@@ -75,8 +75,10 @@ const displayTitle = $derived.by(() => {
 	onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onTitleClick?.(); } }}
 	aria-label="Story header"
 >
-	<header class="mb-1 flex items-center justify-between">
-		<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300" data-no-wiki>
+	<!-- Two-row grid with right column spanning both rows to center the checkmark across the whole header area -->
+	<div class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 items-center">
+		<!-- Category label (row 1, left) -->
+		<span class="category-label flex items-center gap-1 rounded py-1 text-sm text-gray-700 dark:text-gray-300 col-start-1 row-start-1" data-no-wiki>
 			{#if categoryEmoji}
 				<IconDisplay emoji={categoryEmoji} className="icon-sm" forceEmoji={experimental.useCategoryEmojis} />
 			{/if}
@@ -84,11 +86,9 @@ const displayTitle = $derived.by(() => {
 				{story.category}
 			</span>
 		</span>
-	</header>
 
-	<!-- Story Title and Read Button -->
-	<div class="flex items-start">
-		<div class="flex-grow">
+		<!-- Title row (row 2, left) -->
+		<div class="col-start-1 row-start-2">
 			<div
 				data-no-wiki
 				class="dark:text-dark-text mb-2 flex cursor-pointer items-center gap-2 text-xl text-gray-800 text-left w-full focus-visible-ring rounded"
@@ -105,12 +105,13 @@ const displayTitle = $derived.by(() => {
 				<span class="flex-grow"><CitationText text={displayTitle} showFavicons={false} showNumbers={false} inline={true} articles={story.articles || []} {citationMapping} /></span>
 			</div>
 		</div>
-		
-		<!-- Read Status Button -->
-		<div class="-mt-3 ml-4 flex-shrink-0">
+
+		<!-- Read Status Button (right column, spans both rows, centered) -->
+		<div class="col-start-2 row-span-2 ml-2 flex-shrink-0 self-center">
 			<button
 				onclick={(e) => { e.stopPropagation(); onReadClick?.(e); }}
-				class="focus-visible-ring rounded-full flex items-center justify-center p-1.5 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+				class="focus-visible-ring rounded-full grid place-items-center transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+				style="width: calc(var(--icon-xl) + 0.75rem); height: calc(var(--icon-xl) + 0.75rem);"
 				class:bg-blue-50={isRead}
 				class:dark:bg-blue-950={isRead}
 				class:hover:bg-blue-100={isRead}
@@ -119,15 +120,15 @@ const displayTitle = $derived.by(() => {
 				aria-label={isRead ? 'Mark as unread' : 'Mark as read'}
 			>
 				<svg
-					class="h-4 w-4 transition-all duration-200"
+					class="icon-xl block transition-all duration-200"
 					class:text-blue-600={isRead}
 					class:dark:text-blue-400={isRead}
 					class:text-gray-400={!isRead}
 					class:dark:text-gray-500={!isRead}
-					class:scale-110={isRead}
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 20 20"
 					fill="currentColor"
+					style="transform: scale({isRead ? 1.35 : 1.25}); transform-origin: center;"
 				>
 					<path
 						fill-rule="evenodd"

@@ -20,6 +20,35 @@
 
 	const iconName = $derived(shouldUseIcon ? getIconName(emoji || '') : null);
 
+	// Map the provided className to the corresponding CSS variable so that
+	// emoji fallbacks scale consistently with SVG icons and global font size
+	const emojiSizeVar = $derived(() => {
+		const cls = className || '';
+		if (cls.includes('icon-xl')) return 'var(--icon-xl)';
+		if (cls.includes('icon-lg')) return 'var(--icon-lg)';
+		if (cls.includes('icon-base')) return 'var(--icon-base)';
+		if (cls.includes('icon-sm')) return 'var(--icon-sm)';
+		if (cls.includes('icon-xs')) return 'var(--icon-xs)';
+		return 'var(--icon-lg)';
+	});
+
+	// Compensate for visual size differences between icon libraries
+	// These mild scale factors keep cross-library icons visually consistent
+	const visualScale = $derived(() => {
+		if (!iconName) return 1;
+		const prefix = iconName.split(':')[0];
+		switch (prefix) {
+			case 'tabler':
+				return 1.12; // tabler icons have larger padding
+			case 'heroicons-outline':
+				return 1.08; // outlines look smaller at the same box
+			case 'material-symbols':
+				return 1.04; // slightly conservative bump
+			default:
+				return 1;
+		}
+	});
+
 	// Immediately check for cached icon on iconName change
 	$effect(() => {
 		if (iconName) {
@@ -86,6 +115,7 @@
 		aria-hidden="true"
 		role="img"
 		fill="currentColor"
+		style="transform: translateZ(0) scale({visualScale}); transform-origin: 50% 50%; overflow: visible; transform-box: fill-box;"
 	>
 		{@html iconData.body}
 	</svg>
@@ -93,7 +123,7 @@
 	<!-- Show emoji immediately - no loading states, just emoji while icon loads -->
 	<span
 		class={className + ' inline-flex items-center justify-center text-center'}
-		style="font-size: {className.includes('icon-sm') ? '0.65em' : '0.75em'}; line-height: 1; transform: scale({className.includes('icon-sm') ? '0.8' : '0.9'});"
+		style="font-size: {emojiSizeVar}; line-height: 1;"
 	>{emoji}</span>
 {:else}
 	<!-- Only show loading indicator if no emoji is available -->
