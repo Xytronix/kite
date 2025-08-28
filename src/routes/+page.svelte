@@ -654,6 +654,13 @@
   // Flag to prevent navigation during load more
   let isLoadingMore = $state(false);
 
+  // Queue to apply the latest load request if another request arrives while a load is in progress
+  let pendingLoadRequests: Record<string, {
+    increment: boolean;
+    autoTopUpAttempted: boolean;
+    restrictToCurrentBatch: boolean;
+  } | null> = {};
+
   // Mark all displayed stories as read
   function markAllAsRead() {
     // Get current displayed stories
@@ -813,6 +820,7 @@
     categoryId: string,
     increment: boolean = false,
     autoTopUpAttempted: boolean = false,
+    restrictToCurrentBatch: boolean = false,
   ) {
     // Helper: trim trailing date dividers to avoid ending list on a divider
     function removeTrailingDateDividers<T = any>(items: T[]): T[] {
@@ -829,8 +837,13 @@
     console.log("📖 loadStoriesForCategory called:", { categoryId, increment });
 
     // Prevent duplicate loading calls
-    if (storiesLoading && lastLoadedCategory === categoryId && !increment) {
-      console.log("❌ Blocked duplicate loading call");
+    if (storiesLoading && lastLoadedCategory === categoryId) {
+      console.log("⏳ Blocked duplicate load – queued re-run to apply latest limit", { increment });
+      pendingLoadRequests[categoryId] = {
+        increment,
+        autoTopUpAttempted,
+        restrictToCurrentBatch,
+      };
       return;
     }
 
@@ -1092,7 +1105,9 @@
     });
 
     // If we're on the latest batch, only consider today's cached stories for initial load
-    if (!increment && ((isLatestBatch && currentDayCachedCount >= requestedLimit) || (!isLatestBatch && cachedStoryCount >= requestedLimit))) {
+    if (!increment && ((isLatestBatch && currentDayCachedCount >= (categoryLimits[categoryId] || requestedLimit)) || (!isLatestBatch && cachedStoryCount >= (categoryLimits[categoryId] || requestedLimit)))) {
+      // Re-read latest requested limit to handle rapid setting changes
+      requestedLimit = categoryLimits[categoryId] || requestedLimit;
       persistentLogMain("✅ Using cached stories for initial load");
       console.log(
         "✅ Using cached stories for initial load, slicing to:",
@@ -1145,13 +1160,15 @@
       isIncrement: increment,
     });
 
-    if (cachedStoryCount > 0 && cachedStoryCount < requestedLimit) {
+    {
+      const limitNow = categoryLimits[categoryId] || requestedLimit;
+      if (cachedStoryCount > 0 && cachedStoryCount < limitNow) {
       persistentLogMain("📊 Have cached but need more - showing cached first");
       console.log(
         "📊 Have",
         cachedStoryCount,
         "cached stories, need",
-        requestedLimit,
+        limitNow,
         "total. Showing cached first.",
       );
       // Only show cached immediately for initial loads; keep current view for increments
@@ -1159,15 +1176,13 @@
         stories = allCategoryStories[categoryId];
       }
 
-      // For initial loads (not increments), only auto-load historical when auto top-up is enabled
-      // Explicit load more operations (increment=true) always proceed
+      // For initial loads (not increments): if auto top-up is off, restrict to current batch only
+      // Allow fetching within today's batch to meet the requested limit, but do not traverse historical
       if (!increment && !experimental.autoTopUpShortDays) {
         console.log(
-          "🛑 Auto top-up disabled for initial load - keeping cached only",
+          "⛔ Auto top-up off: restricting initial load to current batch only",
         );
-        categoryLimits[categoryId] = cachedStoryCount;
-        storiesLoading = false;
-        return;
+        restrictToCurrentBatch = true;
       }
 
       persistentLogMain("🔍 About to check for more batches");
@@ -1189,16 +1204,15 @@
         hasMoreBatches,
       );
 
-      if (!hasMoreBatches || (!increment && !experimental.autoTopUpShortDays)) {
+      if (!hasMoreBatches) {
         console.log(
-          !hasMoreBatches
-            ? "🚫 No more batches available, setting limit to cached count"
-            : "🚫 Auto top-up disabled for initial load - keeping cached only",
+          "🚫 No more batches available, setting limit to cached count",
         );
         categoryLimits[categoryId] = cachedStoryCount;
-        categoryHasMore[categoryId] = hasMoreBatches; // keep true if batches exist (for auto top-up)
+        categoryHasMore[categoryId] = hasMoreBatches;
         storiesLoading = false;
         return;
+      }
       }
     }
 
@@ -1209,6 +1223,18 @@
       let currentIndex = 0;
       if (catBatchesIndex[categoryId] === undefined)
         catBatchesIndex[categoryId] = 0;
+      // Align the batch index to the current batch so we load relative to it
+      if (currentBatchId) {
+        const currentIdx = batchList.findIndex((b) => b.id === currentBatchId);
+        if (currentIdx >= 0 && catBatchesIndex[categoryId] !== currentIdx) {
+          persistentLogMain("🔧 Aligning batch index to current time travel batch", {
+            prevIndex: catBatchesIndex[categoryId],
+            newIndex: currentIdx,
+            currentBatchId: currentBatchId.substring(0, 8),
+          });
+          catBatchesIndex[categoryId] = currentIdx;
+        }
+      }
 
       // Add safety limit to prevent infinite loops
       let batchProcessingAttempts = 0;
@@ -1225,12 +1251,13 @@
         const currentDayCountForLoop = (allCategoryStories[categoryId]?.filter(
           (item: any) => !(item as any).__dateDivider && !(item as any).__fromHistoricalBatch,
         ).length) || 0;
-        if (currentStoryCountForLoop >= requestedLimit) {
+        const limitNow = categoryLimits[categoryId] || requestedLimit;
+        if ((restrictToCurrentBatch ? currentDayCountForLoop : currentStoryCountForLoop) >= limitNow) {
           break;
         }
         // On latest batch, if today's stories already satisfy the requested limit,
         // do not fetch historical batches (prevents flicker and unnecessary fetches)
-        if (isLatestBatch && currentDayCountForLoop >= requestedLimit) {
+        if (isLatestBatch && currentDayCountForLoop >= (categoryLimits[categoryId] || requestedLimit)) {
           persistentLogMain("⏭️ Current day satisfies limit - skipping historical fetch");
           break;
         }
@@ -1256,6 +1283,33 @@
           break;
         }
 
+        // When restricted (e.g., user increased story count but historical loading is disabled),
+        // do not traverse beyond the current batch even for increments
+        if (restrictToCurrentBatch && batchId !== currentBatchId) {
+          persistentLogMain("⏭️ Restricting to current batch - skipping historical traversal", {
+            batchId: batchId.substring(0, 8),
+            currentBatchId: currentBatchId?.substring(0, 8),
+            increment,
+          });
+          break;
+        }
+
+        // Global guard: Only allow automatic historical traversal when Auto top-up short days is ON.
+        // Manual load-more (increment === true and autoTopUpAttempted === false) is still allowed.
+        if (
+          batchId !== currentBatchId &&
+          !experimental.autoTopUpShortDays &&
+          !(increment && !autoTopUpAttempted)
+        ) {
+          persistentLogMain("⏭️ Skipping historical batches (auto top-up disabled)", {
+            batchId: batchId.substring(0, 8),
+            currentBatchId: currentBatchId?.substring(0, 8),
+            increment,
+            autoTopUpAttempted,
+          });
+          break;
+        }
+
         try {
           persistentLogMain("🔄 About to check if batchId === currentBatchId", {
             batchId: batchId.substring(0, 8),
@@ -1273,9 +1327,9 @@
                 !(it as any).__fromHistoricalBatch,
             ).length;
             const currentBatchSizeKnown = catBatchSizes[categoryId]?.[batchId];
-            const maybeMoreInCurrentBatch =
-              currentBatchSizeKnown === undefined ||
-              currentDayStories < currentBatchSizeKnown;
+            const maybeMoreInCurrentBatch = restrictToCurrentBatch
+              ? (currentDayStories < requestedLimit)
+              : (currentBatchSizeKnown === undefined || currentDayStories < currentBatchSizeKnown);
 
             if (!maybeMoreInCurrentBatch) {
               console.log("⏭️ Skipping current batch - fully loaded");
@@ -1419,14 +1473,34 @@
           }
 
           const remainingNeeded =
-            requestedLimit - ((allCategoryStories[categoryId]?.filter((item) => !(item as any).__dateDivider).length) || 0);
+            (categoryLimits[categoryId] || requestedLimit) - ((allCategoryStories[categoryId]?.filter((item) => !(item as any).__dateDivider).length) || 0);
           console.log("📊 Fetching stories:");
-          console.log("- Remaining needed:", remainingNeeded);
-          const fetchAmount = Math.min(15, remainingNeeded + 5); // Fetch extra to determine batch size
+          console.log("- Remaining needed (overall):", remainingNeeded);
+          let fetchAmount = Math.min(15, remainingNeeded + 5); // Default behavior with small buffer
+
+          // IMPORTANT: When fetching from the current batch, the API returns the first N items
+          // without an offset parameter. To ensure we actually receive unseen items beyond those
+          // already loaded from today, request: alreadySeenFromThisBatch + remainingInDay + buffer.
+          if (batchId === currentBatchId) {
+            const limitNowForBatch = categoryLimits[categoryId] || requestedLimit;
+            const seenFromThisBatch = (allCategoryStories[categoryId]?.filter((item: any) =>
+              !(item as any).__dateDivider && ((item as any).__batchId || currentBatchId) === batchId && !(item as any).__fromHistoricalBatch
+            ).length) || 0;
+            const totalTodayCount = (allCategoryStories[categoryId]?.filter((item: any) =>
+              !(item as any).__dateDivider && !(item as any).__fromHistoricalBatch
+            ).length) || 0;
+            const remainingInDay = Math.max(0, limitNowForBatch - totalTodayCount);
+            const desiredApiLimit = seenFromThisBatch + Math.max(remainingInDay, 1) + 3; // ensure progress + small buffer
+            fetchAmount = Math.min(25, desiredApiLimit);
+            console.log(
+              "- Current batch fetch tuning:",
+              { seenFromThisBatch, totalTodayCount, remainingInDay, desiredApiLimit, fetchAmount }
+            );
+          }
+
           console.log(
-            "- Fetch amount:",
+            "- Final fetch amount:",
             fetchAmount,
-            "(+5 extra to detect batch size)",
           );
           console.log("- From batch:", batchId);
           console.log("- Category UUID:", catUuid);
@@ -1861,7 +1935,7 @@
       
       console.log(
         "🏁 Load more results: showing",
-        Math.min(requestedLimit, finalStoryCount),
+        Math.min((categoryLimits[categoryId] || requestedLimit), finalStoryCount),
         "of",
         finalStoryCount,
         "cached stories. More available:",
@@ -1871,13 +1945,15 @@
       // Keep increments precise: don't auto-raise the limit beyond the computed target
 
       // Always slice to the requested limit, including date dividers in the correct positions
+      // Re-read latest requested limit here to respect rapid live changes (e.g., 5 → 9 → 12)
+      const currentRequestedLimit = categoryLimits[categoryId] || requestedLimit;
       const allItems = allCategoryStories[categoryId] || [];
       const storyCount = allItems.filter(
         (item) => !(item as any).__dateDivider,
       ).length;
 
       // Only show up to the requested limit of actual stories
-      if (storyCount > requestedLimit) {
+      if (storyCount > currentRequestedLimit) {
         let storiesShown = 0;
         let sliceIndex = 0;
 
@@ -1886,7 +1962,7 @@
           const currentDayStories = allItems.filter(
             (item) => !(item as any).__dateDivider && !(item as any).__fromHistoricalBatch,
           );
-          if (currentDayStories.length >= requestedLimit) {
+          if (currentDayStories.length >= currentRequestedLimit) {
             let currentDayCount = 0;
             for (let i = 0; i < allItems.length; i++) {
               const item = allItems[i] as any;
@@ -1896,7 +1972,7 @@
               }
               const isCurrent = !item.__fromHistoricalBatch;
               if (isCurrent) currentDayCount++;
-              if (currentDayCount >= requestedLimit) {
+              if (currentDayCount >= currentRequestedLimit) {
                 sliceIndex = i + 1;
                 break;
               }
@@ -1910,7 +1986,7 @@
                 sliceIndex = i + 1;
               } else {
                 storiesShown++;
-                if (storiesShown >= requestedLimit) {
+                if (storiesShown >= currentRequestedLimit) {
                   sliceIndex = i + 1;
                   break;
                 }
@@ -1927,7 +2003,7 @@
               sliceIndex = i + 1;
             } else {
               storiesShown++;
-              if (storiesShown >= requestedLimit) {
+              if (storiesShown >= currentRequestedLimit) {
                 sliceIndex = i + 1;
                 break;
               }
@@ -1985,51 +2061,19 @@
         console.warn("Auto top-up check failed:", autoErr);
       }
 
-      // Update currentBatchId to the most recent batch that was loaded during this operation
-      // This ensures URLs reflect the actual batch context of the displayed stories
-      // Only do this for explicit load more operations (increment=true) and when not in live mode
-      if (increment && catBatchesIndex[categoryId] > 0 && !isLatestBatch) {
-        // Get the most recent batch that was processed
-        const mostRecentBatchIndex = catBatchesIndex[categoryId] - 1;
-        if (mostRecentBatchIndex >= 0 && batchList[mostRecentBatchIndex]) {
-          const mostRecentBatchId = batchList[mostRecentBatchIndex].id;
-          
-          if (mostRecentBatchId && mostRecentBatchId !== currentBatchId) {
-            console.log('🔄 Updating currentBatchId from', currentBatchId, 'to', mostRecentBatchId, 'after load more');
-            console.log('🔍 Batch update context:', {
-              categoryId,
-              increment,
-              batchIndex: mostRecentBatchIndex,
-              totalBatches: batchList.length,
-              oldBatchId: currentBatchId,
-              newBatchId: mostRecentBatchId,
-              isLatestBatch
-            });
-            const oldBatchId = currentBatchId;
-            currentBatchId = mostRecentBatchId;
-            
-            // Update the URL to reflect the new batch context
-            if (historyManager) {
-              console.log('🔄 Updating URL with new batch ID:', currentBatchId);
-              historyManager.updateUrl({
-                batchId: currentBatchId,
-                categoryId: categoryId,
-                storyIndex: null
-              });
-            }
-            
-            // Log the change for debugging
-            persistentLogMain('🔄 Updated currentBatchId after load more', {
-              oldBatchId,
-              newBatchId: currentBatchId,
-              category: categoryId,
-              batchIndex: mostRecentBatchIndex
-            });
-          }
-        }
-      }
+      // Do not update currentBatchId during time travel load-more; preserve user's historical context
+      // If desired in the future, we can add a preference to opt into URL updates for time travel
 
       storiesLoading = false;
+      // Apply any queued request for this category now that loading finished
+      const queued = pendingLoadRequests[categoryId];
+      if (queued) {
+        console.log("🔁 Running queued load for category after prior load finished", { categoryId, queued });
+        pendingLoadRequests[categoryId] = null;
+        setTimeout(() => {
+          loadStoriesForCategory(categoryId, queued.increment, queued.autoTopUpAttempted, queued.restrictToCurrentBatch);
+        }, 0);
+      }
     } catch (error) {
       persistentLogMain("❌ Fatal error in loadStoriesForCategory", {
         category: categoryId,
@@ -2054,6 +2098,11 @@
       }
 
       storiesLoading = false;
+      // If there was a queued request, clear it since we hit an error; avoid loopstorms
+      if (pendingLoadRequests[categoryId]) {
+        console.log("🧹 Clearing queued load due to error", { categoryId });
+        pendingLoadRequests[categoryId] = null;
+      }
 
       // Don't rethrow the error to prevent page refresh
       // The UI will show what stories we have so far
@@ -2289,35 +2338,57 @@
       }
     }, 10000); // 10 second timeout for category changes
 
-    loadStoriesForCategory(category).finally(() => {
-      clearTimeout(categoryChangeTimeout);
-      
-      // Update URL to reflect new category AFTER story loading is complete
-      if (historyManager && updateUrl) {
-        console.log("🔄 About to call historyManager.updateUrl after story loading", {
-          category,
-          isNavigating: navigationHandlerService.isNavigating(),
-          isLatestBatch,
-          currentBatchId,
-          latestBatchId
-        });
-        persistentLogMain("🔄 About to call historyManager.updateUrl after story loading");
+    loadStoriesForCategory(category)
+      .then(async () => {
+        try {
+          // After initial load, if the category doesn't meet the new target, fetch incrementally
+          const target = categoryLimits[category] || settings.storyCount;
+          const currentCount = (allCategoryStories[category]?.filter((item: any) => !(item as any).__dateDivider).length) || 0;
+          const needsTopUp = currentCount < target;
+          if (needsTopUp) {
+            persistentLogMain("⚙️ Category needs top-up to meet new story count", {
+              category,
+              currentCount,
+              target,
+              hasMore: categoryHasMore[category]
+            });
+            // Perform an incremental fetch to respect the user's increased story count
+            const restrict = !experimental.enableHistoricalLoadMore && !experimental.autoTopUpShortDays;
+            await loadStoriesForCategory(category, true, true, restrict);
+          }
+        } catch (e) {
+          console.warn('Category top-up after navigation failed:', e);
+        }
+      })
+      .finally(() => {
+        clearTimeout(categoryChangeTimeout);
         
-        // Use latest batch ID if we're not in time travel mode, otherwise use current batch ID
-        const urlBatchId = isLatestBatch ? latestBatchId : currentBatchId;
-        historyManager.updateUrl({ 
-          batchId: urlBatchId,
-          categoryId: category, 
-          storyIndex: null 
-        });
-      }
-      
-      // Re-enable load more after category change is complete
-      setTimeout(() => {
-        isLoadingMore = false;
-        persistentLogMain("✅ Category change completed, load more re-enabled");
-      }, 500); // Small delay to prevent immediate triggering
-    });
+        // Update URL to reflect new category AFTER story loading is complete
+        if (historyManager && updateUrl) {
+          console.log("🔄 About to call historyManager.updateUrl after story loading", {
+            category,
+            isNavigating: navigationHandlerService.isNavigating(),
+            isLatestBatch,
+            currentBatchId,
+            latestBatchId
+          });
+          persistentLogMain("🔄 About to call historyManager.updateUrl after story loading");
+          
+          // Use latest batch ID if we're not in time travel mode, otherwise use current batch ID
+          const urlBatchId = isLatestBatch ? latestBatchId : currentBatchId;
+          historyManager.updateUrl({ 
+            batchId: urlBatchId,
+            categoryId: category, 
+            storyIndex: null 
+          });
+        }
+        
+        // Re-enable load more after category change is complete
+        setTimeout(() => {
+          isLoadingMore = false;
+          persistentLogMain("✅ Category change completed, load more re-enabled");
+        }, 500); // Small delay to prevent immediate triggering
+      });
 
     // Chaos index is already loaded with the batch data
   }
@@ -2723,6 +2794,7 @@
 
     // Only react when the user changes the setting value
     if (lastAppliedStoryCount === targetCount) return;
+    const isIncrease = targetCount > lastAppliedStoryCount;
 
     // Sync all category limits to the new target so navigation reflects it
     try {
@@ -2742,11 +2814,11 @@
 
     // Count currently displayed stories (exclude date dividers)
     const displayedCount = stories.filter((item: any) => !(item as any).__dateDivider).length;
+    // Count currently cached stories for this category (exclude date dividers)
+    const cachedCountForCat = (allCategoryStories[currentCat]?.filter((item: any) => !(item as any).__dateDivider).length) || 0;
 
-    // Sync per-category limit to the setting for the current category
-    if ((categoryLimits[currentCat] || 0) !== targetCount) {
-      categoryLimits[currentCat] = targetCount;
-    }
+    // Always set current category limit to target to avoid stale lower caps blocking subsequent increases
+    categoryLimits[currentCat] = targetCount;
 
     // Record that we've applied this setting so we don't re-apply on unrelated state changes
     lastAppliedStoryCount = targetCount;
@@ -2757,11 +2829,20 @@
     // Debounce to avoid spamming while user drags the slider
     if (storyCountDebounce) clearTimeout(storyCountDebounce);
     storyCountDebounce = setTimeout(() => {
-      // Reload/slice the current category to exactly match the new target.
-      // This call won't fetch if cached meets the requested limit; it will fetch if allowed and needed.
-      loadStoriesForCategory(currentCat).catch((e) => {
+      // Choose strategy based on increase/decrease and feature flags
+      try {
+        if (isIncrease) {
+          // First, try to fill from today's current batch only
+          const restrict = true;
+          isLoadingMore = false; // ensure not blocked by previous increment guard
+          loadStoriesForCategory(currentCat, true, true, restrict);
+        } else {
+          // Decrease: always re-slice without fetching
+          loadStoriesForCategory(currentCat);
+        }
+      } catch (e) {
         console.warn('Failed to apply real-time story count change:', e);
-      });
+      }
     }, 150);
   });
 
