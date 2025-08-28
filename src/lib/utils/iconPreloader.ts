@@ -49,7 +49,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 
 	// User Roles & People
 	'🧑‍💻': 'heroicons-outline:code-bracket',
-	'🧑‍🏫': 'mdi:graduation-cap',
+	'🧑‍🏫': 'ri:graduation-cap-fill',
 	'🧑‍🎓': 'heroicons-outline:user-circle',
 	'🧑‍🎨': 'mdi:palette',
 
@@ -85,8 +85,8 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'📓': 'tabler:notebook',
 	'📚': 'tabler:books',
 	'💼': 'heroicons-outline:briefcase',
-	'🏢': 'heroicons-outline:building-office',
-	'🏪': 'heroicons-outline:building-storefront',
+	'🏢': 'heroicons:building-office',
+	'🏪': 'heroicons:building-storefront',
 	'🏦': 'tabler:building-bank',
 	'🖨️': 'heroicons-outline:printer',
 	'💾': 'material-symbols:save',
@@ -344,7 +344,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	// Additional mappings for previously unmapped emojis
 	'⚖️': 'heroicons-outline:scale',
 	'🛢️': 'tabler:barrel',
-	'🎓': 'mdi:graduation-cap',
+	'🎓': 'ri:graduation-cap-fill',
 	'💍': 'mdi:ring',
 	'💎': 'mdi:diamond',
 	'🎨': 'mdi:palette',
@@ -360,7 +360,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🐧': 'mdi:penguin',
 	'🐺': 'mdi:wolf',
 	'🦎': 'mdi:lizard',
-	'🏙️': 'heroicons-outline:building-office-2',
+	'🏙️': 'heroicons:building-office',
 	'🍁': 'tabler:leaf',
 	'🏒': 'mdi:hockey-sticks',
 	'🐖': 'tabler:pig',
