@@ -1,542 +1,586 @@
 <script lang="ts">
-import { s } from '$lib/client/localization.svelte';
-import { scrollLock } from '$lib/utils/scrollLock';
-import { getOrganizationName } from '$lib/utils/domainUtils';
-import Icon from '$lib/components/Icon.svelte';
-import { useOverlayScrollbars } from 'overlayscrollbars-svelte';
-import 'overlayscrollbars/overlayscrollbars.css';
-import { getTimeAgo } from '$lib/utils/getTimeAgo';
-import { fetchWikipediaContentForDomain, type WikipediaContent } from '$lib/services/wikipediaService';
-import SmartImage from './SmartImage.svelte';
+  import { s } from "$lib/client/localization.svelte";
+  import Icon from "$lib/components/Icon.svelte";
+  import {
+    fetchWikipediaContentForDomain,
+    type WikipediaContent,
+  } from "$lib/services/wikipediaService";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
+  import { getOrganizationName } from "$lib/utils/domainUtils";
+  import { getTimeAgo } from "$lib/utils/getTimeAgo";
+  import { scrollLock } from "$lib/utils/scrollLock";
+  import SmartImage from "./SmartImage.svelte";
+  import { useOverlayScrollbars } from "overlayscrollbars-svelte";
+  import "overlayscrollbars/overlayscrollbars.css";
 
-// Props
-interface Props {
-	isOpen?: boolean;
-	currentSource?: any;
-	sourceArticles?: any[];
-	currentMediaInfo?: any;
-	isLoadingMediaInfo?: boolean;
-	onClose?: () => void;
-}
+  // Props
+  interface Props {
+    isOpen?: boolean;
+    currentSource?: any;
+    sourceArticles?: any[];
+    currentMediaInfo?: any;
+    isLoadingMediaInfo?: boolean;
+    onClose?: () => void;
+  }
 
-let { isOpen = false, currentSource, sourceArticles = [], currentMediaInfo, isLoadingMediaInfo = false, onClose }: Props = $props();
+  let {
+    isOpen = false,
+    currentSource,
+    sourceArticles = [],
+    currentMediaInfo,
+    isLoadingMediaInfo = false,
+    onClose,
+  }: Props = $props();
 
-// Function to decode HTML entities
-function decodeHtmlEntities(text: string): string {
-	if (typeof document === 'undefined') return text;
-	const textarea = document.createElement('textarea');
-	textarea.innerHTML = text;
-	return textarea.value;
-}
+  // Function to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    if (typeof document === "undefined") return text;
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
 
-// State for showing source info
-let showSourceInfo = $state(false);
+  // State for showing source info
+  let showSourceInfo = $state(false);
 
-// Focus management
-let dialogElement: HTMLElement | undefined = $state(undefined);
-let firstFocusableElement: HTMLElement | undefined = $state(undefined);
-let lastFocusableElement: HTMLElement | undefined = $state(undefined);
-let previousActiveElement: Element | null = null;
-let focusManagementInitialized = $state(false);
+  // Focus management
+  let dialogElement: HTMLElement | undefined = $state(undefined);
+  let firstFocusableElement: HTMLElement | undefined = $state(undefined);
+  let lastFocusableElement: HTMLElement | undefined = $state(undefined);
+  let previousActiveElement: Element | null = null;
+  let focusManagementInitialized = $state(false);
 
-// Use the fetched media info
-const mediaInfo = $derived.by(() => {
-	return currentMediaInfo || null;
-});
+  // Use the fetched media info
+  const mediaInfo = $derived.by(() => {
+    return currentMediaInfo || null;
+  });
 
-// State for organization name
-let organizationName = $state<string>('');
+  // State for organization name
+  let organizationName = $state<string>("");
 
-// Load organization name when currentSource changes
-$effect(() => {
-	if (currentSource?.name) {
-		organizationName = currentSource.name; // Set fallback immediately
-		getOrganizationName(currentSource.name).then(name => {
-			organizationName = decodeHtmlEntities(name);
-		}).catch(() => {
-			// Keep the fallback domain name if lookup fails
-		});
-	}
-});
-
-// OverlayScrollbars setup
-let scrollableElement: HTMLElement | undefined = $state(undefined);
-let [initialize, instance] = useOverlayScrollbars({
-	defer: true,
-	options: {
-		scrollbars: {
-			autoHide: 'leave',
-			autoHideDelay: 100
-		}
-	}
-});
-
-// Initialize OverlayScrollbars only when overlay opens
-$effect(() => {
-	if (scrollableElement && isOpen) {
-		try {
-			initialize(scrollableElement);
-		} catch (error) {
-			console.warn('Failed to initialize OverlayScrollbars:', error);
-		}
-	}
-});
-
-// Handle escape key
-function handleKeydown(e: KeyboardEvent) {
-	if (e.key === 'Escape' && isOpen) {
-		handleClose();
-	}
-}
-
-// Focus trap handler
-function handleFocusTrap(e: KeyboardEvent) {
-	if (e.key !== 'Tab') return;
-	
-	if (!firstFocusableElement || !lastFocusableElement) return;
-	
-	if (e.shiftKey) {
-		// Shift + Tab
-		if (document.activeElement === firstFocusableElement) {
-			e.preventDefault();
-			lastFocusableElement.focus();
-		}
-	} else {
-		// Tab
-		if (document.activeElement === lastFocusableElement) {
-			e.preventDefault();
-			firstFocusableElement.focus();
-		}
-	}
-}
-
-// Get focusable elements
-function getFocusableElements(): HTMLElement[] {
-	if (!dialogElement) return [];
-	
-	const focusableSelectors = [
-		'button:not([disabled])',
-		'[href]:not([disabled])',
-		'input:not([disabled])',
-		'select:not([disabled])',
-		'textarea:not([disabled])',
-		'[tabindex]:not([tabindex="-1"]):not([disabled])'
-	];
-	
-	return Array.from(dialogElement.querySelectorAll(focusableSelectors.join(', '))) as HTMLElement[];
-}
-
-// Update focusable elements
-function updateFocusableElements() {
-	const focusableElements = getFocusableElements();
-	firstFocusableElement = focusableElements[0];
-	lastFocusableElement = focusableElements[focusableElements.length - 1];
-}
-
-// Handle visibility changes for scroll lock and focus management
-$effect(() => {
-	if (typeof document !== 'undefined') {
-		if (isOpen && !focusManagementInitialized) {
-			// Store the previously active element
-			previousActiveElement = document.activeElement;
-			
-			// Background scroll locked in dedicated effect below
-			
-			// Set up keyboard listeners
-			document.addEventListener('keydown', handleKeydown);
-			document.addEventListener('keydown', handleFocusTrap);
-			
-			// Set initial focus after DOM updates
-			setTimeout(() => {
-				updateFocusableElements();
-				if (firstFocusableElement) {
-					firstFocusableElement.focus();
-				}
-			}, 0);
-			
-			focusManagementInitialized = true;
-		} else if (!isOpen && focusManagementInitialized) {
-			// Clean up listeners
-			document.removeEventListener('keydown', handleKeydown);
-			document.removeEventListener('keydown', handleFocusTrap);
-			
-			// Background scroll unlocked in dedicated effect below
-			
-			// Skip focus restoration to prevent position jumping
-			// previousActiveElement is cleared but not restored
-			
-			focusManagementInitialized = false;
-		}
-		
-		return () => {
-			document.removeEventListener('keydown', handleKeydown);
-			document.removeEventListener('keydown', handleFocusTrap);
-			// Unlock handled in dedicated effect below
-		};
-	}
-});
-
-// Add new dedicated scroll lock effect
-$effect(() => {
-    if (typeof document === 'undefined') return;
-    if (isOpen) {
-        scrollLock.lock();
-        return () => {
-            scrollLock.unlock();
-        };
+  // Load organization name when currentSource changes
+  $effect(() => {
+    if (currentSource?.name) {
+      organizationName = currentSource.name; // Set fallback immediately
+      getOrganizationName(currentSource.name)
+        .then((name) => {
+          organizationName = decodeHtmlEntities(name);
+        })
+        .catch(() => {
+          // Keep the fallback domain name if lookup fails
+        });
     }
-});
+  });
 
-// Handle close
-function handleClose() {
-	if (onClose) onClose();
-}
+  // OverlayScrollbars setup
+  let scrollableElement: HTMLElement | undefined = $state(undefined);
+  let [initialize, instance] = useOverlayScrollbars({
+    defer: true,
+    options: {
+      scrollbars: {
+        autoHide: "leave",
+        autoHideDelay: 100,
+      },
+    },
+  });
 
-// Handle backdrop click
-function handleBackdropClick(event: MouseEvent) {
-	if (event.target === event.currentTarget) {
-		handleClose();
-	}
-}
+  // Initialize OverlayScrollbars only when overlay opens
+  $effect(() => {
+    if (scrollableElement && isOpen) {
+      try {
+        initialize(scrollableElement);
+      } catch (error) {
+        console.warn("Failed to initialize OverlayScrollbars:", error);
+      }
+    }
+  });
 
-let wikipediaInfo = $state<WikipediaContent | null>(null);
-let isLoadingWikipediaInfo = $state(false);
+  // Handle escape key
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape" && isOpen) {
+      handleClose();
+    }
+  }
 
-// Track the last source we fetched Wikipedia info for to prevent refetching
-let lastFetchedSource = $state<string | null>(null);
+  // Focus trap handler
+  function handleFocusTrap(e: KeyboardEvent) {
+    if (e.key !== "Tab") return;
 
-// Watch for overlay open & missing media info to fetch Wikipedia fallback
-$effect(() => {
+    if (!firstFocusableElement || !lastFocusableElement) return;
+
+    if (e.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstFocusableElement) {
+        e.preventDefault();
+        lastFocusableElement.focus();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastFocusableElement) {
+        e.preventDefault();
+        firstFocusableElement.focus();
+      }
+    }
+  }
+
+  // Get focusable elements
+  function getFocusableElements(): HTMLElement[] {
+    if (!dialogElement) return [];
+
+    const focusableSelectors = [
+      "button:not([disabled])",
+      "[href]:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      '[tabindex]:not([tabindex="-1"]):not([disabled])',
+    ];
+
+    return Array.from(
+      dialogElement.querySelectorAll(focusableSelectors.join(", ")),
+    ) as HTMLElement[];
+  }
+
+  // Update focusable elements
+  function updateFocusableElements() {
+    const focusableElements = getFocusableElements();
+    firstFocusableElement = focusableElements[0];
+    lastFocusableElement = focusableElements[focusableElements.length - 1];
+  }
+
+  // Handle visibility changes for scroll lock and focus management
+  $effect(() => {
+    if (typeof document !== "undefined") {
+      if (isOpen && !focusManagementInitialized) {
+        // Store the previously active element
+        previousActiveElement = document.activeElement;
+
+        // Background scroll locked in dedicated effect below
+
+        // Set up keyboard listeners
+        document.addEventListener("keydown", handleKeydown);
+        document.addEventListener("keydown", handleFocusTrap);
+
+        // Set initial focus after DOM updates
+        setTimeout(() => {
+          updateFocusableElements();
+          if (firstFocusableElement) {
+            firstFocusableElement.focus();
+          }
+        }, 0);
+
+        focusManagementInitialized = true;
+      } else if (!isOpen && focusManagementInitialized) {
+        // Clean up listeners
+        document.removeEventListener("keydown", handleKeydown);
+        document.removeEventListener("keydown", handleFocusTrap);
+
+        // Background scroll unlocked in dedicated effect below
+
+        // Skip focus restoration to prevent position jumping
+        // previousActiveElement is cleared but not restored
+
+        focusManagementInitialized = false;
+      }
+
+      return () => {
+        document.removeEventListener("keydown", handleKeydown);
+        document.removeEventListener("keydown", handleFocusTrap);
+        // Unlock handled in dedicated effect below
+      };
+    }
+  });
+
+  // Add new dedicated scroll lock effect
+  $effect(() => {
+    if (typeof document === "undefined") return;
+    if (isOpen) {
+      scrollLock.lock();
+      return () => {
+        scrollLock.unlock();
+      };
+    }
+  });
+
+  // Handle close
+  function handleClose() {
+    if (onClose) onClose();
+  }
+
+  // Handle backdrop click
+  function handleBackdropClick(event: MouseEvent) {
+    if (event.target === event.currentTarget) {
+      handleClose();
+    }
+  }
+
+  let wikipediaInfo = $state<WikipediaContent | null>(null);
+  let isLoadingWikipediaInfo = $state(false);
+
+  // Track the last source we fetched Wikipedia info for to prevent refetching
+  let lastFetchedSource = $state<string | null>(null);
+
+  // Watch for overlay open & missing media info to fetch Wikipedia fallback
+  $effect(() => {
     // Only proceed if overlay is open, no media info, and we have a source name
     if (!isOpen || currentMediaInfo || !currentSource?.name) {
-        // Reset when overlay closes or conditions change
-        if (!isOpen) {
-            wikipediaInfo = null;
-            lastFetchedSource = null;
-            isLoadingWikipediaInfo = false;
-        }
-        return;
+      // Reset when overlay closes or conditions change
+      if (!isOpen) {
+        wikipediaInfo = null;
+        lastFetchedSource = null;
+        isLoadingWikipediaInfo = false;
+      }
+      return;
     }
-    
+
     // Avoid refetching if we already have data for the same source
     if (lastFetchedSource === currentSource.name && wikipediaInfo) {
-        return;
+      return;
     }
-    
+
     // Fetch Wikipedia content asynchronously without blocking reactive updates
     (async () => {
-        try {
-            isLoadingWikipediaInfo = true;
-            lastFetchedSource = currentSource.name;
-            const result = await fetchWikipediaContentForDomain(currentSource.name);
-            
-            // Only update if we're still looking at the same source and overlay is open
-            if (isOpen && currentSource?.name === lastFetchedSource) {
-                wikipediaInfo = result;
-            }
-        } catch (error) {
-            console.error('Failed to fetch Wikipedia content:', error);
-            wikipediaInfo = null;
-        } finally {
-            isLoadingWikipediaInfo = false;
+      try {
+        isLoadingWikipediaInfo = true;
+        lastFetchedSource = currentSource.name;
+        const result = await fetchWikipediaContentForDomain(currentSource.name);
+
+        // Only update if we're still looking at the same source and overlay is open
+        if (isOpen && currentSource?.name === lastFetchedSource) {
+          wikipediaInfo = result;
         }
+      } catch (error) {
+        console.error("Failed to fetch Wikipedia content:", error);
+        wikipediaInfo = null;
+      } finally {
+        isLoadingWikipediaInfo = false;
+      }
     })();
-});
+  });
 
-// Helper derived – any loading state
-const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
+  // Helper derived – any loading state
+  const isLoadingInfo = $derived(isLoadingMediaInfo || isLoadingWikipediaInfo);
 
-// Replace rendering checks
-// Find the block where source info is shown
-// We'll insert new else-if for wikipediaInfo.
+  // Replace rendering checks
+  // Find the block where source info is shown
+  // We'll insert new else-if for wikipediaInfo.
 </script>
 
 {#if isOpen}
-	<div
-		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 dark:bg-black/70 transition-opacity duration-200"
-		onclick={handleBackdropClick}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') {
-				handleClose();
-			}
-		}}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="source-overlay-title"
-		tabindex="-1"
-	>
-		<div 
-			bind:this={dialogElement}
-			class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800 transform transition-all duration-200 scale-100" 
-			role="document"
-		>
-			<div 
-				bind:this={scrollableElement}
-				class="max-h-[80vh] overflow-y-auto"
-				data-overlayscrollbars-initialize
-			>
-			<header class="mb-4 flex items-center justify-between">
-				<div class="flex items-center space-x-2">
-					{#if currentSource?.name}
-                        <SmartImage
-                            domain={currentSource?.name}
-                            alt={`${currentSource?.name || 'Unknown Source'} favicon`}
-                            class="h-4 w-4 rounded-full"
-                            size={16}
-                            loading="eager"
-                            preferIconify={true}
-                            addBackground={true}
-                            backgroundMode="transparent-only"
+  <div
+    class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 transition-opacity duration-200 dark:bg-black/70"
+    onclick={handleBackdropClick}
+    onkeydown={(e) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    }}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="source-overlay-title"
+    tabindex="-1"
+  >
+    <div
+      bind:this={dialogElement}
+      class="max-h-[90vh] w-full max-w-2xl scale-100 transform overflow-y-auto rounded-lg bg-white p-6 transition-all duration-200 dark:bg-gray-800"
+      role="document"
+    >
+      <div
+        bind:this={scrollableElement}
+        class="max-h-[80vh] overflow-y-auto"
+        data-overlayscrollbars-initialize
+      >
+        <header class="mb-4 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            {#if currentSource?.name}
+              <SmartImage
+                domain={currentSource?.name}
+                alt={`${currentSource?.name || "Unknown Source"} favicon`}
+                class="h-4 w-4 rounded-full"
+                size={16}
+                loading="eager"
+                preferIconify={experimental.preferIconifyIcons}
+                addBackground={true}
+                backgroundMode="transparent-only"
+              />
+            {/if}
+            <h3
+              id="source-overlay-title"
+              class="dark:text-dark-text text-xl font-bold"
+            >
+              {organizationName || "Unknown Source"}
+            </h3>
+          </div>
+          <button
+            onclick={handleClose}
+            class="focus-visible-ring rounded text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            aria-label="Close source overlay"
+            type="button"
+          >
+            <Icon icon="tabler:x" class="h-6 w-6" />
+          </button>
+        </header>
+
+        <p class="mb-4 text-gray-600 dark:text-gray-400">
+          {sourceArticles.length === 1
+            ? s("sources.article", {
+                count: sourceArticles.length.toString(),
+              }) || `${sourceArticles.length} article`
+            : s("sources.articles", {
+                count: sourceArticles.length.toString(),
+              }) || `${sourceArticles.length} articles`}
+        </p>
+
+        <div class="space-y-4">
+          {#each sourceArticles as article}
+            <article class="flex space-x-4">
+              <div class="flex-shrink-0">
+                {#if article.image}
+                  <img
+                    src={article.image}
+                    alt="Article"
+                    class="h-24 w-24 rounded object-cover"
+                    onerror={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      (target.nextElementSibling as HTMLElement)!.style.display =
+                        "flex";
+                    }}
+                  />
+                  <!-- Fallback article image -->
+                  <div
+                    class="flex h-24 w-24 items-center justify-center rounded bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                    style="display: none;"
+                  >
+                    <Icon icon="tabler:photo" class="h-8 w-8" />
+                  </div>
+                {:else}
+                  <!-- Default article image when no image available -->
+                  <div
+                    class="flex h-24 w-24 items-center justify-center rounded bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                  >
+                    <Icon icon="tabler:photo" class="h-8 w-8" />
+                  </div>
+                {/if}
+              </div>
+              <div>
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:underline"
+                  onclick={(e) => e.stopPropagation()}
+                >
+                  <h4 class="dark:text-dark-text font-semibold">
+                    {decodeHtmlEntities(article.title)}
+                  </h4>
+                </a>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {getTimeAgo(article.date)} · {new Date(
+                    article.date,
+                  ).toLocaleDateString()}
+                </p>
+              </div>
+            </article>
+          {/each}
+        </div>
+
+        <!-- Source Information -->
+        <div
+          class="mt-8 border-t border-gray-200 pt-4 select-none dark:border-gray-700"
+        >
+          <button
+            onclick={() => (showSourceInfo = !showSourceInfo)}
+            class="flex w-full items-center justify-between p-2 text-left text-gray-800 focus:outline-none dark:text-gray-200"
+            type="button"
+          >
+            <span class="font-semibold select-none">
+              {s("source.info.title") || "Source Information"}
+            </span>
+            <Icon
+              icon="tabler:chevron-down"
+              class="h-5 w-5 transform transition-transform duration-150 ease-in-out {showSourceInfo
+                ? 'rotate-180'
+                : ''}"
+            />
+          </button>
+
+          {#if showSourceInfo}
+            <div
+              class="animate-in slide-in-from-top-2 mt-4 duration-200 ease-out select-text"
+            >
+              {#if isLoadingInfo}
+                <div class="py-6 text-center">
+                  <div
+                    class="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-gray-400"
+                  ></div>
+                  <p class="text-gray-600 dark:text-gray-400">
+                    {s("source.info.loading") ||
+                      "Loading source information..."}
+                  </p>
+                </div>
+              {:else if mediaInfo}
+                <div class="space-y-6">
+                  <!-- Info Grid -->
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <!-- Country -->
+                    <div class="flex items-start gap-3">
+                      <div class="mt-0.5 flex-shrink-0">
+                        <Icon
+                          icon="tabler:world"
+                          class="h-5 w-5 text-gray-500"
                         />
-					{/if}
-					<h3 id="source-overlay-title" class="dark:text-dark-text text-xl font-bold">
-						{organizationName || 'Unknown Source'}
-					</h3>
-				</div>
-				<button
-					onclick={handleClose}
-					class="text-gray-500 hover:text-gray-700 focus-visible-ring rounded dark:text-gray-400 dark:hover:text-gray-200"
-					aria-label="Close source overlay"
-					type="button"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						/>
-					</svg>
-				</button>
-			</header>
-			
-			<p class="mb-4 text-gray-600 dark:text-gray-400">
-				{sourceArticles.length === 1 
-					? (s('sources.article', { count: sourceArticles.length.toString() }) || `${sourceArticles.length} article`)
-					: (s('sources.articles', { count: sourceArticles.length.toString() }) || `${sourceArticles.length} articles`)}
-			</p>
-			
-			<div class="space-y-4">
-				{#each sourceArticles as article}
-					<article class="flex space-x-4">
-						<div class="flex-shrink-0">
-							{#if article.image}
-								<img
-									src={article.image}
-									alt="Article"
-									class="h-24 w-24 rounded object-cover"
-									onerror={(e) => {
-										const target = e.target as HTMLImageElement;
-										target.style.display = 'none';
-										(target.nextElementSibling as HTMLElement)!.style.display = 'flex';
-									}}
-								/>
-								<!-- Fallback article image -->
-								<div 
-									class="h-24 w-24 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500"
-									style="display: none;"
-								>
-									<svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-									</svg>
-								</div>
-							{:else}
-								<!-- Default article image when no image available -->
-								<div class="h-24 w-24 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-500">
-									<svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-									</svg>
-								</div>
-							{/if}
-						</div>
-						<div>
-							<a
-								href={article.link}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="hover:underline"
-								onclick={(e) => e.stopPropagation()}
-							>
-								<h4 class="dark:text-dark-text font-semibold">
-									{decodeHtmlEntities(article.title)}
-								</h4>
-							</a>
-							<p class="text-sm text-gray-500 dark:text-gray-400">
-								{getTimeAgo(article.date)} · {new Date(article.date).toLocaleDateString()}
-							</p>
-						</div>
-					</article>
-				{/each}
-			</div>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div
+                          class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          {s("source.info.country") || "Country"}
+                        </div>
+                        <div
+                          class="break-words text-gray-600 dark:text-gray-400"
+                        >
+                          {mediaInfo?.country}
+                        </div>
+                      </div>
+                    </div>
 
-			<!-- Source Information -->
-			<div class="mt-8 border-t border-gray-200 pt-4 dark:border-gray-700">
-				<button
-					onclick={() => showSourceInfo = !showSourceInfo}
-					class="flex w-full items-center justify-between rounded-lg p-2 text-left text-gray-800 hover:bg-gray-50 focus-visible-ring dark:text-gray-200 dark:hover:bg-gray-700"
-					type="button"
-				>
-					<span class="font-semibold">
-						{s('source.info.title') || 'Source Information'}
-					</span>
-					<svg
-						class="h-5 w-5 transform transition-transform"
-						class:rotate-180={showSourceInfo}
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-				</button>
+                    <!-- Owner -->
+                    <div class="flex items-start gap-3">
+                      <div class="mt-0.5 flex-shrink-0">
+                        <Icon
+                          icon="tabler:user-circle"
+                          class="h-5 w-5 text-gray-500"
+                        />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div
+                          class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          {s("source.info.owner") || "Owner"}
+                        </div>
+                        <div
+                          class="break-words text-gray-600 dark:text-gray-400"
+                        >
+                          {mediaInfo?.owner ||
+                            s("source.info.notSpecified") ||
+                            "Not specified"}
+                        </div>
+                      </div>
+                    </div>
 
-				{#if showSourceInfo}
-					<div class="mt-4">
-						{#if isLoadingInfo}
-							<div class="py-6 text-center">
-								<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-4"></div>
-								<p class="text-gray-600 dark:text-gray-400">
-									{s('source.info.loading') || 'Loading source information...'}
-								</p>
-							</div>
-						{:else if mediaInfo}
-							<div class="space-y-6">
-								<!-- Info Grid -->
-								<div class="grid gap-4 sm:grid-cols-2">
-									<!-- Country -->
-									<div class="flex items-start gap-3">
-										<div class="flex-shrink-0 mt-0.5">
-											<Icon icon="tabler:map-pin" class="h-5 w-5 text-gray-500" />
-										</div>
-										<div class="min-w-0 flex-1">
-											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
-												{s('source.info.country') || 'Country'}
-											</div>
-											<div class="text-gray-600 dark:text-gray-400 break-words">
-												{mediaInfo?.country}
-											</div>
-										</div>
-									</div>
+                    <!-- Organization -->
+                    <div class="flex items-start gap-3">
+                      <div class="mt-0.5 flex-shrink-0">
+                        <Icon
+                          icon="tabler:building-bank"
+                          class="h-5 w-5 text-gray-500"
+                        />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div
+                          class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          {s("source.info.organization") || "Organization"}
+                        </div>
+                        <div
+                          class="break-words text-gray-600 dark:text-gray-400"
+                        >
+                          {mediaInfo?.organization}
+                        </div>
+                      </div>
+                    </div>
 
-									<!-- Owner -->
-									<div class="flex items-start gap-3">
-										<div class="flex-shrink-0 mt-0.5">
-											<Icon icon="tabler:user" class="h-5 w-5 text-gray-500" />
-										</div>
-										<div class="min-w-0 flex-1">
-											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
-												{s('source.info.owner') || 'Owner'}
-											</div>
-											<div class="text-gray-600 dark:text-gray-400 break-words">
-												{mediaInfo?.owner || s('source.info.notSpecified') || 'Not specified'}
-											</div>
-										</div>
-									</div>
+                    <!-- Media Classification -->
+                    <div class="flex items-start gap-3">
+                      <div class="mt-0.5 flex-shrink-0">
+                        <Icon
+                          icon="tabler:tags"
+                          class="h-5 w-5 text-gray-500"
+                        />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div
+                          class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
+                          {s("source.info.mediaClassification") ||
+                            "Media Classification"}
+                        </div>
+                        <div
+                          class="break-words text-gray-600 dark:text-gray-400"
+                        >
+                          {mediaInfo?.typology}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-									<!-- Organization -->
-									<div class="flex items-start gap-3">
-										<div class="flex-shrink-0 mt-0.5">
-											<Icon icon="tabler:building" class="h-5 w-5 text-gray-500" />
-										</div>
-										<div class="min-w-0 flex-1">
-											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
-												{s('source.info.organization') || 'Organization'}
-											</div>
-											<div class="text-gray-600 dark:text-gray-400 break-words">
-												{mediaInfo?.organization}
-											</div>
-										</div>
-									</div>
-
-									<!-- Media Classification -->
-									<div class="flex items-start gap-3">
-										<div class="flex-shrink-0 mt-0.5">
-											<Icon icon="tabler:tag" class="h-5 w-5 text-gray-500" />
-										</div>
-										<div class="min-w-0 flex-1">
-											<div class="font-medium text-gray-700 dark:text-gray-300 text-sm">
-												{s('source.info.mediaClassification') || 'Media Classification'}
-											</div>
-											<div class="text-gray-600 dark:text-gray-400 break-words">
-												{mediaInfo?.typology}
-											</div>
-										</div>
-									</div>
-								</div>
-
-								<!-- Description -->
-								{#if mediaInfo?.description}
-									<div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
-										<h4 class="mb-3 font-medium text-gray-700 dark:text-gray-300">
-											{s('source.info.description') || 'Description'}
-										</h4>
-										<p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-											{mediaInfo?.description}
-										</p>
-									</div>
-								{/if}
-							</div>
-						{:else if wikipediaInfo}
-							<div class="mt-4 space-y-3">
-								<h4 class="font-medium text-gray-700 dark:text-gray-300 text-lg">
-									{wikipediaInfo.title}
-								</h4>
-								<p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-									{wikipediaInfo.extract}
-								</p>
-								{#if wikipediaInfo.wikiUrl}
-									<a
-										href={wikipediaInfo.wikiUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
-										onclick={(e) => e.stopPropagation()}
-									>
-										<Icon icon="tabler:external-link" class="h-4 w-4" />
-										<span>View on Wikipedia</span>
-									</a>
-								{/if}
-							</div>
-						{:else}
-							<div class="py-6 text-center">
-								<h4 class="mb-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
-									{s('source.contribute.title') || 'Help Us Improve Source Information'}
-								</h4>
-								<p class="mb-4 text-gray-600 dark:text-gray-400">
-									{s('source.contribute.description') || 'We need your help to provide detailed information about news sources.'}
-								</p>
-								<a
-									href="https://github.com/kagisearch/kite-public"
-									class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-blue-600"
-								>
-									<svg
-										class="mr-2 h-5 w-5"
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 24 24"
-										fill="currentColor"
-									>
-										<path
-											d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-										/>
-									</svg>
-									{s('source.contribute.button') || 'Contribute on GitHub'}
-								</a>
-							</div>
-						{/if}
-					</div>
-				{/if}
-			</div>
-			</div>
-		</div>
-	</div>
-{/if} 
+                  <!-- Description -->
+                  {#if mediaInfo?.description}
+                    <div
+                      class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700"
+                    >
+                      <h4
+                        class="mb-3 font-medium text-gray-700 dark:text-gray-300"
+                      >
+                        {s("source.info.description") || "Description"}
+                      </h4>
+                      <p
+                        class="leading-relaxed text-gray-600 dark:text-gray-400"
+                      >
+                        {mediaInfo?.description}
+                      </p>
+                    </div>
+                  {/if}
+                </div>
+              {:else if wikipediaInfo}
+                <div class="mt-4 space-y-3">
+                  <h4
+                    class="text-lg font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {wikipediaInfo.title}
+                  </h4>
+                  <p class="leading-relaxed text-gray-600 dark:text-gray-400">
+                    {wikipediaInfo.extract}
+                  </p>
+                  {#if wikipediaInfo.wikiUrl}
+                    <a
+                      href={wikipediaInfo.wikiUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                      onclick={(e) => e.stopPropagation()}
+                    >
+                      <Icon icon="tabler:external-link" class="h-4 w-4" />
+                      <span>View on Wikipedia</span>
+                    </a>
+                  {/if}
+                </div>
+              {:else}
+                <div class="py-6 text-center">
+                  <h4
+                    class="mb-2 text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    {s("source.contribute.title") ||
+                      "Help Us Improve Source Information"}
+                  </h4>
+                  <p class="mb-4 text-gray-600 dark:text-gray-400">
+                    {s("source.contribute.description") ||
+                      "We need your help to provide detailed information about news sources."}
+                  </p>
+                  <a
+                    href="https://github.com/kagisearch/kite-public"
+                    class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-blue-600"
+                  >
+                    <Icon icon="tabler:brand-github" class="mr-2 h-5 w-5" />
+                    {s("source.contribute.button") || "Contribute on GitHub"}
+                  </a>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

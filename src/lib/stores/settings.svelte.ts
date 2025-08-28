@@ -10,6 +10,7 @@ interface SettingsState {
   categoryHeaderPosition: CategoryHeaderPosition;
   showIntro: boolean;
   activeTab?: string;
+  dedupeArticles?: boolean;
 }
 
 // Initialize settings state
@@ -19,6 +20,7 @@ const settingsState = $state<SettingsState>({
   storyCount: 10,
   categoryHeaderPosition: "bottom",
   showIntro: false,
+  dedupeArticles: true,
 });
 
 // Helper functions
@@ -183,6 +185,10 @@ export const settings = {
     return settingsState.activeTab;
   },
 
+  get dedupeArticles() {
+    return settingsState.dedupeArticles ?? true;
+  },
+
   open(tab?: string) {
     settingsState.isOpen = true;
     if (tab) {
@@ -213,6 +219,11 @@ export const settings = {
     saveToStorage("storyCount", clampedCount.toString());
   },
 
+  setDedupeArticles(enabled: boolean) {
+    settingsState.dedupeArticles = !!enabled;
+    saveToStorage("dedupeArticles", settingsState.dedupeArticles ? "true" : "false");
+  },
+
   setCategoryHeaderPosition(position: CategoryHeaderPosition) {
     settingsState.categoryHeaderPosition = position;
     saveToStorage("categoryHeaderPosition", position);
@@ -227,11 +238,13 @@ export const settings = {
     settingsState.fontSize = "normal";
     settingsState.storyCount = 10;
     settingsState.categoryHeaderPosition = "bottom";
+    settingsState.dedupeArticles = true;
     
     applyFontSize("normal");
     saveToStorage("fontSize", "normal");
     saveToStorage("storyCount", "10");
     saveToStorage("categoryHeaderPosition", "bottom");
+    saveToStorage("dedupeArticles", "true");
   },
 
   init() {
@@ -244,11 +257,13 @@ export const settings = {
       "bottom",
     ) as CategoryHeaderPosition;
     const introShown = loadFromStorage("introShown", "false") === "true";
+    const dedupeArticles = loadFromStorage("dedupeArticles", "true") === "true";
 
     settingsState.fontSize = fontSize;
     settingsState.storyCount = Math.max(3, Math.min(12, storyCount));
     settingsState.categoryHeaderPosition = categoryHeaderPosition;
     settingsState.showIntro = !introShown;
+    settingsState.dedupeArticles = dedupeArticles;
 
     applyFontSize(fontSize);
   },

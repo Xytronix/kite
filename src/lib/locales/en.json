@@ -2967,6 +2967,14 @@
     "text": "Something went wrong, there are no stories here!",
     "translationContext": "Message shown when no stories are found"
   },
+  "stories.noSourcesInLanguage": {
+    "text": "Sources may not be available in this language yet.",
+    "translationContext": "Shown when no stories appear due to unavailable feed language"
+  },
+  "stories.switchToEnglish": {
+    "text": "Switch to English",
+    "translationContext": "Button to switch data language to English"
+  },
   "stories.noneTodayTitle": {
     "text": "No stories today",
     "translationContext": "Title shown when a category has no stories for today"

@@ -1,5 +1,6 @@
 import { browser } from "$app/environment";
 import locales from "$lib/locales";
+import { dataReloadService } from "$lib/services/dataService";
 
 export type SupportedLanguage =
   | "default"
@@ -93,13 +94,20 @@ async function loadStrings(lang: string) {
       console.warn('⚠️ Remote locale failed, falling back to local files:', error);
     }
     
-    // Fallback to local complete files
+    // Fallback to local files, but only if sufficiently complete
     console.log(`Loading from local files...`);
     const localeData = locales[lang as keyof typeof locales];
     if (localeData) {
-      state.strings = localeData;
-      state.locale = lang;
-      console.log(`✅ Successfully loaded locale: ${lang} with ${Object.keys(localeData).length} strings from local files`);
+      if (isCompleteLocale(localeData)) {
+        state.strings = localeData;
+        state.locale = lang;
+        console.log(`✅ Successfully loaded locale: ${lang} with ${Object.keys(localeData).length} strings from local files`);
+      } else {
+        console.warn(`⚠️ Local locale '${lang}' is incomplete (${Object.keys(localeData).length} keys). Falling back to English.`);
+        state.strings = locales.en;
+        state.locale = "en";
+        console.log(`Fallback to English locale with ${Object.keys(locales.en).length} strings`);
+      }
     } else {
       console.error(`Locale not found: ${lang}. Available locales:`, Object.keys(locales));
       // Fallback to English if locale not found
@@ -176,12 +184,23 @@ export const language = {
     const isFirst = isFirstVisit();
     
     if (isFirst && suggestedUI && suggestedData) {
-      // Use location-based suggestions for first visit
+      // Use location-based suggestions for first visit (UI and data)
       state.ui = suggestedUI as SupportedLanguage;
       state.data = suggestedData as SupportedLanguage;
-      // Save the suggestions so they become the user's preference
+      // Persist the suggestions
       save("ui", state.ui);
       save("data", state.data);
+      console.log(`🌐 First visit detected. Using suggested languages → UI='${state.ui}', data='${state.data}'.`);
+      // Notify app that data language changed so initial English load is replaced
+      if (browser) {
+        window.dispatchEvent(
+          new CustomEvent("data-language-changed", { detail: { language: state.data } })
+        );
+        // Also trigger centralized reload shortly after mount so DataLoader has time to register
+        setTimeout(() => {
+          try { dataReloadService.reloadData(); } catch {}
+        }, 300);
+      }
     } else {
       // Load existing preferences or use defaults
       state.ui = load("ui", "en");

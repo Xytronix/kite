@@ -10,6 +10,7 @@
   import SmartImage from "../SmartImage.svelte";
   import SourceOverlay from "../SourceOverlay.svelte";
   import SourceTooltip from "./SourceTooltip.svelte";
+  import { getFaviconUrlsSync, getFaviconUrls } from "$lib/utils/citationUtils";
 
   // Props
   interface Props {
@@ -28,8 +29,8 @@
 
   // Function to decode HTML entities
   function decodeHtmlEntities(text: string): string {
-    if (typeof document === 'undefined') return text;
-    const textarea = document.createElement('textarea');
+    if (typeof document === "undefined") return text;
+    const textarea = document.createElement("textarea");
     textarea.innerHTML = text;
     return textarea.value;
   }
@@ -44,9 +45,11 @@
   // Get unique domains from the section-specific cited articles
   const citedDomains = $derived.by(() => {
     const domains = new Set<string>();
-    
+
     // Only use paragraph-level citations if at least one paragraph has cited articles
-    const hasParagraphCitations = paragraphCitations.some(p => (p.articles?.length || 0) > 0);
+    const hasParagraphCitations = paragraphCitations.some(
+      (p) => (p.articles?.length || 0) > 0,
+    );
     if (hasParagraphCitations) {
       paragraphCitations.forEach((paragraph) => {
         paragraph.articles.forEach((article) => {
@@ -63,22 +66,26 @@
         }
       });
     }
-    
+
     const result = Array.from(domains);
-    
+
     // Debug logging for business angle section
-    if (sectionTitle?.includes('Business')) {
-      console.log('SectionSources Debug for Business Angle:', {
+    if (sectionTitle?.includes("Business")) {
+      console.log("SectionSources Debug for Business Angle:", {
         sectionTitle,
         articlesLength: articles.length,
         paragraphCitationsLength: paragraphCitations.length,
-        paragraphCitationsArticles: paragraphCitations.flatMap(p => p.articles).length,
+        paragraphCitationsArticles: paragraphCitations.flatMap(
+          (p) => p.articles,
+        ).length,
         domainsFound: result,
         experimental: experimental.sourceIconPosition,
-        shouldShow: result.length > 0 && experimental.sourceIconPosition === "section-end"
+        shouldShow:
+          result.length > 0 &&
+          experimental.sourceIconPosition === "section-end",
       });
     }
-    
+
     return result;
   });
 
@@ -86,29 +93,87 @@
   let sectionTooltip = $state<SourceTooltip | undefined>();
   let organizationNames = $state<Map<string, string>>(new Map());
 
+  // Warm browser cache for favicons of displayed domains
+  const prefetchedFaviconUrls = $state<Set<string>>(new Set());
+  $effect(() => {
+    if (typeof window === "undefined") return;
+    const domains = citedDomains.slice(0, 8);
+    if (domains.length === 0) return;
+
+    // Defer to next tick to avoid blocking initial render
+    setTimeout(() => {
+      domains.forEach(async (domain) => {
+        try {
+          const syncUrls = getFaviconUrlsSync(domain, 24);
+          const urls = syncUrls && syncUrls.length > 0 ? syncUrls : await getFaviconUrls(domain, 24);
+          const top = urls.slice(0, 2);
+          top.forEach((u) => {
+            if (!prefetchedFaviconUrls.has(u)) {
+              prefetchedFaviconUrls.add(u);
+              const img = new Image();
+              img.decoding = "async" as any;
+              (img as any).loading = "eager";
+              img.src = u;
+            }
+          });
+        } catch {}
+      });
+    }, 0);
+  });
+
   // Helper function to get section-specific articles
   function normalizeUrl(url: string): string {
     try {
       const u = new URL(url);
-      u.hostname = u.hostname.replace(/^www\./, '').toLowerCase();
+      u.hostname = u.hostname.replace(/^www\./, "").toLowerCase();
       u.protocol = u.protocol.toLowerCase();
       const tracking = new Set([
-        'utm_source','utm_medium','utm_campaign','utm_term','utm_content','utm_id','utm_name',
-        'utm_reader','utm_place','utm_brand','utm_social','utm_social-type','fbclid','gclid','mc_cid','mc_eid','ref','ref_src','ref_url','irclickid','cmp','ncid','mbid','campaign','cid'
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "utm_id",
+        "utm_name",
+        "utm_reader",
+        "utm_place",
+        "utm_brand",
+        "utm_social",
+        "utm_social-type",
+        "fbclid",
+        "gclid",
+        "mc_cid",
+        "mc_eid",
+        "ref",
+        "ref_src",
+        "ref_url",
+        "irclickid",
+        "cmp",
+        "ncid",
+        "mbid",
+        "campaign",
+        "cid",
       ]);
-      const kept: Array<[string,string]> = [];
-      u.searchParams.forEach((v,k) => { if (!tracking.has(k)) kept.push([k,v]); });
-      kept.sort((a,b) => a[0].localeCompare(b[0]));
-      u.search = kept.length ? `?${kept.map(([k,v]) => `${k}=${v}`).join('&')}` : '';
-      u.hash = '';
-      if (u.pathname !== '/' && u.pathname.endsWith('/')) u.pathname = u.pathname.slice(0,-1);
+      const kept: Array<[string, string]> = [];
+      u.searchParams.forEach((v, k) => {
+        if (!tracking.has(k)) kept.push([k, v]);
+      });
+      kept.sort((a, b) => a[0].localeCompare(b[0]));
+      u.search = kept.length
+        ? `?${kept.map(([k, v]) => `${k}=${v}`).join("&")}`
+        : "";
+      u.hash = "";
+      if (u.pathname !== "/" && u.pathname.endsWith("/"))
+        u.pathname = u.pathname.slice(0, -1);
       return u.toString();
-    } catch { return (url || '').trim(); }
+    } catch {
+      return (url || "").trim();
+    }
   }
   function getArticleKey(a: Article | undefined | null): string {
-    if (!a) return 'null';
+    if (!a) return "null";
     if (a.link) return normalizeUrl(a.link);
-    return `${a.domain || ''}::${(a.title || '').trim()}`;
+    return `${a.domain || ""}::${(a.title || "").trim()}`;
   }
   function getSectionArticles(): Article[] {
     let sectionArticles: Article[] = [];
@@ -119,20 +184,23 @@
     } else {
       sectionArticles = articles;
     }
-    
+
     // Deduplicate by link
     const seen = new Set<string>();
     return sectionArticles.reduce((acc, article) => {
       const key = getArticleKey(article);
-      if (article && !seen.has(key)) { seen.add(key); acc.push(article); }
+      if (article && !seen.has(key)) {
+        seen.add(key);
+        acc.push(article);
+      }
       return acc;
     }, [] as Article[]);
   }
 
   // Mobile detection helper
   const isMobile = $derived(
-    typeof window !== 'undefined' && 
-    ('ontouchstart' in window || window.innerWidth < 768)
+    typeof window !== "undefined" &&
+      ("ontouchstart" in window || window.innerWidth < 768),
   );
 
   // Only show if we have cited domains and position is set to section-end (not inline to avoid duplicates)
@@ -144,11 +212,13 @@
   // Preload organization names for cited domains
   $effect(() => {
     if (citedDomains.length > 0) {
-      getOrganizationNames(citedDomains).then(names => {
-        organizationNames = names;
-      }).catch(error => {
-        console.warn('Failed to preload organization names:', error);
-      });
+      getOrganizationNames(citedDomains)
+        .then((names) => {
+          organizationNames = names;
+        })
+        .catch((error) => {
+          console.warn("Failed to preload organization names:", error);
+        });
     }
   });
 
@@ -159,24 +229,32 @@
 
     // Get articles for this domain from the appropriate source and deduplicate by link
     let domainArticles: Article[] = [];
-    
+
     if (paragraphCitations.length > 0) {
       // Use paragraph-level citations for more specific context
       paragraphCitations.forEach((paragraph) => {
-        const paragraphDomainArticles = paragraph.articles.filter((a) => a?.domain === domain);
+        const paragraphDomainArticles = paragraph.articles.filter(
+          (a) => a?.domain === domain,
+        );
         domainArticles.push(...paragraphDomainArticles);
       });
     } else {
       // Fallback to section-level articles
       domainArticles = articles.filter((a) => a?.domain === domain) || [];
     }
-    
+
     const seen = new Set<string>();
-    const uniqueArticles = domainArticles.reduce((acc, article) => {
-      const key = getArticleKey(article);
-      if (article && article.domain && !seen.has(key)) { seen.add(key); acc.push(article); }
-      return acc;
-    }, [] as typeof domainArticles);
+    const uniqueArticles = domainArticles.reduce(
+      (acc, article) => {
+        const key = getArticleKey(article);
+        if (article && article.domain && !seen.has(key)) {
+          seen.add(key);
+          acc.push(article);
+        }
+        return acc;
+      },
+      [] as typeof domainArticles,
+    );
 
     sourceArticles = uniqueArticles;
     currentMediaInfo = null;
@@ -218,7 +296,7 @@
     aria-label="Section sources"
     data-no-wiki
   >
-    <div class="flex items-center justify-start flex-wrap gap-2">
+    <div class="flex flex-wrap items-center justify-start gap-2">
       <!-- Global sources icon -->
       <button
         class="source-item mr-2 inline-flex items-center justify-center rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
@@ -282,30 +360,40 @@
         {#each citedDomains.slice(0, 8) as domain, index}
           <button
             type="button"
-            class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-white bg-white p-0 shadow-sm transition-all hover:z-10 hover:scale-110 hover:shadow-md dark:border-gray-600 dark:bg-gray-800"
+            class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full p-0 transition-all hover:z-10 hover:scale-110"
             style="z-index: {8 - index}"
             title={decodeHtmlEntities(organizationNames.get(domain) || domain)}
-            aria-label="View citations from {decodeHtmlEntities(organizationNames.get(domain) || domain)}"
+            aria-label="View citations from {decodeHtmlEntities(
+              organizationNames.get(domain) || domain,
+            )}"
             onmouseenter={(e) => {
               // Get articles for this specific domain from the current context
               let domainArticles: Article[] = [];
               if (paragraphCitations.length > 0) {
                 paragraphCitations.forEach((paragraph) => {
-                  const paragraphDomainArticles = paragraph.articles.filter((a) => a?.domain === domain);
+                  const paragraphDomainArticles = paragraph.articles.filter(
+                    (a) => a?.domain === domain,
+                  );
                   domainArticles.push(...paragraphDomainArticles);
                 });
               } else {
                 domainArticles = articles.filter((a) => a?.domain === domain);
               }
-              
+
               // Deduplicate by normalized link/title
               const seen = new Set<string>();
-              const uniqueDomainArticles = domainArticles.reduce((acc, article) => {
-                const key = getArticleKey(article);
-                if (article && !seen.has(key)) { seen.add(key); acc.push(article); }
-                return acc;
-              }, [] as Article[]);
-              
+              const uniqueDomainArticles = domainArticles.reduce(
+                (acc, article) => {
+                  const key = getArticleKey(article);
+                  if (article && !seen.has(key)) {
+                    seen.add(key);
+                    acc.push(article);
+                  }
+                  return acc;
+                },
+                [] as Article[],
+              );
+
               sectionTooltip?.handleSourceInteraction(
                 e,
                 [domain],
@@ -321,21 +409,29 @@
               let domainArticles: Article[] = [];
               if (paragraphCitations.length > 0) {
                 paragraphCitations.forEach((paragraph) => {
-                  const paragraphDomainArticles = paragraph.articles.filter((a) => a?.domain === domain);
+                  const paragraphDomainArticles = paragraph.articles.filter(
+                    (a) => a?.domain === domain,
+                  );
                   domainArticles.push(...paragraphDomainArticles);
                 });
               } else {
                 domainArticles = articles.filter((a) => a?.domain === domain);
               }
-              
+
               // Deduplicate by normalized link/title
               const seen = new Set<string>();
-              const uniqueDomainArticles = domainArticles.reduce((acc, article) => {
-                const key = getArticleKey(article);
-                if (article && !seen.has(key)) { seen.add(key); acc.push(article); }
-                return acc;
-              }, [] as Article[]);
-              
+              const uniqueDomainArticles = domainArticles.reduce(
+                (acc, article) => {
+                  const key = getArticleKey(article);
+                  if (article && !seen.has(key)) {
+                    seen.add(key);
+                    acc.push(article);
+                  }
+                  return acc;
+                },
+                [] as Article[],
+              );
+
               sectionTooltip?.handleSourceInteraction(
                 e,
                 [domain],
@@ -350,7 +446,7 @@
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation();
-              
+
               // On mobile, always show all section sources in full-page overlay
               // On desktop, show domain-specific sources in overlay
               if (isMobile) {
@@ -371,8 +467,9 @@
               class="h-full w-full"
               size={24}
               loading="eager"
-              preferIconify={true}
+              preferIconify={experimental.preferIconifyIcons}
               addBackground={true}
+              backgroundMode="transparent-only"
             />
           </button>
         {/each}

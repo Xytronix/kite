@@ -2,6 +2,7 @@
   import { s } from "$lib/client/localization.svelte";
   import { getSectionIcon } from "$lib/constants/sections";
   import { dataService } from "$lib/services/dataService";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
   import { language } from "$lib/stores/language.svelte.js";
   import type { MediaInfo } from "$lib/types";
   import { getOrganizationNames } from "$lib/utils/domainUtils";
@@ -35,8 +36,8 @@
 
   // Function to decode HTML entities
   function decodeHtmlEntities(text: string): string {
-    if (typeof document === 'undefined') return text;
-    const textarea = document.createElement('textarea');
+    if (typeof document === "undefined") return text;
+    const textarea = document.createElement("textarea");
     textarea.innerHTML = text;
     return textarea.value;
   }
@@ -230,12 +231,13 @@
   function handleSourceHoverIfOverIcon(event: MouseEvent, domain: any) {
     const button = event.currentTarget as HTMLElement | null;
     if (!button) return;
-    const iconEl = button.querySelector('.source-icon') as HTMLElement | null;
+    const iconEl = button.querySelector(".source-icon") as HTMLElement | null;
     if (!iconEl) return;
     const rect = iconEl.getBoundingClientRect();
     const x = event.clientX;
     const y = event.clientY;
-    const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    const inside =
+      x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     if (inside) {
       handleSourceHover(event, domain);
     } else {
@@ -389,26 +391,33 @@
             e.stopPropagation();
             handleSourceClick(domain);
           }}
-          onmousemove={(e) => handleSourceHoverIfOverIcon(e as MouseEvent, domain)}
+          onmousemove={(e) =>
+            handleSourceHoverIfOverIcon(e as MouseEvent, domain)}
           onmouseleave={handleSourceLeave}
           aria-label={`Show articles from ${domain?.name || "Unknown"}`}
           title={`Show articles from ${domain?.name || "Unknown"}`}
         >
           <!-- Icon column centered across card -->
-          <div class="source-icon col-start-1 row-span-2 flex items-center justify-center">
+          <div
+            class="source-icon col-start-1 row-span-2 flex items-center justify-center"
+          >
             <SmartImage
               domain={domain?.name}
               alt={`${domain?.name || "Unknown"} Favicon`}
               class="h-6 w-6 rounded-full"
               size={48}
               loading="eager"
-              preferIconify={true}
+              preferIconify={experimental.preferIconifyIcons}
               addBackground={true}
               backgroundMode="transparent-only"
             />
           </div>
-          <span class="col-start-2 text-base font-semibold line-clamp-2 leading-tight">
-            {decodeHtmlEntities(organizationNames.get(domain?.name) || domain?.name || "Unknown")}
+          <span
+            class="col-start-2 line-clamp-2 text-base leading-tight font-semibold"
+          >
+            {decodeHtmlEntities(
+              organizationNames.get(domain?.name) || domain?.name || "Unknown",
+            )}
           </span>
           <div
             class="col-start-2 flex flex-col text-xs leading-5 text-gray-500 dark:text-gray-400"
@@ -454,12 +463,12 @@
 />
 
 <style>
-/* Multi-line text support with line clamping */
-.line-clamp-2 {
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
+  /* Multi-line text support with line clamping */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 </style>

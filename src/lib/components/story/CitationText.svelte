@@ -342,8 +342,9 @@ const allArticleDomains = $derived.by(() => {
 						class="w-full h-full"
 						size={24}
 						loading="eager"
-						preferIconify={true}
+						preferIconify={experimental.preferIconifyIcons}
 						addBackground={true}
+						backgroundMode="transparent-only"
 					/>
 				</div>
 			{/each}
@@ -377,8 +378,9 @@ const allArticleDomains = $derived.by(() => {
 							class="inline-block w-4 h-4 ml-1 rounded-full"
 							size={32}
 							loading="eager"
-							preferIconify={true}
+							preferIconify={experimental.preferIconifyIcons}
 							addBackground={true}
+							backgroundMode="transparent-only"
 						/>
 					{/if}
 				</div>

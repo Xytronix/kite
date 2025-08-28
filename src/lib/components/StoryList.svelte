@@ -11,6 +11,9 @@ import { onDestroy, onMount } from 'svelte';
 import type { ContentScore } from '$lib/algorithms/contentFilter';
 import { SmartFilterService } from '$lib/services/smartFilterService';
 import { preloadStoryIcons, preloadCommonIcons, preloadSourceIcons } from '$lib/utils/iconPreloader';
+import { language } from '$lib/stores/language.svelte.js';
+import { dataService } from '$lib/services/dataService';
+import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
 
 // Props
 interface Props {
@@ -217,6 +220,25 @@ function removeOrphanDateDividers(items: Array<ListItem | any>): ListItem[] {
 	return output;
 }
 
+// Remove the leading date divider when a time travel indicator already shows the day above
+function maybeRemoveLeadingDateDivider(items: ListItem[]): ListItem[] {
+	try {
+		const selected = timeTravel.selectedDate;
+		if (!selected || !items || items.length === 0) return items;
+		const first: any = items[0];
+		if (first?.__dateDivider && first.date) {
+			const dividerKey = new Date(first.date).toISOString().split('T')[0];
+			const selectedKey = new Date(selected).toISOString().split('T')[0];
+			if (dividerKey === selectedKey) {
+				return items.slice(1);
+			}
+		}
+		return items;
+	} catch {
+		return items;
+	}
+}
+
 const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
 	const storyOnly = stories.filter((it): it is Story => !(it as any).__dateDivider);
 
@@ -261,14 +283,14 @@ const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
 
 			const cleaned = removeOrphanDateDividers(prelim);
 			return {
-				displayedStories: cleaned as ListItem[],
+				displayedStories: maybeRemoveLeadingDateDivider(cleaned as ListItem[]),
 				filteredCount: filterResult.removed.length,
 				hiddenStories: showFilteredStories ? [] : filterResult.removed.map((r) => r.story)
 			};
 		} catch (error) {
 			console.warn('Smart filtering error, falling back to showing all stories:', error);
 			return {
-				displayedStories: removeOrphanDateDividers(stories as any) as ListItem[],
+				displayedStories: maybeRemoveLeadingDateDivider(removeOrphanDateDividers(stories as any) as ListItem[]),
 				filteredCount: 0,
 				hiddenStories: []
 			};
@@ -277,7 +299,7 @@ const { displayedStories, filteredCount, hiddenStories } = $derived.by(() => {
 
 	// Smart filtering disabled – include everything, then clean orphan dividers
 	return {
-		displayedStories: removeOrphanDateDividers(stories as any) as ListItem[],
+		displayedStories: maybeRemoveLeadingDateDivider(removeOrphanDateDividers(stories as any) as ListItem[]),
 		filteredCount: 0,
 		hiddenStories: []
 	};
@@ -305,6 +327,100 @@ let scrollHoldStart = $state(0);
 let loadMoreClickGuard = $state(false);
 let lastClickTime = $state(0);
 let pendingOperations = $state(0);
+
+// Determine if we should offer switching to English based on availability today
+let canOfferEnglishSwitch = $state(false);
+let checkingEnglishAvailability = $state(false);
+const englishAvailabilityCache = new Map<string, boolean>();
+let englishCheckToken = 0;
+let englishCheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Spinner visibility with debounce to prevent flashing on fast transitions
+let showLoadingSpinner = $state(false);
+let spinnerTimer: ReturnType<typeof setTimeout> | null = null;
+
+$effect(() => {
+    // Debounce spinner to avoid flash on quick loads or empty-category switches
+    if (isLoading) {
+        if (spinnerTimer) clearTimeout(spinnerTimer);
+        spinnerTimer = setTimeout(() => {
+            showLoadingSpinner = true;
+        }, 200); // show only if loading lasts >200ms
+    } else {
+        if (spinnerTimer) {
+            clearTimeout(spinnerTimer);
+            spinnerTimer = null;
+        }
+        showLoadingSpinner = false;
+    }
+});
+
+async function checkEnglishAvailability(categoryId: string) {
+    try {
+        if (!categoryId || categoryId.toLowerCase() === 'onthisday') {
+            canOfferEnglishSwitch = false;
+            return;
+        }
+        const myToken = ++englishCheckToken;
+        const cached = englishAvailabilityCache.get(categoryId);
+        if (cached !== undefined) {
+            canOfferEnglishSwitch = cached;
+            return;
+        }
+        if (checkingEnglishAvailability) return;
+        checkingEnglishAvailability = true;
+
+        // Load latest batch and check if there is at least one English story for this category
+        const initialData = await dataService.loadInitialData('en');
+        // Normalize category ID to match API-provided IDs
+        let actualCategoryId = categoryId;
+        try {
+            const { UrlNavigationService } = await import('$lib/services/urlNavigationService');
+            const normalizedTarget = UrlNavigationService.normalizeCategoryId(categoryId);
+            const matched = initialData.categories.find(c => UrlNavigationService.normalizeCategoryId(c.id) === normalizedTarget);
+            if (matched) actualCategoryId = matched.id;
+        } catch {}
+        const categoryUuid = initialData.categoryMap[actualCategoryId];
+        if (!categoryUuid) {
+            englishAvailabilityCache.set(categoryId, false);
+            canOfferEnglishSwitch = false;
+            return;
+        }
+        const result = await dataService.loadStories(initialData.batchId, categoryUuid, 1, 'en');
+        const available = (result?.stories?.length || 0) > 0;
+        if (myToken !== englishCheckToken) {
+            return;
+        }
+        englishAvailabilityCache.set(categoryId, available);
+        canOfferEnglishSwitch = available;
+    } catch {
+        canOfferEnglishSwitch = false;
+    } finally {
+        checkingEnglishAvailability = false;
+    }
+}
+
+$effect(() => {
+    // Only check when empty, not already English, category is known, and not actively loading
+    if (
+        displayedStories.length === 0 &&
+        language.data !== 'en' &&
+        currentCategory &&
+        !isLoading &&
+        !isLoadingMore &&
+        pendingOperations === 0
+    ) {
+        if (englishCheckTimer) clearTimeout(englishCheckTimer);
+        englishCheckTimer = setTimeout(() => {
+            checkEnglishAvailability(currentCategory);
+        }, 200);
+    } else {
+        if (englishCheckTimer) {
+            clearTimeout(englishCheckTimer);
+            englishCheckTimer = null;
+        }
+    }
+});
 
 // Check if device is mobile
 $effect(() => {
@@ -693,13 +809,10 @@ onDestroy(() => {
 </script>
 
 <div class="story-list">
-    {#if isLoading && displayedStories.length === 0}
-        <!-- Minimal loading indicator while fetching more stories -->
+    {#if (isLoading || showLoadingSpinner || pendingOperations > 0) && displayedStories.length === 0}
+        <!-- Debounced loading indicator -->
         <div class="py-8 text-center text-gray-500 dark:text-gray-400">
-            <svg class="mx-auto h-6 w-6 animate-spin" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 108 8h-2a6 6 0 11-6-6z"></path>
-            </svg>
+            <div class="mx-auto h-6 w-6 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-300 animate-spin"></div>
         </div>
     {:else if displayedStories.length === 0}
         <div class="py-10">
@@ -737,6 +850,26 @@ onDestroy(() => {
 					<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 						{s('stories.noneTodayMsg') || 'Looks like there are no stories for this category today. Check back tomorrow.'}
 					</p>
+					{#if language.data !== 'en' && canOfferEnglishSwitch}
+						<div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+							<p class="mb-2">{s('stories.noSourcesInLanguage') || 'Sources may not be available in this language yet.'}</p>
+							<button
+								onclick={() => {
+									try {
+										if (browser) {
+											const url = new URL(window.location.href);
+											url.searchParams.set('data_lang', 'en');
+											window.history.replaceState({}, '', url.toString());
+										}
+										language.setData('en' as any);
+									} catch {}
+								}}
+								class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-300 text-gray-800 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+							>
+								{s('stories.switchToEnglish') || 'Switch to English'}
+							</button>
+						</div>
+					{/if}
 					{#if canLoadMore && !isLoading && pendingOperations === 0}
 						<button
 							onclick={() => triggerLoadMore()}
@@ -841,7 +974,7 @@ onDestroy(() => {
 
 		
 		<!-- Load more section (only when feature enabled) -->
-		{#if experimental.enableHistoricalLoadMore && canLoadMore && !isLoading && pendingOperations === 0 && settings.storyCount > 3}
+		{#if experimental.enableHistoricalLoadMore && canLoadMore && !isLoading && pendingOperations === 0 && settings.storyCount >= 3}
 			{#if isMobile}
 				<!-- Mobile: Scroll to end and hold -->
 				<div use:setupScrollToEndObserver class="mt-6 flex justify-center py-8">
@@ -889,7 +1022,7 @@ onDestroy(() => {
 				</div>
 			{:else}
 				<!-- Desktop: Clickable text -->
-				{#if settings.storyCount > 3}
+				{#if settings.storyCount >= 3}
 				<div class="mt-6 text-center">
 					{#if isLoadingMore}
 						<div class="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">

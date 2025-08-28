@@ -15,6 +15,7 @@
 	import { testConnectionQuality } from '$lib/utils/fetchWithRetry.js';
 	import type { Category, Story, OnThisDayEvent } from '$lib/types';
 	import SplashScreen from './SplashScreen.svelte';
+	import { locationService } from '$lib/services/locationService';
 
 	// Props
 	interface Props {
@@ -149,6 +150,9 @@
 	let connectionQuality = $state<'excellent' | 'good' | 'fair' | 'poor' | null>(null);
 	let isSlowConnection = $state(false);
 
+	// Reload dedupe/guard
+	let isReloadingData = false;
+
 	// Helper function to normalize category ID from URL to proper casing
 	function normalizeCategoryId(categoryId: string | null, availableCategories: Category[]): string | null {
 		if (!categoryId) return null;
@@ -213,7 +217,16 @@
 			callStack: new Error().stack?.split('\n').slice(1, 5).join(' | ') // Show first few stack frames
 		});
 		
+		console.log('🚀 DataLoader: Starting loadInitialData', { 
+			retryCount, 
+			initialBatchId, 
+			language: language.data,
+			url: window.location.href 
+		});
+		
 		try {
+			console.log('🔍 DataLoader: Entering try block');
+			
 			// Test connection quality on first attempt
 			if (retryCount === 0) {
 				loadingStage = s('loading.testing') || 'Testing connection...';
@@ -241,12 +254,19 @@
 			loadingProgress = 30;
 
 			console.log('🚀 Starting initial data load from kite.kagi.com');
+			console.log('📊 DataLoader: About to fetch initial data with params:', {
+				language: language.data,
+				batchId: initialBatchId,
+				resolvedBatchId: initialBatchId // Will be updated if resolved
+			});
 
 			// Store batch info to avoid duplicate API calls
 			let providedBatchInfo: { id: string; createdAt: string; totalReadCount?: number } | undefined;
 			
 			// Check if we have a batch ID from URL
 			if (initialBatchId) {
+				console.log('🎯 DataLoader: Processing batch ID from URL:', initialBatchId);
+				
 				// First, resolve the batch ID if it's a date format
 				let resolvedBatchId = initialBatchId;
 				if (/^\d{4}-\d{2}-\d{2}$/.test(initialBatchId)) {
@@ -409,11 +429,13 @@
 				};
 
 				// Add timeout to prevent getting stuck on historical batches
+				// Give requests enough time to complete so we don't render an empty state prematurely
+				const categoryTimeoutMs = isSlowConnection ? 12000 : 8000;
 				const timeoutPromise = new Promise<{ categoryId: string, stories: Story[], readCount: number, timestamp: number }>((resolve) => {
 					setTimeout(() => {
-						console.warn(`⏰ Timeout loading category ${categoryId} from batch ${batchId}, returning empty result`);
+						console.warn(`⏰ Timeout loading category ${categoryId} from batch ${batchId} after ${categoryTimeoutMs}ms, returning empty result`);
 						resolve({ categoryId, stories: [], readCount: 0, timestamp: Date.now() / 1000 });
-					}, 1000); // Reduced to 1 second to prevent blank page delays
+					}, categoryTimeoutMs);
 				});
 
 				return Promise.race([loadWithTimeout(), timeoutPromise]);
@@ -574,7 +596,15 @@
 			finishLoading();
 
 		} catch (error) {
-			console.error('Error loading initial data:', error);
+			console.error('❌ DataLoader: Error loading initial data:', error);
+			console.error('❌ DataLoader: Error details:', {
+				message: error instanceof Error ? error.message : String(error),
+				stack: error instanceof Error ? error.stack : undefined,
+				name: error instanceof Error ? error.name : undefined,
+				initialBatchId,
+				language: language.data,
+				retryCount
+			});
 			
 			// Enhanced network error detection
 			const isNetworkError = error instanceof Error && (
@@ -674,9 +704,19 @@
 	async function reloadAllData() {
 		try {
 			console.log(`🌍 reloadAllData called - Data language changed to ${language.data}, reloading all data...`);
+			if (isReloadingData) {
+				console.log('⏭️ reloadAllData: Reload already in progress');
+				return;
+			}
+			isReloadingData = true;
 			
 			// Load initial data (batch info + categories)
 			const initialData = await dataService.loadInitialData(language.data);
+			// Determine whether we're in time-travel mode for this reload
+			try {
+				isLatestBatch = timeTravelBatch.batchId === null;
+				console.log('🕰️ reloadAllData: isLatestBatch =', isLatestBatch, 'batchId =', timeTravelBatch.batchId?.substring?.(0,8) || 'null');
+			} catch {}
 			categories = initialData.categories;
 			const { batchId, categoryMap, timestamp, chaosIndex, chaosDescription, chaosLastUpdated } = initialData;
 			totalReadCount = initialData.totalReadCount;
@@ -810,12 +850,18 @@
 				});
 			}
 
+			// Hide splash after reload completes
+			initialLoading = false;
+			afterInitial = true;
+
 		} catch (error) {
 			console.error('Error reloading data for language change:', error);
 			
 			if (onError) {
 				onError(error instanceof Error ? error.message : 'Failed to reload data');
 			}
+		} finally {
+			isReloadingData = false;
 		}
 	}
 
@@ -848,13 +894,69 @@
 			persistentLogDataLoader('🚀 DataLoader mounted - loading initial data');
 		}
 		
-		persistentLogDataLoader('🔄 About to call loadInitialData from onMount');
-		loadInitialData();
+		const startInitialLoad = async () => {
+			try {
+				// On true first visit, ensure we apply detected languages before the first fetch
+				if (language.isFirstVisit()) {
+					const info = await locationService.detectLocation();
+					let changed = false;
+					if (info?.suggestedDataLanguage && info.suggestedDataLanguage !== language.data) {
+						language.setData(info.suggestedDataLanguage as any);
+						changed = true;
+					}
+					if (info?.suggestedUILanguage && info.suggestedUILanguage !== language.ui) {
+						language.setUI(info.suggestedUILanguage as any);
+					}
+					if (changed) {
+						// Allow store updates to propagate before fetching
+						await new Promise((r) => setTimeout(r, 0));
+					}
+				}
+			} catch (e) {
+				console.warn('Language auto-detect before initial load failed (continuing with current settings):', e);
+			}
+
+			// If URL specifies a data language different from current, let the
+			// global listener trigger reload to avoid double initial loads
+			try {
+				const params = (await import('$lib/services/urlNavigationService')).UrlNavigationService.parseUrl(new URL(window.location.href));
+				if (params.dataLang && params.dataLang !== language.data) {
+					persistentLogDataLoader('🌍 URL data_lang differs from current; deferring initial load to event-driven reload', { urlDataLang: params.dataLang, current: language.data });
+					return;
+				}
+			} catch {}
+
+			persistentLogDataLoader('🔄 About to call loadInitialData from onMount');
+			loadInitialData();
+		};
+
+		startInitialLoad();
 		
-		// Register reload callback
+		// Register reload callback early, and also listen to data-language change events
 		dataReloadService.onReload(reloadAllData);
+		const handleDataLanguageChanged = () => {
+			persistentLogDataLoader('🌍 data-language-changed received - reloading data');
+			if (isReloadingData) {
+				persistentLogDataLoader('⏭️ Reload already in progress, skipping');
+				return;
+			}
+			// Hide splash, show corner loader during language reload
+			afterInitial = true;
+			initialLoading = false;
+			loadingProgress = 0;
+			// Reset error and show loading message
+			hasError = false;
+			errorMessage = '';
+			loadingStage = s('loading.stories') || 'Loading news data...';
+			reloadAllData();
+		};
+		window.addEventListener('data-language-changed' as any, handleDataLanguageChanged as any);
 		
 		persistentLogDataLoader('✅ onMount() completed');
+		
+		return () => {
+			window.removeEventListener('data-language-changed' as any, handleDataLanguageChanged as any);
+		};
 	});
 	
 	// Track when component is destroyed
@@ -899,31 +1001,17 @@
 			return;
 		}
 		
-		// Check if we need to reload
+		// Check if we need to respond to batch changes
 		if (currentBatchId !== lastProcessedBatchId && !initialLoading) {
-			console.log(`🔄 Batch changed from ${lastProcessedBatchId} to ${currentBatchId}, triggering reload...`);
-			persistentLogDataLoader('🔄 Batch changed - triggering reload', {
+			// Do NOT trigger a full reload/SplashScreen when switching batches after initial load.
+			// The main page handles time travel transitions with a lightweight loader.
+			persistentLogDataLoader('🔄 Batch changed - skipping DataLoader reload (delegating to main page)', {
 				from: lastProcessedBatchId?.substring(0, 8) || 'null',
 				to: currentBatchId?.substring(0, 8) || 'null'
 			});
-			
-			// Update tracking variable first
+			// Update tracking variable and exit
 			lastProcessedBatchId = currentBatchId;
-			
-			// Trigger reload without modifying reactive state in the effect
-			queueMicrotask(() => {
-				afterInitial = true; // ensure corner spinner
-				isLatestBatch = currentBatchId === null;
-				initialLoading = true;
-				loadingProgress = 0;
-				loadingStage = s('loading.loadingData') || 'Loading news data...';
-				
-				persistentLogDataLoader('🔄 About to call loadInitialData from batch watcher');
-				// Trigger reload after state is updated
-				setTimeout(() => {
-					loadInitialData();
-				}, 100);
-			});
+			return;
 		}
 	});
 </script>

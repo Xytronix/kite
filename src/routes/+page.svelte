@@ -23,6 +23,7 @@
     UrlNavigationService,
     type NavigationParams,
   } from "$lib/services/urlNavigationService";
+  import { feedDate } from "$lib/stores/feedDate.svelte";
   import { categories as categoriesStore } from "$lib/stores/categories.svelte.js";
   import { experimental } from "$lib/stores/experimental.svelte.js";
   import type { SupportedLanguage } from "$lib/stores/language.svelte";
@@ -176,8 +177,8 @@
       const date = new Date(batchInfo.createdAt);
       return date.toISOString().split("T")[0]; // YYYY-MM-DD format
     }
-    // Fallback for current batch or unknown batches
-    return new Date().toISOString().split("T")[0];
+    // Fallback for unknown batches: use a stable per-batch key (avoid mislabeling as today)
+    return `unknown-${batchId.substring(0, 8)}`;
   }
 
   // State for source overlay
@@ -337,6 +338,18 @@
       const orderB = categoriesStore.order.findIndex((id) => id === b.id);
       return orderA - orderB;
     });
+  });
+
+  // Show restore UI when the currently displayed today's stories exceed the user's target (e.g., 3→12)
+  const canRestoreToToday = $derived.by(() => {
+    try {
+      const displayedTodayCount = (stories || []).filter(
+        (it: any) => !(it?.__dateDivider) && !(it?.__fromHistoricalBatch),
+      ).length;
+      return displayedTodayCount > settings.storyCount;
+    } catch {
+      return false;
+    }
   });
 
   // Data loading functions
@@ -726,6 +739,17 @@
       totalStories: allCategoryStories[currentCategory].length,
     });
 
+
+    // Ensure any transient loading states are cleared so UI doesn't show spinners
+    isLoadingMore = false;
+    storiesLoading = false;
+    if (pendingLoadRequests[currentCategory]) {
+      persistentLogMain("🧹 Clearing queued load due to restoreToToday", {
+        category: currentCategory,
+      });
+      pendingLoadRequests[currentCategory] = null;
+    }
+
     // Filter out historical stories and date dividers
     const todayStories = allCategoryStories[currentCategory].filter((item) => {
       if ((item as any).__dateDivider) return false; // Remove all date dividers
@@ -738,6 +762,17 @@
 
     // Update the category stories and current display
     allCategoryStories[currentCategory] = todayStories;
+    // Also purge historical items for all categories to avoid cross-day bleed after restore
+    try {
+      Object.keys(allCategoryStories).forEach((catId) => {
+        const todayOnly = (allCategoryStories[catId] || []).filter((it: any) => !(it?.__dateDivider) && !(it?.__fromHistoricalBatch));
+        allCategoryStories[catId] = todayOnly as any;
+        catBatchesIndex[catId] = 0;
+        catBatches[catId] = [currentBatchId];
+        try { catBatchSizes[catId] = {}; } catch {}
+        try { catDailyBatches[catId] = {}; } catch {}
+      });
+    } catch {}
     stories = todayStories.slice(
       0,
       Math.min(
@@ -746,12 +781,20 @@
       ),
     );
 
-    // Reset batch tracking for this category
+    // Reset batch tracking and day caches for this category
     catBatchesIndex[currentCategory] = 0;
     catBatches[currentCategory] = [currentBatchId];
+    try { catBatchSizes[currentCategory] = {}; } catch {}
+    try { catDailyBatches[currentCategory] = {}; } catch {}
 
     // Re-enable load more
-    categoryHasMore[currentCategory] = true;
+    categoryHasMore[currentCategory] = todayStories.length > 0;
+
+    // Ensure we are in latest mode after restoring
+    try {
+      isLatestBatch = true;
+      dataService.setTimeTravelBatch(null);
+    } catch {}
 
     console.log(
       "✅ Restored to today's stories:",
@@ -934,8 +977,8 @@
       if (currentlyShown === 0) {
         categoryLimits[categoryId] = settings.storyCount;
       } else {
-        // Smart completion logic: complete current batch if only a few stories remain
-        // This works for both current day and historical batches (each has ~12 stories)
+        // Smart completion logic: complete the current day if only a small remainder remains
+        // Works for both current day and historical batches; day size is determined dynamically
 
         // Determine which batch we're currently loading from
         const currentLoadingIndex = catBatchesIndex[categoryId] || 0;
@@ -959,12 +1002,37 @@
             }
           }
 
-          // If we don't know the daily batch size yet, use a reasonable default for smart completion
+          // If we don't know the daily batch size yet, try to determine it dynamically for current day
           if (totalDailyBatchSize === 0) {
-            totalDailyBatchSize = 12; // Default assumption for current batch
-            console.log(
-              "📏 Using default daily batch size of 12 (size not yet detected)",
-            );
+            if (currentLoadingIndex === 0) {
+              try {
+                const currentBatch = currentLoadingBatch?.id || currentBatchId;
+                const catUuidEstimate = categoryMap[categoryId];
+                if (currentBatch && catUuidEstimate) {
+                  const estimate = await dataService.loadStories(
+                    currentBatch,
+                    catUuidEstimate,
+                    50,
+                    language.data,
+                  );
+                  const estimatedSize = (estimate?.stories?.length || 0);
+                  if (estimatedSize > 0) {
+                    totalDailyBatchSize = estimatedSize;
+                    if (!catBatchSizes[categoryId]) catBatchSizes[categoryId] = {};
+                    catBatchSizes[categoryId][currentBatch] = estimatedSize;
+                    console.log(
+                      "📏 Dynamically estimated daily batch size:",
+                      estimatedSize,
+                    );
+                  }
+                }
+              } catch (e) {
+                console.log(
+                  "⚠️ Dynamic daily batch size estimate failed; skipping day completion",
+                  e,
+                );
+              }
+            }
           }
 
           // Count stories from current day
@@ -990,12 +1058,14 @@
             storiesFromCurrentDay = storiesAfterLastDivider;
           }
 
+          // Remaining items in today's content (do not cap by user setting; we may spill into yesterday if needed)
           const remainingInCurrentDay = Math.max(
             0,
             totalDailyBatchSize - storiesFromCurrentDay,
           );
           const userIncrement = settings.storyCount;
           const isCurrentDay = currentLoadingIndex === 0;
+          const isFirstManualLoadMore = increment && oldLimit === settings.storyCount;
 
           console.log("🔍 Daily completion check:", {
             dateKey: currentDateKey,
@@ -1015,20 +1085,26 @@
 
           // Complete today's remaining stories only when it's a small remainder and we already have some of today loaded
           if (
-            isCurrentDay &&
             totalDailyBatchSize > 0 &&
             storiesFromCurrentDay > 0 &&
             storiesFromCurrentDay < totalDailyBatchSize &&
             remainingInCurrentDay > 0 &&
-            remainingInCurrentDay <= userIncrement * 1.5
+            // Only use "complete day first" for small per-category settings (e.g., 3, 4, 5)
+            userIncrement <= 5 &&
+            // On the first manual load more, always complete the day regardless of remainder size
+            (isFirstManualLoadMore || remainingInCurrentDay <= userIncrement * 1.5)
           ) {
-            categoryLimits[categoryId] = oldLimit + remainingInCurrentDay;
+            // Target: complete today first, but allow exceeding the increment or spilling into yesterday
+            const targetIncrement = Math.max(remainingInCurrentDay, userIncrement);
+            categoryLimits[categoryId] = oldLimit + targetIncrement;
+            // Restrict to current batch only if we can satisfy the target within today; otherwise allow historical spill
+            restrictToCurrentBatch = remainingInCurrentDay >= userIncrement;
             console.log(
-              "📅 Completing current day first (small remainder): from",
+              "📅 Completing current day first with flexible target: from",
               oldLimit,
               "to",
               categoryLimits[categoryId],
-              `(+${remainingInCurrentDay}, finish ${currentDateKey})`,
+              `(+${targetIncrement}, finish today${remainingInCurrentDay < userIncrement ? " and spill" : ""} ${currentDateKey})`,
             );
           } else {
             // Normal increment using user setting (fetch across days as needed) and cap exactly to increment size
@@ -1578,8 +1654,8 @@
               limitNowForBatch - totalTodayCount,
             );
             const desiredApiLimit =
-              seenFromThisBatch + Math.max(remainingInDay, 1) + 3; // ensure progress + small buffer
-            fetchAmount = Math.min(25, desiredApiLimit);
+              seenFromThisBatch + Math.max(remainingInDay, settings.storyCount) + 3; // ensure progress + small buffer based on user target
+            fetchAmount = Math.min(50, desiredApiLimit);
             console.log("- Current batch fetch tuning:", {
               seenFromThisBatch,
               totalTodayCount,
@@ -1589,6 +1665,11 @@
             });
           }
 
+          // Increase fetch for historical batches to reduce fragmentation with small increments
+          if (batchId !== currentBatchId) {
+            const historicalTarget = Math.max(settings.storyCount * 2, 12);
+            fetchAmount = Math.min(50, Math.max(fetchAmount, historicalTarget));
+          }
           console.log("- Final fetch amount:", fetchAmount);
           console.log("- From batch:", batchId);
           console.log("- Category UUID:", catUuid);
@@ -1825,10 +1906,18 @@
                 !catBatches[categoryId]?.includes(batchId)
               ) {
                 const batchInfo = batchList.find((b) => b.id === batchId);
-                let batchDate = new Date().toISOString(); // fallback to today
+                let batchDateIso: string | null = null;
 
-                if (batchInfo) {
-                  batchDate = batchInfo.createdAt;
+                if (batchInfo?.createdAt) {
+                  batchDateIso = batchInfo.createdAt;
+                } else if (
+                  typeof (result as any)?.timestamp === "number" &&
+                  (result as any).timestamp > 0
+                ) {
+                  // Use API result timestamp if provided
+                  batchDateIso = new Date(
+                    ((result as any).timestamp as number) * 1000,
+                  ).toISOString();
                 } else {
                   // If not in batch list, try to fetch batch info
                   try {
@@ -1837,7 +1926,9 @@
                     );
                     if (batchResponse.ok) {
                       const batchData = await batchResponse.json();
-                      batchDate = batchData.createdAt;
+                      if (batchData?.createdAt) {
+                        batchDateIso = batchData.createdAt;
+                      }
                     }
                   } catch (err) {
                     console.warn(
@@ -1848,37 +1939,62 @@
                   }
                 }
 
-                // Check if we already have a date divider for this date
-                const dateKey = new Date(batchDate).toISOString().split("T")[0]; // YYYY-MM-DD
-                const existingDateDividers = allCategoryStories[
-                  categoryId
-                ].filter((item) => (item as any).__dateDivider);
-                const hasDateDivider = existingDateDividers.some((divider) => {
-                  const dividerDateKey = new Date((divider as any).date)
+                if (batchDateIso) {
+                  // Check if we already have a date divider for this date
+                  const dateKey = new Date(batchDateIso)
                     .toISOString()
-                    .split("T")[0];
-                  return dividerDateKey === dateKey;
-                });
+                    .split("T")[0]; // YYYY-MM-DD
+                  const existingDateDividers = allCategoryStories[
+                    categoryId
+                  ].filter((item) => (item as any).__dateDivider);
+                  const hasDateDivider = existingDateDividers.some((divider) => {
+                    const dividerDateKey = new Date((divider as any).date)
+                      .toISOString()
+                      .split("T")[0];
+                    return dividerDateKey === dateKey;
+                  });
 
-                if (!hasDateDivider) {
-                  console.log(
-                    "📅 Adding date divider for batch:",
-                    batchId,
-                    "with date:",
-                    dateKey,
-                  );
-                  allCategoryStories[categoryId].push({
-                    __dateDivider: true,
-                    date: batchDate,
-                  } as any);
+                  if (!hasDateDivider) {
+                    console.log(
+                      "📅 Adding date divider for batch:",
+                      batchId,
+                      "with date:",
+                      dateKey,
+                    );
+                    allCategoryStories[categoryId].push({
+                      __dateDivider: true,
+                      date: batchDateIso,
+                    } as any);
+                    // If we are on latest batch but loading historical content due to no current-day stories,
+                    // enter lightweight time-travel mode to reflect historical context in the UI
+                    try {
+                      const currentDayCountExisting = allCategoryStories[categoryId]
+                        .filter((it: any) => !it.__dateDivider && !it.__fromHistoricalBatch)
+                        .length;
+                      if (isLatestBatch && currentDayCountExisting === 0) {
+                        isLatestBatch = false;
+                        timeTravelBatch.set(batchId);
+                        try { timeTravel.selectBatch(batchId); } catch {}
+                        try { timeTravel.selectDate(new Date(batchDateIso)); } catch {}
+                        console.log("🕰️ Entered time-travel mode due to no current-day stories; batch:", batchId.substring(0,8));
+                      }
+                    } catch {}
+                  } else {
+                    console.log(
+                      "📅 Skipping duplicate date divider for:",
+                      dateKey,
+                    );
+                  }
+
+                  catBatches[categoryId].push(batchId);
                 } else {
-                  console.log(
-                    "📅 Skipping duplicate date divider for:",
-                    dateKey,
+                  // No reliable date available; skip adding a divider to avoid mislabeling as today
+                  console.warn(
+                    "⏭️ Skipping date divider due to unknown batch date for",
+                    batchId,
                   );
+                  catBatches[categoryId].push(batchId);
                 }
-
-                catBatches[categoryId].push(batchId);
               }
 
               // Mark stories with batch information for deduplication and load more logic
@@ -2340,10 +2456,74 @@
     // Listen for hash changes
     window.addEventListener("hashchange", handleHashChange);
 
+    // Listen for lightweight exit from time travel (restore to today without full reload)
+    const handleExitTimeTravel = async () => {
+      try {
+        persistentLogMain("🕰️ Exit time travel requested via header X");
+        // Clear UI indicator and restore today's stories without reloading
+        timeTravel.reset();
+        isLatestBatch = true;
+        dataService.setTimeTravelBatch(null);
+        // Purge historical items and date dividers from ALL categories immediately to avoid leftovers
+        try {
+          Object.keys(allCategoryStories || {}).forEach((catId) => {
+            const todayOnly = (allCategoryStories[catId] || []).filter((it: any) => !(it?.__dateDivider) && !(it?.__fromHistoricalBatch));
+            allCategoryStories[catId] = todayOnly as any;
+            // Reset per-category tracking
+            catBatchesIndex[catId] = 0;
+            catBatches[catId] = [currentBatchId];
+            categoryHasMore[catId] = todayOnly.length > 0;
+          });
+          // Update current view to reflect purge
+          const limit = categoryLimits[currentCategory] || settings.storyCount;
+          const todayForCurrent = (allCategoryStories[currentCategory] || []).filter((it: any) => !(it.__dateDivider) && !(it.__fromHistoricalBatch));
+          stories = todayForCurrent.slice(0, Math.min(limit, todayForCurrent.length));
+        } catch {}
+        // Clear any stale feed date and ensure header shows today's date
+        try { feedDate.set(null); } catch {}
+        try { batchTimestamp = Math.floor(Date.now() / 1000); } catch {}
+        // Resolve latest batch ID and update URL
+        let latestId: string | null = null;
+        try {
+          const resp = await fetch(`/api/batches/latest?lang=${language.data}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            latestId = data?.id || null;
+            latestBatchId = latestId || latestBatchId;
+            currentBatchId = latestId || currentBatchId;
+          }
+        } catch {}
+        if (historyManager) {
+          const urlBatchId = latestId || latestBatchId || null;
+          historyManager.updateUrl({
+            batchId: urlBatchId,
+            categoryId: currentCategory,
+            storyIndex: null,
+          });
+        }
+        // Trigger a lightweight full data reload to repopulate from latest batch
+        try {
+          await dataReloadService.reloadData();
+        } catch (e) {
+          console.warn('Reload to latest after exit time travel failed:', e);
+        }
+        // Notify header that exit-to-today completed so it can clear its spinner
+        try {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('kite-exit-time-travel-done'));
+          }
+        } catch {}
+      } catch (e) {
+        console.warn("Failed to handle exit time travel:", e);
+      }
+    };
+    window.addEventListener("kite-exit-time-travel" as any, handleExitTimeTravel as any);
+
     // Cleanup
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
       clearInterval(loadingStateCheck);
+      window.removeEventListener("kite-exit-time-travel" as any, handleExitTimeTravel as any);
     };
   });
 
@@ -2389,8 +2569,9 @@
       return;
     }
 
-    // Prevent load more operations during category changes
+    // Prevent load more operations during category changes and show loading state to avoid flicker
     isLoadingMore = true;
+    storiesLoading = true;
 
     // Execute state mutations immediately (removed setTimeout delay)
     persistentLogMain("🔄 handleCategoryChange executing immediately", {
@@ -2411,16 +2592,7 @@
     // Restore expanded stories for new category if available
     expandedStories = { ...(expandedStoriesByCategory[category] ?? {}) };
 
-    // Clear time travel state when switching categories (time travel should be per-category)
-    if (
-      timeTravelByCategory[currentCategory] &&
-      !timeTravelByCategory[category]
-    ) {
-      // If leaving a time travel category for a non-time travel category, clear global time travel
-      timeTravel.reset();
-      timeTravelBatch.set(null);
-      dataService.setTimeTravelBatch(null);
-    }
+    // Keep time travel global across categories; do not clear state on category switch
 
     // Clear temporary category if user manually navigates
     if (updateUrl && temporaryCategory) {
@@ -2428,6 +2600,9 @@
       temporaryCategory = null;
       showTemporaryCategoryTooltip = false;
     }
+
+    // Reset any stale feed date to avoid showing an older header date
+    try { feedDate.set(null); } catch {}
 
     // Update the effect tracking variable to prevent duplicate loading
     lastEffectLoadedCategory = category;
@@ -2496,8 +2671,10 @@
             "🔄 About to call historyManager.updateUrl after story loading",
           );
 
-          // Use latest batch ID if we're not in time travel mode, otherwise use current batch ID
-          const urlBatchId = isLatestBatch ? latestBatchId : currentBatchId;
+          // Use the active time-travel batch when present; otherwise latest/current batch
+          const urlBatchId = timeTravelBatch.batchId
+            ? timeTravelBatch.batchId
+            : (isLatestBatch ? latestBatchId : currentBatchId);
           historyManager.updateUrl({
             batchId: urlBatchId,
             categoryId: category,
@@ -2924,6 +3101,11 @@
 
       // Load stories without modifying reactive state
       queueMicrotask(() => {
+        // Ensure a clean start for the latest day; avoid accidental multi-day mix
+        try {
+          isLatestBatch = true;
+          dataService.setTimeTravelBatch(null);
+        } catch {}
         loadStoriesForCategory(currentCategory);
       });
     }
@@ -3052,11 +3234,25 @@
 
   // Debug effect to track batch changes
   $effect(() => {
-    if (browser) {
-      console.log(
-        "🔍 timeTravelBatch.batchId changed to:",
-        timeTravelBatch.batchId,
-      );
+    if (!browser) return;
+    const newBatch = timeTravelBatch.batchId;
+    console.log("🔍 timeTravelBatch.batchId changed to:", newBatch);
+    // If batch actually changed, proactively reload data and prevent mixing content
+    if ((newBatch || null) !== (currentBatchId || null)) {
+      // Update mode flag
+      isLatestBatch = newBatch === null;
+      // Clear current cached content to avoid mixing across batches
+      try {
+        stories = [];
+        allCategoryStories = {} as any;
+        // Reset per-category tracking so subsequent loads start clean
+        catBatches = {} as any;
+        catBatchesIndex = {} as any;
+      } catch {}
+      // Ensure service batch matches the store
+      try { dataService.setTimeTravelBatch(newBatch || null); } catch {}
+      // Trigger lightweight reload (no SplashScreen)
+      try { dataReloadService.reloadData(); } catch {}
     }
   });
 
@@ -3317,6 +3513,7 @@
       ).length}
       allStoriesRead={allDisplayedStoriesRead}
       {hasHistoricalStories}
+      canRestoreToToday={canRestoreToToday}
       onMarkAllRead={markAllAsRead}
       onMarkAllUnread={markAllAsUnread}
       onRestoreToToday={restoreToToday}
@@ -3356,6 +3553,7 @@
           ).length}
           allStoriesRead={allDisplayedStoriesRead}
           {hasHistoricalStories}
+          canRestoreToToday={canRestoreToToday}
           onMarkAllRead={markAllAsRead}
           onMarkAllUnread={markAllAsUnread}
           onRestoreToToday={restoreToToday}

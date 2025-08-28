@@ -100,9 +100,14 @@ export class NavigationHandlerService {
 					console.log('🔄 Switching to latest batch...');
 					updates.isLatestBatch = true;
 					dataService.setTimeTravelBatch(null);
-					console.log('⚠️ SKIPPING dataReloadService.reloadData() to prevent page refresh during load more');
-					// await dataReloadService.reloadData(); // DISABLED: This causes page refresh
-					return updates; // Let the reload handle everything else
+					// Lightweight data reload so the feed updates to latest without SplashScreen
+					try {
+						await dataReloadService.reloadData();
+						console.log('✅ Latest batch reload completed');
+					} catch (e) {
+						console.warn('❌ Failed to reload data for latest batch:', e);
+					}
+					return updates;
 				} else if (switchingToSpecific) {
 					// We need to check if this is actually a historical batch
 					// For now, we'll rely on the DataLoader's logic which already checked
@@ -110,15 +115,15 @@ export class NavigationHandlerService {
 					console.log('🕰️ Switching to historical batch:', params.batchId);
 					updates.isLatestBatch = false;
 					dataService.setTimeTravelBatch(params.batchId);
-					console.log('⚠️ SKIPPING dataReloadService.reloadData() to prevent page refresh during load more');
-					// try {
-					// 	await dataReloadService.reloadData(); // DISABLED: This causes page refresh
-					// 	console.log('✅ Historical batch reload completed');
-					// } catch (error) {
-					// 	console.error('❌ Failed to reload data for historical batch:', error);
-					// 	// Continue with category/story navigation even if batch reload failed
-					// }
-					return updates; // Let the reload handle everything else
+					// Lightweight data reload so the feed updates to selected batch without SplashScreen
+					try {
+						await dataReloadService.reloadData();
+						console.log('✅ Historical batch reload completed');
+					} catch (error) {
+						console.error('❌ Failed to reload data for historical batch:', error);
+						// Continue with category/story navigation even if batch reload failed
+					}
+					return updates;
 				}
 				// If batch hasn't changed, continue to handle category/story changes
 			}

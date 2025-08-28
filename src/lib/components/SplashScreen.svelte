@@ -5,6 +5,7 @@ import { onMount } from 'svelte';
 import { preloadCommonIcons } from '$lib/utils/iconPreloader';
 import { mediaService } from '$lib/services/mediaService';
 import { language } from '$lib/stores/language.svelte.js';
+import { browser } from '$app/environment';
 import type { Story } from '$lib/types';
 
 // Props

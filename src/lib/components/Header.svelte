@@ -149,6 +149,18 @@
       }
     }
   });
+
+  // Listen for completion of lightweight exit to today to clear spinner
+  $effect(() => {
+    if (typeof window === "undefined") return;
+    const doneHandler = () => {
+      isExitingTimeTravel = false;
+    };
+    window.addEventListener('kite-exit-time-travel-done' as any, doneHandler as any);
+    return () => {
+      window.removeEventListener('kite-exit-time-travel-done' as any, doneHandler as any);
+    };
+  });
 </script>
 
 <header class="mb-1">
@@ -200,16 +212,19 @@
           </div>
           <button
             onclick={() => {
-              // Immediately reset time travel state
+              // Show lightweight loader and immediately reset time travel state
+              isExitingTimeTravel = true;
               timeTravel.reset();
-              timeTravelBatch.set(null);
-              dataService.setTimeTravelBatch(null);
-
-              // Navigate to root URL to exit time travel mode
-              // Use window.location.href for a clean navigation
-              if (typeof window !== "undefined") {
-                window.location.href = "/";
-              }
+              // Dispatch a lightweight event for main page to restore to today without full refresh
+              try {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("kite-exit-time-travel"));
+                }
+              } catch {}
+              // Safety fallback: clear spinner after a short delay in case completion event is missed
+              setTimeout(() => {
+                isExitingTimeTravel = false;
+              }, 2000);
             }}
             class="ml-1 rounded p-0.5 transition-colors hover:bg-blue-100 dark:hover:bg-blue-800/50"
             aria-label="Exit time travel mode"

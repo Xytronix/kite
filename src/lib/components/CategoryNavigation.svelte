@@ -21,6 +21,7 @@
     displayedStoriesCount?: number;
     allStoriesRead?: boolean;
     hasHistoricalStories?: boolean;
+    canRestoreToToday?: boolean;
     onMarkAllRead?: () => void;
     onMarkAllUnread?: () => void;
     onRestoreToToday?: () => void;
@@ -37,6 +38,7 @@
     displayedStoriesCount = 0,
     allStoriesRead = false,
     hasHistoricalStories = false,
+    canRestoreToToday = false,
     onMarkAllRead,
     onMarkAllUnread,
     onRestoreToToday,
@@ -256,7 +258,7 @@
       {/if}
 
       <!-- Action Icons - Same line as categories on the right -->
-      {#if displayedStoriesCount > 0 && (onMarkAllRead || onMarkAllUnread || hasHistoricalStories)}
+      {#if displayedStoriesCount > 0 && (onMarkAllRead || onMarkAllUnread || hasHistoricalStories || canRestoreToToday)}
         <div class="ml-4 flex items-center gap-2">
           {#if !allStoriesRead && onMarkAllRead}
             <button
@@ -282,7 +284,7 @@
             </button>
           {/if}
 
-          {#if hasHistoricalStories && onRestoreToToday}
+          {#if (hasHistoricalStories || canRestoreToToday) && onRestoreToToday}
             <button
               onclick={() => onRestoreToToday?.()}
               title={s("stories.restoreToToday") || "Show only today's stories"}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { s } from "$lib/client/localization.svelte";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
   import type { Article } from "$lib/types";
   import {
     getOrganizationNames,
@@ -1089,10 +1090,10 @@
                   <SmartImage
                     domain={dom}
                     alt={dom}
-                    class="h-4 w-4 rounded-full"
+                    class="h-4 w-4 rounded-full overflow-hidden"
                     size={16}
                     loading="eager"
-                    preferIconify={true}
+                    preferIconify={experimental.preferIconifyIcons}
                     addBackground={true}
                     backgroundMode="transparent-only"
                   />

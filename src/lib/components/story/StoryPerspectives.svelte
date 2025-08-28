@@ -431,8 +431,9 @@
                             class="h-full w-full"
                             size={20}
                             loading="eager"
-                            preferIconify={true}
+                            preferIconify={experimental.preferIconifyIcons}
                             addBackground={true}
+                            backgroundMode="transparent-only"
                           />
                         </button>
                       {/each}

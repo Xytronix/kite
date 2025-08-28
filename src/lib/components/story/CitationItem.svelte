@@ -3,6 +3,7 @@ import { getTimeAgo } from '$lib/utils/getTimeAgo';
 import { s } from '$lib/client/localization.svelte';
 import { getOrganizationName } from '$lib/utils/domainUtils';
 import { generateSourceDisplayName } from '$lib/utils/sourceUtils';
+import { experimental } from '$lib/stores/experimental.svelte.js';
 import type { Article } from '$lib/types';
 import SmartImage from '../SmartImage.svelte';
 
@@ -130,11 +131,12 @@ const dateClasses = $derived(isMobile ? 'mt-1' : 'mt-0.5 text-xs');
         <SmartImage
           domain={item.article.domain}
           alt="{item.article.domain} favicon"
-          class="{iconSizeClasses} rounded-full flex-shrink-0"
+          class="{iconSizeClasses} rounded-full overflow-hidden flex-shrink-0"
           size={isMobile ? 24 : 16}
           loading="eager"
-          preferIconify={true}
+          preferIconify={experimental.preferIconifyIcons}
           addBackground={true}
+          backgroundMode="transparent-only"
         />
         <span class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none">
           {organizationName}

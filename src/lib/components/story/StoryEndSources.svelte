@@ -284,8 +284,9 @@
             class="h-5 w-5 rounded-full"
             size={20}
             loading="eager"
-            preferIconify={true}
+            preferIconify={experimental.preferIconifyIcons}
             addBackground={true}
+            backgroundMode="transparent-only"
           />
           <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
             {decodeHtmlEntities(organizationNames.get(domain) || domain)}
