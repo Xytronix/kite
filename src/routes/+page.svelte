@@ -787,8 +787,8 @@
     try { catBatchSizes[currentCategory] = {}; } catch {}
     try { catDailyBatches[currentCategory] = {}; } catch {}
 
-    // Re-enable load more
-    categoryHasMore[currentCategory] = todayStories.length > 0;
+    // Re-enable load more so user can fetch historical days after restoring
+    categoryHasMore[currentCategory] = true;
 
     // Ensure we are in latest mode after restoring
     try {
@@ -2472,7 +2472,8 @@
             // Reset per-category tracking
             catBatchesIndex[catId] = 0;
             catBatches[catId] = [currentBatchId];
-            categoryHasMore[catId] = todayOnly.length > 0;
+            // Ensure manual historical loading is available immediately after exiting time travel
+            categoryHasMore[catId] = true;
           });
           // Update current view to reflect purge
           const limit = categoryLimits[currentCategory] || settings.storyCount;
