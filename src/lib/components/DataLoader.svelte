@@ -293,6 +293,7 @@
 							console.log('🎯 Setting time travel mode for historical batch:', resolvedBatchId);
 							dataService.setTimeTravelBatch(resolvedBatchId);
 							isLatestBatch = false;
+							try { timeTravelBatch.set(resolvedBatchId); } catch {}
 							
 							// Also set the time travel UI state so the banner shows
 							// We need to get the batch info to set the correct date
@@ -314,6 +315,7 @@
 						} else {
 							console.log('🎯 Batch from URL is the latest batch, not setting time travel mode');
 							isLatestBatch = true;
+							try { timeTravelBatch.set(null); } catch {}
 							// Store the latest batch info to avoid duplicate fetch
 							providedBatchInfo = { id: latestBatch.id, createdAt: latestBatch.createdAt, totalReadCount: latestBatch.totalReadCount };
 						}
@@ -322,10 +324,12 @@
 					// resolvedBatchId is null (couldn't resolve date), fall back to latest
 					console.log('🎯 Could not resolve batch ID, falling back to latest');
 					isLatestBatch = true;
+					try { timeTravelBatch.set(null); } catch {}
 				}
 			} else {
 				// No batch ID in URL means we're viewing the latest
 				isLatestBatch = true;
+				try { timeTravelBatch.set(null); } catch {}
 			}
 
 			// Load initial data (batch info + categories) - pass batch info if we have it
@@ -353,12 +357,17 @@
 				console.log('✅ Valid enabled categories for this batch:', validEnabledCategories);
 			}
 			
-			// Update enabled categories to remove any that don't exist in current batch
-			if (validEnabledCategories.length !== categoriesStore.enabled.length) {
-				const missingCategories = categoriesStore.enabled.filter(cat => !availableCategoryIds.includes(cat));
-				console.warn('⚠️ Some enabled categories are not available in current batch:', missingCategories);
-				console.log('🔧 Updating enabled categories from', categoriesStore.enabled, 'to', validEnabledCategories);
-				categoriesStore.setEnabled(validEnabledCategories);
+			// In latest mode, persistently update enabled categories to the ones available.
+			// In time-travel mode, do NOT mutate user preferences; use a local filtered list only.
+			if (isLatestBatch) {
+				if (validEnabledCategories.length !== categoriesStore.enabled.length) {
+					const missingCategories = categoriesStore.enabled.filter(cat => !availableCategoryIds.includes(cat));
+					console.warn('⚠️ Some enabled categories are not available in current batch:', missingCategories);
+					console.log('🔧 Updating enabled categories from', categoriesStore.enabled, 'to', validEnabledCategories);
+					categoriesStore.setEnabled(validEnabledCategories);
+				}
+			} else {
+				console.log('⏭️ Time-travel mode: not persisting enabled category changes');
 			}
 			
 			// Ensure we have at least one valid category
@@ -730,10 +739,14 @@
 				availableCategoryIds.includes(catId)
 			);
 			
-			// Update enabled categories to remove any that don't exist in current batch
-			if (validEnabledCategories.length !== categoriesStore.enabled.length) {
-				console.warn('Some enabled categories are not available in current batch, updating enabled list');
-				categoriesStore.setEnabled(validEnabledCategories);
+			// Persist enabled category changes only in latest mode; preserve user prefs during time travel
+			if (isLatestBatch) {
+				if (validEnabledCategories.length !== categoriesStore.enabled.length) {
+					console.warn('Some enabled categories are not available in current batch, updating enabled list');
+					categoriesStore.setEnabled(validEnabledCategories);
+				}
+			} else {
+				console.log('⏭️ Time-travel mode: not persisting enabled category changes during reload');
 			}
 			
 			// Get all enabled categories except OnThisDay (case-insensitive)

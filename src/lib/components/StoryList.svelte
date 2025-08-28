@@ -339,6 +339,18 @@ let englishCheckTimer: ReturnType<typeof setTimeout> | null = null;
 let showLoadingSpinner = $state(false);
 let spinnerTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Suppress flashing of empty state during initial/category loads
+let suppressEmptyState = $state(true);
+let suppressEmptyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleUnsuppress(delay = 500) {
+	if (suppressEmptyTimer) clearTimeout(suppressEmptyTimer);
+	suppressEmptyTimer = setTimeout(() => {
+		suppressEmptyState = false;
+		suppressEmptyTimer = null;
+	}, delay);
+}
+
 $effect(() => {
     // Debounce spinner to avoid flash on quick loads or empty-category switches
     if (isLoading) {
@@ -353,6 +365,36 @@ $effect(() => {
         }
         showLoadingSpinner = false;
     }
+});
+
+// Suppress empty-state flicker around loading transitions
+$effect(() => {
+    if (isLoading) {
+        // While loading, keep suppression on
+        suppressEmptyState = true;
+        if (suppressEmptyTimer) {
+            clearTimeout(suppressEmptyTimer);
+            suppressEmptyTimer = null;
+        }
+    } else {
+        // After loading ends, if still empty, briefly suppress before showing empty view
+        if (displayedStories.length === 0) {
+            scheduleUnsuppress(350);
+        } else {
+            suppressEmptyState = false;
+            if (suppressEmptyTimer) {
+                clearTimeout(suppressEmptyTimer);
+                suppressEmptyTimer = null;
+            }
+        }
+    }
+});
+
+// Also suppress empty state briefly when switching categories
+$effect(() => {
+    void currentCategory; // establish dependency on prop
+    suppressEmptyState = true;
+    scheduleUnsuppress(600);
 });
 
 async function checkEnglishAvailability(categoryId: string) {
@@ -792,6 +834,10 @@ onMount(() => {
 	window.addEventListener('unhandledrejection', rejectionHandler);
 	window.addEventListener('error', errorHandler);
 	
+	// Initial empty-state suppression on mount
+	suppressEmptyState = true;
+	scheduleUnsuppress(600);
+
 	return () => {
 		window.removeEventListener('beforeunload', beforeUnloadHandler);
 		window.removeEventListener('unload', unloadHandler);
@@ -805,11 +851,15 @@ onDestroy(() => {
     if (progressInterval) {
         clearInterval(progressInterval);
     }
+    if (suppressEmptyTimer) {
+    	clearTimeout(suppressEmptyTimer);
+    	suppressEmptyTimer = null;
+    }
 });
 </script>
 
 <div class="story-list">
-    {#if (isLoading || showLoadingSpinner || pendingOperations > 0) && displayedStories.length === 0}
+    {#if (isLoading || showLoadingSpinner || pendingOperations > 0 || suppressEmptyState) && displayedStories.length === 0}
         <!-- Debounced loading indicator -->
         <div class="py-8 text-center text-gray-500 dark:text-gray-400">
             <div class="mx-auto h-6 w-6 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-300 animate-spin"></div>

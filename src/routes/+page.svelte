@@ -2519,11 +2519,66 @@
     };
     window.addEventListener("kite-exit-time-travel" as any, handleExitTimeTravel as any);
 
+    // Listen for batch selection from TimeTravel modal and process without full page navigation
+    const handleSelectTimeTravelBatch = async (evt: CustomEvent) => {
+      try {
+        const detail: any = (evt as any).detail || {};
+        const selectedBatchId: string = detail.batchId;
+        const selectedCreatedAt: string | undefined = detail.createdAt;
+        const selectedCategoryId: string | undefined = detail.categoryId;
+
+        persistentLogMain("🕰️ Processing time travel batch selection (no full nav)", {
+          selectedBatchId: selectedBatchId?.substring?.(0, 8),
+          selectedCategoryId,
+        });
+
+        // Show loading state to suppress empty-state flicker
+        storiesLoading = true;
+
+        // Enter time-travel mode
+        try { isLatestBatch = false; } catch {}
+        try { timeTravel.selectBatch(selectedBatchId); } catch {}
+        try { if (selectedCreatedAt) timeTravel.selectDate(new Date(selectedCreatedAt)); } catch {}
+        try { dataService.setTimeTravelBatch(selectedBatchId); } catch {}
+        try { timeTravelBatch.set(selectedBatchId); } catch {}
+
+        // Do not pre-set currentBatchId here. Let the timeTravelBatch effect detect the change
+        // and trigger a proper lightweight reload to replace the feed with historical stories.
+        try {
+          if (selectedCreatedAt) {
+            batchTimestamp = Math.floor(new Date(selectedCreatedAt).getTime() / 1000);
+          }
+        } catch {}
+
+        // Update URL to reflect selected batch immediately to match header/date
+        try {
+          if (historyManager) {
+            const categoryForUrl = selectedCategoryId || currentCategory;
+            historyManager.updateUrl({
+              batchId: selectedBatchId,
+              categoryId: categoryForUrl,
+              storyIndex: null,
+            });
+          }
+        } catch {}
+
+      } catch (e) {
+        console.warn("Failed to handle time travel batch selection:", e);
+      } finally {
+        // Ensure loading state clears after content reload settles
+        setTimeout(() => {
+          storiesLoading = false;
+        }, 800);
+      }
+    };
+    window.addEventListener("kite-select-time-travel-batch" as any, handleSelectTimeTravelBatch as any);
+
     // Cleanup
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
       clearInterval(loadingStateCheck);
       window.removeEventListener("kite-exit-time-travel" as any, handleExitTimeTravel as any);
+      window.removeEventListener("kite-select-time-travel-batch" as any, handleSelectTimeTravelBatch as any);
     };
   });
 
@@ -3013,27 +3068,27 @@
       return;
     }
 
-    // Handle batch ID changes - update the current batch ID if different
-    if (params.batchId !== undefined && params.batchId !== currentBatchId) {
+    // Handle batch ID changes - interpret explicitly
+    if (params.batchId !== undefined) {
+      const incomingBatchId = params.batchId;
+      const knownLatest = latestBatchId || null;
+      const newIsLatest = incomingBatchId === null || (knownLatest && incomingBatchId === knownLatest) ? true : false;
+
       persistentLogMain("🔄 Batch ID change detected", {
         oldBatchId: currentBatchId,
-        newBatchId: params.batchId,
-        isLatestBatch,
+        newBatchId: incomingBatchId,
+        knownLatest,
+        computedIsLatest: newIsLatest,
       });
 
-      // Update current batch ID
-      if (params.batchId) {
-        currentBatchId = params.batchId;
-        // Set time travel mode for historical batches
-        if (params.batchId !== currentBatchId) {
-          isLatestBatch = false;
-          dataService.setTimeTravelBatch(params.batchId);
-        }
-      } else {
-        // No batch ID means latest batch
-        isLatestBatch = true;
-        dataService.setTimeTravelBatch(null);
-      }
+      // Update local batch ID first
+      currentBatchId = incomingBatchId || currentBatchId;
+
+      // Apply mode
+      isLatestBatch = newIsLatest;
+      try {
+        dataService.setTimeTravelBatch(newIsLatest ? null : incomingBatchId!);
+      } catch {}
     }
 
     const updates = await navigationHandlerService.handleUrlNavigation(
@@ -3099,12 +3154,17 @@
       console.log(`🔧 Loading stories for category: ${currentCategory}`);
       lastEffectLoadedCategory = currentCategory;
 
-      // Load stories without modifying reactive state
+      // Load stories, respecting time travel state from URL/DataLoader
       queueMicrotask(() => {
-        // Ensure a clean start for the latest day; avoid accidental multi-day mix
         try {
-          isLatestBatch = true;
-          dataService.setTimeTravelBatch(null);
+          if (timeTravelBatch.batchId === null) {
+            // Latest mode
+            isLatestBatch = true;
+            dataService.setTimeTravelBatch(null);
+          } else {
+            // Historical mode 
+            isLatestBatch = false;
+          }
         } catch {}
         loadStoriesForCategory(currentCategory);
       });

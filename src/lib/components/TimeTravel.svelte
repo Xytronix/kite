@@ -245,109 +245,13 @@
   }
 
   async function goToToday() {
-    // Clear time travel and return to live mode
-    timeTravel.reset();
-    dataService.setTimeTravelBatch(null);
-
-    // Navigate to latest batch URL
-    isSelectingBatch = true;
+    // Delegate to main page handler to avoid full router navigation / splash
     try {
-      // Get current category from URL or default to 'world'
-      const currentPath = window.location.pathname;
-      const pathParts = currentPath.split("/").filter(Boolean);
-      let currentCategory = "world";
-
-      // Extract current category from URL - improved logic
-      if (pathParts.length >= 2) {
-        // Check if first segment is a batch ID
-        const firstSegment = pathParts[0];
-        const isBatchId =
-          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-            firstSegment,
-          );
-
-        if (isBatchId) {
-          // Format: /batchId/category
-          const possibleCategory = pathParts[1];
-          if (
-            [
-              "world",
-              "usa",
-              "business",
-              "technology",
-              "science",
-              "sports",
-              "gaming",
-            ].includes(possibleCategory.toLowerCase())
-          ) {
-            currentCategory = possibleCategory.toLowerCase();
-          }
-        } else {
-          // Format: /category/storyIndex or similar
-          const possibleCategory = pathParts[0];
-          if (
-            [
-              "world",
-              "usa",
-              "business",
-              "technology",
-              "science",
-              "sports",
-              "gaming",
-            ].includes(possibleCategory.toLowerCase())
-          ) {
-            currentCategory = possibleCategory.toLowerCase();
-          }
-        }
-      } else if (pathParts.length === 1) {
-        // Single segment - could be category or batch ID
-        const segment = pathParts[0];
-        const isBatchId =
-          /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-            segment,
-          );
-
-        if (
-          !isBatchId &&
-          [
-            "world",
-            "usa",
-            "business",
-            "technology",
-            "science",
-            "sports",
-            "gaming",
-          ].includes(segment.toLowerCase())
-        ) {
-          currentCategory = segment.toLowerCase();
-        }
-      }
-
-      // Fetch the latest batch to get its ID and include it in URL
-      const latestResponse = await fetch(
-        `/api/batches/latest?lang=${language.data}`,
-      );
-      const latestData = await latestResponse.json();
-
-      if (latestData.id) {
-        // Navigate to latest batch with batch ID included
-        if (currentCategory === "world") {
-          await goto(`/${latestData.id}`);
-        } else {
-          await goto(`/${latestData.id}/${currentCategory}`);
-        }
-      } else {
-        // Fallback to root if we can't get latest batch ID
-        if (currentCategory === "world") {
-          await goto("/");
-        } else {
-          await goto(`/${currentCategory}`);
-        }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kite-exit-time-travel' as any));
       }
     } catch (error) {
       console.error("Error in goToToday:", error);
-      // Fallback to root on error
-      await goto("/");
     } finally {
       isSelectingBatch = false;
       timeTravel.close();
@@ -498,12 +402,11 @@
         timeTravel.selectBatch(batch.id);
         dataService.setTimeTravelBatch(batch.id);
       }
-
-      // Always navigate to batch URL with category - include batch ID for all batches
-      if (currentCategory === "world") {
-        await goto(`/${batch.id}`);
-      } else {
-        await goto(`/${batch.id}/${currentCategory}`);
+      // Inform main page to update URL and reload without full navigation
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kite-select-time-travel-batch' as any, {
+          detail: { batchId: batch.id, createdAt: batch.createdAt, categoryId: currentCategory }
+        }));
       }
     } catch (error) {
       console.error("Error selecting batch:", error);
