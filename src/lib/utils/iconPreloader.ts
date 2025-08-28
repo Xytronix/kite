@@ -49,7 +49,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 
 	// User Roles & People
 	'🧑‍💻': 'heroicons-outline:code-bracket',
-	'🧑‍🏫': 'heroicons-outline:academic-cap',
+	'🧑‍🏫': 'mdi:graduation-cap',
 	'🧑‍🎓': 'heroicons-outline:user-circle',
 	'🧑‍🎨': 'mdi:palette',
 
@@ -344,7 +344,7 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	// Additional mappings for previously unmapped emojis
 	'⚖️': 'heroicons-outline:scale',
 	'🛢️': 'tabler:barrel',
-	'🎓': 'heroicons-outline:academic-cap',
+	'🎓': 'mdi:graduation-cap',
 	'💍': 'mdi:ring',
 	'💎': 'mdi:diamond',
 	'🎨': 'mdi:palette',
