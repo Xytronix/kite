@@ -104,13 +104,13 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 	'🧳': 'tabler:suitcase',
 
 	// Money & Finance
-	'💳': 'heroicons-outline:credit-card',
-	'💰': 'heroicons-outline:banknotes',
-	'💵': 'heroicons-outline:currency-dollar',
-	'💴': 'heroicons-outline:currency-yen',
-	'💶': 'heroicons-outline:currency-euro',
-	'💷': 'heroicons-outline:currency-pound',
-	'🪙': 'heroicons-outline:currency-dollar',
+	'💳': 'heroicons:credit-card-16-solid',
+	'💰': 'heroicons:banknotes',
+	'💵': 'heroicons:currency-dollar',
+	'💴': 'heroicons:currency-yen',
+	'💶': 'heroicons:currency-euro',
+	'💷': 'heroicons:currency-pound',
+	'🪙': 'mdi:bitcoin',
 
 	// Technology & Devices
 	'💻': 'heroicons-outline:computer-desktop',

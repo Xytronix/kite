@@ -25,6 +25,11 @@ let isLoadingHistory = $state(false);
 let chartCanvas = $state<HTMLCanvasElement>();
 let chartInstance: Chart | null = null;
 
+// Simple range toggle: 30 days (month) or 365 days (year)
+let rangeDays = $state<30 | 365>(30);
+let history30 = $state<Array<{ date: string; score: number; summary: string }>>([]);
+let history365 = $state<Array<{ date: string; score: number; summary: string }>>([]);
+
 // Modal behavior
 const modal = createModalBehavior();
 
@@ -96,7 +101,9 @@ async function handleClick() {
 	if (!isLoadingHistory && historicalData.length === 0) {
 		isLoadingHistory = true;
 		try {
-			historicalData = await dataService.getChaosIndexHistory(language.data, 30);
+			const data = await dataService.getChaosIndexHistory(language.data, 30);
+			history30 = data;
+			historicalData = data;
 		} catch (error) {
 			console.error('Failed to load historical data:', error);
 		} finally {
@@ -117,14 +124,16 @@ function closeModal() {
 
 // Create or update chart
 function createChart() {
-	if (!chartCanvas || historicalData.length < 2) return;
-	
+	if (!chartCanvas) return;
+	if (historicalData.length < 2) return;
+
 	if (chartInstance) {
 		chartInstance.destroy();
 	}
-	
+
 	const isDark = document.documentElement.classList.contains('dark');
-	
+	const lastScore = historicalData[historicalData.length - 1]?.score ?? score;
+
 	chartInstance = new Chart(chartCanvas, {
 		type: 'line',
 		data: {
@@ -132,8 +141,8 @@ function createChart() {
 			datasets: [{
 				label: s('worldTension.chaosIndex') || 'Chaos Index',
 				data: historicalData.map(d => d.score),
-				borderColor: getChartColor(historicalData[historicalData.length - 1]?.score || score),
-				backgroundColor: getChartColor(historicalData[historicalData.length - 1]?.score || score, 0.1),
+				borderColor: getChartColor(lastScore),
+				backgroundColor: getChartColor(lastScore, 0.1),
 				tension: 0.4,
 				pointRadius: historicalData.length <= 7 ? 4 : 2,
 				pointHoverRadius: 6,
@@ -159,10 +168,9 @@ function createChart() {
 					borderWidth: 1,
 					callbacks: {
 						title: (context) => {
-							// For time scale, the parsed.x contains the timestamp
 							const date = new Date(context[0].parsed.x);
-							return date.toLocaleDateString('en-US', { 
-								month: 'short', 
+							return date.toLocaleDateString('en-US', {
+								month: 'short',
 								day: 'numeric',
 								year: 'numeric'
 							});
@@ -175,7 +183,7 @@ function createChart() {
 				x: {
 					type: 'time',
 					time: {
-						unit: historicalData.length > 7 ? 'day' : 'day',
+						unit: 'day',
 						displayFormats: {
 							day: 'MMM d'
 						}
@@ -204,6 +212,58 @@ function createChart() {
 			}
 		}
 	});
+}
+
+async function selectRange(days: 30 | 365) {
+	if (rangeDays === days) return;
+	rangeDays = days;
+
+	if (days === 30) {
+		if (history30.length > 0) {
+			historicalData = history30;
+			setTimeout(createChart, 0);
+			return;
+		}
+		isLoadingHistory = true;
+		try {
+			const data = await dataService.getChaosIndexHistory(language.data, 30);
+			history30 = data;
+			historicalData = data;
+		} catch (error) {
+			console.error('Failed to load 30-day history:', error);
+		} finally {
+			isLoadingHistory = false;
+		}
+		setTimeout(createChart, 0);
+		return;
+	}
+
+	// days === 365
+	if (history365.length > 0) {
+		historicalData = history365;
+		setTimeout(createChart, 0);
+		return;
+	}
+	isLoadingHistory = true;
+	try {
+		const data = await dataService.getChaosIndexHistory(language.data, 365);
+		if (Array.isArray(data) && data.length >= 2) {
+			history365 = data;
+			historicalData = data;
+		} else {
+			// Not enough data; revert to 30-day view
+			rangeDays = 30;
+			historicalData = history30;
+		}
+	} catch (error) {
+		console.error('Failed to load 365-day history:', error);
+		// Revert to 30-day view on error
+		rangeDays = 30;
+		historicalData = history30;
+	} finally {
+		isLoadingHistory = false;
+	}
+	setTimeout(createChart, 0);
 }
 
 // Get chart color based on score
@@ -364,7 +424,25 @@ function toggleExplanation() {
 						<!-- Historical Chart -->
 						{#if historicalData.length >= 2}
 							<div class="mb-6">
-								<h4 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">{s('worldTension.trendTitle') || '30-Day Trend'}</h4>
+								<div class="mb-3 flex items-center justify-between">
+									<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">{rangeDays === 30 ? (s('worldTension.trendTitle') || '30-Day Trend') : '1-Year Trend'}</h4>
+									<div class="flex items-center gap-2">
+										<button
+											onclick={() => selectRange(30)}
+											class="rounded-md px-2 py-1 text-xs font-medium transition-colors border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 {rangeDays === 30 ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+											aria-pressed={rangeDays === 30}
+										>
+											30d
+										</button>
+										<button
+											onclick={() => selectRange(365)}
+											class="rounded-md px-2 py-1 text-xs font-medium transition-colors border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 {rangeDays === 365 ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+											aria-pressed={rangeDays === 365}
+										>
+											1y
+										</button>
+									</div>
+								</div>
 								<div class="relative h-40 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
 									<canvas bind:this={chartCanvas} class="absolute inset-0"></canvas>
 								</div>
