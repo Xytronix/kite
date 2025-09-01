@@ -301,8 +301,7 @@
             <div class="flex-grow">
               {#if parsed.hasTitle}
                 <p
-                  data-no-wiki
-                  class="mb-2 font-bold text-gray-800 dark:text-gray-200"
+                  class="question-title mb-2 font-bold text-gray-800 dark:text-gray-200"
                 >
                   <CitationText
                     text={parsed.title!}
@@ -463,11 +462,16 @@
                       >Source:</span
                     >
                   </div>
-                  <div class="flex flex-wrap gap-3 text-sm">
+                  <div class="flex flex-wrap gap-3 text-sm overflow-hidden">
                     {#each perspective.sources as source, idx}
                       {@const sourceNames = source.name
                         .split(";")
-                        .map((name) => name.trim())}
+                        .map((name) => name.trim())
+                        .filter(Boolean)}
+                      {@const sourceUrls = (source.url || "")
+                        .split(";")
+                        .map((u) => u.trim())
+                        .filter(Boolean)}
                       {#each sourceNames as sourceName, nameIdx}
                         {@const matchedArticle = (() => {
                           // First try to find article by matching source name to organization name or domain
@@ -535,10 +539,10 @@
                         })()}
                         <a
                           href={matchedArticle?.link ||
-                            getSourceUrl(sourceName, source.url)}
+                            getSourceUrl(sourceName, sourceUrls[nameIdx] || source.url)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="whitespace-nowrap text-[#183FDC] hover:underline dark:text-[#5B89FF]"
+                          class="break-words max-w-full text-[#183FDC] hover:underline dark:text-[#5B89FF]"
                         >
                           {sourceName}
                         </a>

@@ -186,7 +186,7 @@ onDestroy(() => {
 						<button
 							onclick={onClose}
 							class="rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 focus-visible-ring"
-							aria-label={s('ui.close') || 'Close'}
+							aria-label={'ui.close'}
 						>
 							<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path

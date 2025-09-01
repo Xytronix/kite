@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fetchWikipediaContent, clearWikipediaCache, getWikipediaCacheSize } from '../wikipediaService';
+import { fetchWikipediaContent, clearWikipediaCache, getWikipediaCacheSize, fetchWikipediaContentForDomain } from '../wikipediaService';
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -129,6 +129,117 @@ describe('WikipediaService', () => {
         title: '',
         wikiUrl: ''
       });
+    });
+  });
+
+  describe('fetchWikipediaContentForDomain', () => {
+    it('should return null for domains without exact matches', async () => {
+      // Mock search API to return no results
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          query: { search: [] }
+        })
+      } as Response);
+
+      const result = await fetchWikipediaContentForDomain('unknown-domain.com');
+      expect(result).toBeNull();
+    });
+
+    it('should reject disambiguation pages', async () => {
+      // Mock search API to return disambiguation page
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          query: { 
+            search: [
+              { 
+                title: 'CNN (disambiguation)', 
+                snippet: 'CNN may refer to various things...' 
+              }
+            ] 
+          }
+        })
+      } as Response);
+
+      const result = await fetchWikipediaContentForDomain('cnn.com');
+      expect(result).toBeNull();
+    });
+
+
+
+    it('should cache null results to avoid repeated lookups', async () => {
+      // Mock multiple search API calls to return no results for all queries
+      vi.mocked(fetch)
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            query: { search: [] }
+          })
+        } as Response);
+
+      // First call - will make multiple search attempts
+      const result1 = await fetchWikipediaContentForDomain('nonexistent.com');
+      expect(result1).toBeNull();
+      const firstCallCount = vi.mocked(fetch).mock.calls.length;
+      expect(firstCallCount).toBeGreaterThan(0);
+
+      // Second call should use cache
+      const result2 = await fetchWikipediaContentForDomain('nonexistent.com');
+      expect(result2).toBeNull();
+      expect(vi.mocked(fetch).mock.calls.length).toBe(firstCallCount); // No additional calls
+    });
+
+    it('should handle futurism.com domain matching based on real Wikipedia data', async () => {
+      // Mock search API to return actual-like results (based on real API test)
+      vi.mocked(fetch)
+        // First search for exact domain returns some results but not perfect match
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            query: { 
+              search: [
+                { 
+                  title: 'Popular Science', 
+                  snippet: 'Popular Science is an American popular science website...' 
+                }
+              ] 
+            }
+          })
+        } as Response)
+        // Second search for "futurism website" finds the right page
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            query: { 
+              search: [
+                { 
+                  title: 'Futurism (website)', 
+                  snippet: 'Futurism is a science and technology news website founded in 2017...' 
+                }
+              ] 
+            }
+          })
+        } as Response)
+        // Mock Wikipedia content fetch for the found page
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            extract: 'Futurism is a science and technology news website founded in 2017 by Alex Klokus and Jordan Lejuwaan. It was acquired by Singularity University in 2019 and by Recurrent Ventures in 2021.',
+            title: 'Futurism (website)',
+            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Futurism_(website)' } }
+          })
+        } as Response);
+
+      const result = await fetchWikipediaContentForDomain('futurism.com');
+      
+      // Should find a match since:
+      // 1. Title contains "futurism" (org name from futurism.com)  
+      // 2. Title contains "website" (media keyword)
+      // 3. Content mentions it's a "news website" (media context)
+      expect(result).not.toBeNull();
+      expect(result?.title).toBe('Futurism (website)');
+      expect(result?.extract).toContain('news website');
     });
   });
 

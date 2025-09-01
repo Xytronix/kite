@@ -4,6 +4,9 @@ import OnThisDayEventTimeline from './onthisday/OnThisDayEventTimeline.svelte';
 import OnThisDayPeopleCarousel from './onthisday/OnThisDayPeopleCarousel.svelte';
 import WikipediaTooltip from './WikipediaTooltip.svelte';
 import Icon from '@iconify/svelte';
+import { initializeWikipediaIntegration } from '$lib/utils/wikipediaIntegration';
+import { wikipediaTooltipManager } from '$lib/utils/wikipediaTooltipManager';
+import { onDestroy } from 'svelte';
 
 // Props
 interface Props {
@@ -22,31 +25,65 @@ const people = $derived((stories ?? []).filter(story => story.type === 'person' 
 // Reference to Wikipedia tooltip component
 let wikipediaTooltip: WikipediaTooltip | null = $state(null);
 
-// Handle Wikipedia interactions
-function handleWikipediaInteraction(event: Event) {
-	wikipediaTooltip?.handleWikipediaInteraction(event);
-}
+// Container for OnThisDay content
+let contentContainer: HTMLElement;
 
-function handleWikipediaLeave(event: Event) {
-	wikipediaTooltip?.handleWikipediaLeave(event);
-}
+// Wikipedia integration instance
+let wikipediaIntegration: ReturnType<typeof initializeWikipediaIntegration> | null = null;
+
+// Initialize integration when tooltip and container are ready
+$effect(() => {
+	if (wikipediaTooltip && contentContainer && !wikipediaIntegration) {
+		wikipediaIntegration = initializeWikipediaIntegration(
+			wikipediaTooltip,
+			{
+				handleWikipediaInteraction: wikipediaTooltip.handleWikipediaInteraction,
+				handleWikipediaLeave: wikipediaTooltip.handleWikipediaLeave
+			},
+			{
+				enableAutoLinking: false, // backend provides QIDs; avoid extra auto-linking here
+				enableTooltips: true,
+				autoLinkOnMount: false
+			}
+		);
+		// Defer tooltip attachment to ensure DOM is ready
+		setTimeout(() => {
+			try { 
+				wikipediaTooltipManager.attachTooltipsToContainer(contentContainer);
+			} catch (error) {
+				console.debug('Failed to attach Wikipedia tooltips:', error);
+			}
+		}, 100);
+	}
+});
+
+// Refresh tooltip attachments when stories change
+$effect(() => {
+	if (wikipediaIntegration && contentContainer && stories) {
+		// Defer to ensure DOM is updated after stories render
+		setTimeout(() => {
+			// Refresh attachments directly via manager (bypass experimental gating)
+			try { 
+				wikipediaTooltipManager.refreshTooltips(contentContainer);
+				console.debug('Wikipedia tooltips refreshed for', contentContainer.querySelectorAll('[data-wiki-id]').length, 'elements');
+			} catch (error) {
+				console.debug('Failed to refresh Wikipedia tooltips:', error);
+			}
+		}, 100);
+	}
+});
+
+onDestroy(() => {
+	try { wikipediaIntegration?.cleanup(); } catch {}
+	wikipediaIntegration = null;
+});
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div 
+	bind:this={contentContainer}
 	class="py-4 onthisday-content" 
 	role="region" 
 	aria-label="OnThisDay events with Wikipedia links"
-	onmouseover={handleWikipediaInteraction} 
-	onmouseleave={handleWikipediaLeave} 
-	onfocus={handleWikipediaInteraction}
-	onblur={handleWikipediaLeave}
-	onclick={handleWikipediaInteraction}
-	onkeydown={(e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			handleWikipediaInteraction(e);
-		}
-	}}
 >
 	{#if isLoading}
 		<!-- Loading state skeleton -->

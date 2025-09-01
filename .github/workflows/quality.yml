@@ -49,11 +49,13 @@ jobs:
         shell: bash
         run: |
           set -e
+          
+          # Ensure we have full git history for diff
+          git fetch origin main --depth=50 || true
+          
           # Collect changed files for the current push or PR
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            base="$GITHUB_BASE_REF"
-            head="$GITHUB_SHA"
-            changed_files=$(git diff --name-only "$base" "$head" -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html')
+            changed_files=$(git diff --name-only origin/main...HEAD -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html' 2>/dev/null || git diff --name-only HEAD~1 HEAD -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html')
           else
             changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.json' '*.ts' '*.tsx' '*.js' '*.jsx' '*.svelte' '*.css' '*.html')
           fi
@@ -63,8 +65,17 @@ jobs:
             exit 0
           fi
 
-          # Run Prettier on the changed files only
-          echo "$changed_files" | xargs bunx prettier --write
+          # Filter to only existing files and run Prettier
+          existing_files=""
+          for file in $changed_files; do
+            if [ -f "$file" ]; then
+              existing_files="$existing_files $file"
+            fi
+          done
+          
+          if [ -n "$existing_files" ]; then
+            echo "$existing_files" | xargs bunx prettier --write
+          fi
 
       - name: Suggest Prettier fixes
         if: github.event_name == 'pull_request'
@@ -76,16 +87,21 @@ jobs:
       ########################################################################
       # JSON validation
       ########################################################################
+      - name: Install jq for JSON validation
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Validate JSON files
         id: jsonval
         shell: bash
         run: |
           set +e
           echo "🔎 Validating JSON files..."
+          
+          # Ensure we have full git history for diff
+          git fetch origin main --depth=50 || true
+          
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            base="$GITHUB_BASE_REF"
-            head="$GITHUB_SHA"
-            json_files=$(git diff --name-only "$base" "$head" -- '*.json')
+            json_files=$(git diff --name-only origin/main...HEAD -- '*.json' 2>/dev/null || git diff --name-only HEAD~1 HEAD -- '*.json')
           else
             json_files=$(git diff --name-only HEAD~1 HEAD -- '*.json')
           fi
@@ -97,9 +113,11 @@ jobs:
 
           diag=""
           for file in $json_files; do
-            jq empty "$file" 2>/dev/null
-            if [ $? -ne 0 ]; then
-              diag+="$file:1: Invalid JSON\n"
+            if [ -f "$file" ]; then
+              jq empty "$file" 2>/dev/null
+              if [ $? -ne 0 ]; then
+                diag+="$file:1: Invalid JSON\n"
+              fi
             fi
           done
           echo -e "$diag" | tee /tmp/json_diag.log
@@ -130,7 +148,7 @@ jobs:
       ########################################################################
       - name: Validate media_data.json
         run: |
-          bun ts-node scripts/validate-media.ts 2> /tmp/media_diag.log || true
+          bun scripts/validate-media.ts 2> /tmp/media_diag.log || true
 
       - name: Annotate media-data issues
         env:

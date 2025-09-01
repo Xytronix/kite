@@ -1467,6 +1467,10 @@
     "text": "Une erreur est survenue, il n'y a pas d'histoires ici !",
     "translationContext": "Message shown when no stories are found"
   },
+  "stories.switchToDefault": {
+    "text": "Passer à la langue par défaut",
+    "translationContext": "Button to switch data language to the default language which always has content"
+  },
   "time.updated.days": {
     "text": "Mis à jour il y a {{count}} jours",
     "translationContext": "Shown when content was updated multiple days ago, {{count}} will be replaced with the number of days"

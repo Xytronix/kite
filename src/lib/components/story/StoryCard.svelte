@@ -6,12 +6,13 @@ import StorySectionManager from './StorySectionManager.svelte';
 import StoryActions from './StoryActions.svelte';
 import { browser } from '$app/environment';
 import { useViewportPreloading, useHoverPreloading } from '$lib/hooks/useImagePreloading.svelte';
-import { autoLinkPersons } from '$lib/utils/personAutoLink';
-import { autoLinkPlaces } from '$lib/utils/placeAutoLink';
-import { autoLinkOrgs } from '$lib/utils/orgAutoLink';
+import { autoLinkEntities } from '$lib/utils/autoLinkEntities';
+import { autoLinkEntitiesAdvanced } from '$lib/utils/wikidataEntityLinker';
+import { prefetchEntitiesFromPlainText } from '$lib/utils/wikidataEntityLinker';
 import { autoLinkAcronyms } from '$lib/utils/acronymAutoLink';
 import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
-import { tick } from 'svelte';
+import { initializeWikipediaIntegration } from '$lib/utils/wikipediaIntegration';
+import { tick, onDestroy } from 'svelte';
 import { slide } from 'svelte/transition';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 
@@ -59,12 +60,16 @@ let {
 // Story element reference
 let storyElement: HTMLElement;
 
+// Title element helper - anchors scrolling to the actual title line
+function getStoryTitleElement(): HTMLElement | null {
+	const id = `story-title-${story?.cluster_number}`;
+	return browser ? (document.getElementById(id) as HTMLElement | null) : null;
+}
+
 // Blur state - re-check filtering in real-time
 let isBlurred = $state(isFiltered);
-// Track if we already ran the automatic person linker for this card
+// Track if we already ran the automatic entity linker for this card
 let processedAutoLink = $state(false);
-let processedAutoLinkPlaces = $state(false);
-let processedAutoLinkOrg = $state(false);
 let processedAutoLinkAcr = $state(false);
 
 // Re-check if story should still be blurred when filter changes
@@ -115,7 +120,7 @@ function handleStoryClick(event?: Event) {
     if (event) {
         const target = event.target as HTMLElement;
         const interactiveSelector = 'a, button, input, textarea, select, label, [role="switch"], [data-no-toggle], .horizontal-scroll-container';
-        if (target.closest(interactiveSelector)) {
+        if (target.closest(interactiveSelector)) { 
             console.log('🚫 Click ignored - interactive element');
             return;
         }
@@ -153,12 +158,26 @@ function handleReadClick(e: Event) {
 
 let wikipediaTooltip: WikipediaTooltip | null = $state(null);
 
-function handleWikiInteraction(e: Event) {
-    wikipediaTooltip?.handleWikipediaInteraction(e);
-}
+// Wikipedia integration instance (ensures tooltip manager is initialized before attachments)
+let wikipediaIntegration: ReturnType<typeof initializeWikipediaIntegration> | null = null;
 
-function handleWikiLeave(e: Event) {
-    wikipediaTooltip?.handleWikipediaLeave(e);
+function ensureWikipediaIntegration() {
+    try {
+        if (browser && wikipediaTooltip && !wikipediaIntegration) {
+            wikipediaIntegration = initializeWikipediaIntegration(
+                wikipediaTooltip,
+                {
+                    handleWikipediaInteraction: wikipediaTooltip.handleWikipediaInteraction,
+                    handleWikipediaLeave: wikipediaTooltip.handleWikipediaLeave,
+                },
+                {
+                    enableAutoLinking: false,
+                    enableTooltips: true,
+                    autoLinkOnMount: false,
+                }
+            );
+        }
+    } catch {}
 }
 
 // Scroll to story when expanded: always align the title at the top (below header)
@@ -182,7 +201,8 @@ $effect(() => {
 
         const computeTargetY = () => {
             const headerHeight = getHeaderHeight();
-            const rect = storyElement.getBoundingClientRect();
+            const anchorEl = getStoryTitleElement() || storyElement;
+            const rect = anchorEl.getBoundingClientRect();
             const target = window.pageYOffset + rect.top - headerHeight - 16; // small padding
             return Math.max(0, target);
         };
@@ -205,7 +225,16 @@ $effect(() => {
             scrollTimeout = setTimeout(() => {
                 if (!storyElement) return;
                 scrollSmooth();
-                scrollTimeout = null;
+                // Phase 4: one more correction pass a bit later to account for image loads/late layout shifts
+                setTimeout(() => {
+                    if (!storyElement) { scrollTimeout = null; return; }
+                    const desired = computeTargetY();
+                    const delta = Math.abs(window.scrollY - desired);
+                    if (delta > 24) {
+                        window.scrollTo({ top: desired, behavior: 'smooth' });
+                    }
+                    scrollTimeout = null;
+                }, 400);
             }, 350);
         });
     }
@@ -230,11 +259,37 @@ $effect(() => {
             }, delay);
         };
 
-        safeRun(0, () => autoLinkPersons(storyElement!));
-        // Also link places separately (after persons to avoid overlaps)
-        safeRun(10, () => autoLinkPlaces(storyElement!));
+        // Entity linking based on experimental configuration
+        safeRun(0, async () => {
+            if (!storyElement) return;
+            
+            // Ensure tooltip manager is initialized before any attachment attempts
+            ensureWikipediaIntegration();
+            try { wikipediaIntegration?.attachTooltips(storyElement); } catch {}
 
-        safeRun(20, () => autoLinkOrgs(storyElement!));
+            const { entityLinkingMode } = experimental;
+            
+            try {
+                if (entityLinkingMode === 'wikidata') {
+                    await autoLinkEntitiesAdvanced(storyElement);
+                } else if (entityLinkingMode === 'dbpedia') {
+                    await autoLinkEntities(storyElement);
+                } else if (entityLinkingMode === 'mixed') {
+                    // Try advanced first, then DBpedia-linked for any missed entities
+                    await autoLinkEntitiesAdvanced(storyElement);
+                    await autoLinkEntities(storyElement);
+                }
+            } catch (error) {
+                console.debug('Entity linking failed:', error);
+                // Fallback to DBpedia-linked if Wikidata fails
+                if (entityLinkingMode === 'wikidata') {
+                    await autoLinkEntities(storyElement);
+                }
+            }
+
+            // After links are in the DOM, refresh tooltip attachments
+            try { wikipediaIntegration?.refreshTooltips(storyElement); } catch {}
+        });
         safeRun(30, () => autoLinkAcronyms(storyElement!));
 
         // Prefetch Wikipedia summaries for all linked wiki IDs in background
@@ -255,10 +310,31 @@ $effect(() => {
     // Reset processed flags when story collapses so links regenerate next time
     if (!isExpanded) {
         processedAutoLink = false;
-        processedAutoLinkPlaces = false;
-        processedAutoLinkOrg = false;
         processedAutoLinkAcr = false;
+        // Keep integration available for next expand; do not cleanup here to avoid re-init churn
     }
+});
+
+// Prefetch entity summaries as early as possible to accelerate tooltip readiness
+$effect(() => {
+    try {
+        // Use a lightweight text composed of key story fields
+        const parts: string[] = [];
+        if (story?.title) parts.push(String(story.title));
+        if (story?.short_summary) parts.push(String(story.short_summary));
+        if (story?.location) parts.push(String(story.location));
+        const seed = parts.filter(Boolean).join('. ');
+        if (seed && seed.length > 20) {
+            // Fire-and-forget; warms caches during splash/open
+            setTimeout(() => prefetchEntitiesFromPlainText(seed).catch(() => {}), 0);
+        }
+    } catch {}
+});
+
+// Cleanup integration on destroy
+onDestroy(() => {
+    try { wikipediaIntegration?.cleanup(); } catch {}
+    wikipediaIntegration = null;
 });
 
 // Keep story anchored when section settings (enabled/disabled) change
@@ -317,14 +393,7 @@ $effect(() => {
 			>
 				
 				<!-- Dynamic Sections based on user settings -->
-                <div role="presentation"
-                    onmouseover={handleWikiInteraction}
-                    onmouseleave={handleWikiLeave}
-                    onfocus={handleWikiInteraction}
-                    onblur={handleWikiLeave}
-                    onclick={handleWikiInteraction}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleWikiInteraction(e); }}
-                >
+                <div role="presentation">
 				<StorySectionManager 
 					{story}
 					{imagesPreloaded}
@@ -344,7 +413,7 @@ $effect(() => {
 					onClose={handleStoryClick}
 				/>
 
-                <!-- Tooltip instance -->
+                <!-- Single tooltip instance for this card; auto-link code attaches handlers -->
                 <WikipediaTooltip bind:this={wikipediaTooltip} {onWikipediaClick} />
 
                 </div>

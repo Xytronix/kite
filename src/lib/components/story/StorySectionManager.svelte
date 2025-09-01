@@ -21,8 +21,9 @@
 	import StoryDidYouKnow from './StoryDidYouKnow.svelte';
 	import StoryListSection from './StoryListSection.svelte';
 	import StoryTextSection from './StoryTextSection.svelte';
-  import { getSectionIcon } from '$lib/constants/sections';
-  import Icon from '@iconify/svelte';
+ 	import { getSectionIcon } from '$lib/constants/sections';
+    import Icon from '@iconify/svelte';
+    import { linkKnownEntityAcrossRoot, refreshWikipediaTooltips } from '$lib/utils/linkingUtils.js';
 
 	// Props
 	interface Props {
@@ -118,6 +119,36 @@
 	// Build global citation mapping for the story
 	const citationMapping = $derived.by(() => {
 		return buildCitationMapping(story, story.articles || []);
+	});
+
+	// Link known location QID across the rendered story content
+	$effect(() => {
+		try {
+			const rootEl = document.querySelector('.story-sections') as HTMLElement | null;
+			const locationQid = story?.location_qid as string | undefined;
+			const locationLabel = (story?.location || '').toString();
+			if (rootEl && locationLabel) {
+				(async () => {
+					let targetQid = locationQid;
+					if (!targetQid) {
+						try {
+							const { resolveWikiTitleWithContext } = await import('$lib/utils/wikiResolver');
+							// Prefer portion before comma to reduce ambiguity (e.g., "Washington" from "Washington, DC, USA")
+							const base = locationLabel.split(',')[0].trim() || locationLabel;
+							const resolved = await resolveWikiTitleWithContext(base, 'place');
+							if (resolved?.qid) targetQid = resolved.qid;
+						} catch {}
+					}
+					if (targetQid) {
+						// Treat as place so variants like "Washington, DC" resolve consistently,
+						// but avoid replacing inside media outlet names (e.g., Washington Post) via util guard
+						linkKnownEntityAcrossRoot(rootEl, locationLabel, targetQid, undefined, { treatAsPlace: true })
+							.then(() => { try { refreshWikipediaTooltips(rootEl); } catch {} })
+							.catch(() => {});
+					}
+				})();
+			}
+		} catch {}
 	});
 
 	// Shared tooltip reference for business angle section

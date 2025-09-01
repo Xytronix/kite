@@ -4,6 +4,17 @@ import { language } from '$lib/stores/language.svelte.js';
 // Wikipedia content cache (key: "<lang>:<wikiId>")
 const wikipediaCache = new Map<string, any>();
 
+// Persist cache across reloads using sessionStorage to avoid refetch on first hover
+try {
+    if (typeof sessionStorage !== 'undefined') {
+        const raw = sessionStorage.getItem('wikipediaCache');
+        if (raw) {
+            const obj = JSON.parse(raw) as Record<string, any>;
+            for (const [k, v] of Object.entries(obj)) wikipediaCache.set(k, v);
+        }
+    }
+} catch {}
+
 // Failed Wikipedia entries cache (key: "<lang>:<wikiId>") - tracks entries that failed to load
 const wikipediaFailedCache = new Map<string, boolean>();
 
@@ -15,15 +26,40 @@ export interface WikipediaContent {
     wikiUrl: string;
     entityType?: string; // e.g., "Person", "Organization", "Place"
     confidence?: number; // 0-1 confidence score
-    googleKgMID?: string; // Google Knowledge Graph MID
     wikidataQID?: string; // Wikidata Q-ID
+}
+
+/**
+ * Get the appropriate language for Wikipedia requests
+ * Handles "default" language resolution and content language priority
+ */
+function getWikipediaLanguage(lang?: string): string {
+    let targetLang = lang;
+    
+    // If no language provided, use content language priority: data -> ui -> 'en'
+    if (!targetLang) {
+        targetLang = (browser ? (language.data || language.ui) : 'en') || 'en';
+    }
+    
+    // Handle "default" language - resolve to browser language or English
+    if (targetLang === 'default') {
+        if (browser) {
+            // Use browser's primary language, fallback to English
+            const browserLang = navigator.language.split('-')[0];
+            targetLang = browserLang || 'en';
+        } else {
+            targetLang = 'en';
+        }
+    }
+    
+    return targetLang;
 }
 
 /**
  * Check if a Wikipedia entry has previously failed to load
  */
 export function hasWikipediaEntryFailed(wikiId: string, lang?: string): boolean {
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
     const id = safeNormalizeWikiId(wikiId);
     const cacheKey = `${wikiLang}:${id}`;
@@ -40,7 +76,7 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
         return false;
     }
 
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
     const id = safeNormalizeWikiId(wikiId);
 
@@ -60,40 +96,51 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
 
         // Use REST API summary endpoint for validation - handle accented characters properly
         let pageTitle = id;
-        
-        // If it contains underscores, it's likely a Wikipedia page title format
-        if (pageTitle.includes('_')) {
-            // Convert underscores to spaces for better API compatibility
-            pageTitle = pageTitle.replace(/_/g, ' ');
-        }
-        
-        // Handle encoding properly for validation
+        if (pageTitle.includes('_')) pageTitle = pageTitle.replace(/_/g, ' ');
         const titleForUrl = pageTitle.replace(/ /g, '_');
-        let encodedTitle: string;
-        if (titleForUrl.includes('%')) {
-            // Already encoded, use as-is
-            encodedTitle = titleForUrl;
-        } else {
-            // Encode for URL safety
-            encodedTitle = encodeURIComponent(titleForUrl);
-        }
-        
-        url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
-        const response = await fetch(url, { method: 'HEAD' });
+        const encodedTitle = titleForUrl.includes('%') ? titleForUrl : encodeURIComponent(titleForUrl);
 
-        if (!response.ok) {
-            // Try search fallback
-            const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(id)}&srlimit=1&format=json&origin=*`;
-            const searchResp = await fetch(searchUrl);
+        url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`;
+
+        // First a lightweight HEAD to avoid fetching body for 404s
+        // Use server-side search for validation to avoid CORS and heavy HEAD usage
+        const headResp = await fetch(url, { method: 'HEAD' });
+        if (!headResp.ok) {
+            // Try server-side search fallback to avoid CORS
+            const searchResp = await fetch(`/api/wikipedia/search?q=${encodeURIComponent(id)}&lang=${uiLang}`);
             if (!searchResp.ok) {
                 markWikipediaEntryAsFailed(id, uiLang);
                 return false;
             }
             const searchData = await searchResp.json();
-            if (!searchData?.query?.search?.[0]?.title) {
+            if (!searchData || searchData.extract === 'Failed to load Wikipedia content.' || !searchData.title) {
                 markWikipediaEntryAsFailed(id, uiLang);
                 return false;
             }
+            // Update URL to summary of first search result
+            const altTitle = searchData.title as string;
+            const altEncoded = encodeURIComponent(altTitle.replace(/ /g, '_'));
+            url = `https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${altEncoded}`;
+        }
+
+        // Fetch minimal JSON to detect disambiguation/type without loading parse HTML
+        try {
+            const jsonResp = await fetch(url);
+            if (!jsonResp.ok) {
+                markWikipediaEntryAsFailed(id, uiLang);
+                return false;
+            }
+            const data = await jsonResp.json();
+            const type = (data?.type || '').toString().toLowerCase();
+            const extract = (data?.extract || '').toString().toLowerCase();
+            if (type.includes('disambiguation') || extract.includes('may refer to')) {
+                markWikipediaEntryAsFailed(id, uiLang);
+                return false;
+            }
+        } catch {
+            // If JSON fails, err on the safe side: treat as invalid to avoid bad links
+            markWikipediaEntryAsFailed(id, uiLang);
+            return false;
         }
 
         return true;
@@ -107,7 +154,7 @@ export async function validateWikipediaEntry(wikiId: string, lang?: string): Pro
  * Mark a Wikipedia entry as failed
  */
 function markWikipediaEntryAsFailed(wikiId: string, lang?: string): void {
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
     const id = safeNormalizeWikiId(wikiId);
     const cacheKey = `${wikiLang}:${id}`;
@@ -139,7 +186,7 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
         });
     }
 
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
     const cacheKey = `${wikiLang}:${id}`;
 
@@ -155,36 +202,46 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
 
         // Check if this is a Wikidata Q-ID
         if (/^Q\d+$/.test(id)) {
-            // First, resolve the Q-ID to get the actual Wikipedia page in the requested language
-            const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${id}&props=sitelinks&sitefilter=${wikiLang}wiki&format=json&origin=*`;
-            const wikidataResponse = await fetch(wikidataUrl);
-
-            if (!wikidataResponse.ok) {
-                throw new Error('Failed to fetch Wikidata entity');
+            // Resolve Q-ID server-side to avoid CORS in browsers
+            const lookupUrl = `/api/wikipedia/lookup?qid=${encodeURIComponent(id)}&lang=${uiLang}`;
+            const lookupResp = await fetch(lookupUrl);
+            if (!lookupResp.ok) {
+                throw new Error('Failed to fetch Wikidata lookup');
             }
-
-            const wikidataData = await wikidataResponse.json();
-            const entity = wikidataData.entities?.[id];
-            const localizedTitle = entity?.sitelinks?.[`${wikiLang}wiki`]?.title as string | undefined;
-            const enwikiTitle = entity?.sitelinks?.enwiki?.title as string | undefined;
-            const pageTitle = localizedTitle || enwikiTitle;
-
-            if (!pageTitle) {
+            const lookupData = await lookupResp.json();
+            if (!lookupData || lookupData.extract === 'Failed to load Wikipedia content.') {
                 throw new Error('No Wikipedia page found for this entity');
             }
 
-            // If we had to fall back to English, make sure we query en.wikipedia.org
-            if (!localizedTitle) {
-                summaryLang = 'en';
-            }
+            // If localized lookup lacks images, try English to borrow an image (keep localized wikiUrl)
+            try {
+                const langNorm = normalizeWikiLang(uiLang);
+                const hasImage = !!(lookupData?.thumbnail || lookupData?.originalImage);
+                if (!hasImage && langNorm !== 'en') {
+                    const fbResp = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(id)}&lang=en`);
+                    if (fbResp.ok) {
+                        const fb = await fbResp.json();
+                        if (fb) {
+                            if (!lookupData.thumbnail && fb.thumbnail) lookupData.thumbnail = fb.thumbnail;
+                            if (!lookupData.originalImage && fb.originalImage) lookupData.originalImage = fb.originalImage;
+                        }
+                    }
+                }
+            } catch {}
 
-            // Now fetch the Wikipedia content using the resolved title
-            url = `https://${summaryLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
-            if (import.meta.env.DEV) {
-                console.log(`Resolved Q-ID ${id} to Wikipedia page: ${pageTitle} (${summaryLang})`);
-            }
+            // Use response (possibly enriched with fallback images)
+            wikipediaCache.set(cacheKey, lookupData);
+            try {
+                if (typeof sessionStorage !== 'undefined') {
+                    // Store only a bounded size to avoid unbounded growth
+                    const entries = Array.from(wikipediaCache.entries()).slice(-300);
+                    const obj: Record<string, any> = {};
+                    for (const [k, v] of entries) obj[k] = v;
+                    sessionStorage.setItem('wikipediaCache', JSON.stringify(obj));
+                }
+            } catch {}
+            return lookupData;
         } else {
-            // Regular Wikipedia page ID / title - handle accented characters properly
             // For titles like "Battle of Crécy" or "Battle_of_Crécy", ensure proper encoding
             let pageTitle = id;
             
@@ -218,6 +275,21 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
         }
 
         data = await response.json();
+        // Block disambiguation or "may refer to" at source
+        const type = (data?.type || '').toString().toLowerCase();
+        const extractLower = (data?.extract || '').toString().toLowerCase();
+        if (type.includes('disambiguation') || extractLower.includes('may refer to')) {
+            return {
+                extract: 'Failed to load Wikipedia content.',
+                thumbnail: null,
+                originalImage: null,
+                title: '',
+                wikiUrl: ''
+            };
+        }
+
+        // Capture QID from summary if available
+        const summaryQid = (data as any)?.wikibase_item as string | undefined;
 
         // If we have a basic extract but want richer content, try Parse API for HTML
         let htmlExtract = data.extract || 'No summary available.';
@@ -252,13 +324,36 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
             thumbnail: data.thumbnail || null,
             originalImage: data.originalimage || null,
             title: data.title || '',
-            wikiUrl: finalWikiUrl
+            wikiUrl: finalWikiUrl,
+            wikidataQID: summaryQid
         };
 
-
+        // If no image on localized page, try English for image only (keep localized wikiUrl)
+        try {
+            const hasImage = !!(result.thumbnail || result.originalImage);
+            if (!hasImage && wikiLang !== 'en') {
+                const fallbackId = summaryQid || id || (data?.title as string | undefined) || '';
+                if (fallbackId) {
+                    const fb = await fetchWikipediaContent(fallbackId, 'en');
+                    if (fb) {
+                        if (!result.thumbnail && fb.thumbnail) result.thumbnail = fb.thumbnail;
+                        if (!result.originalImage && fb.originalImage) result.originalImage = fb.originalImage;
+                    }
+                }
+            }
+        } catch {}
 
         // Cache the content
         wikipediaCache.set(cacheKey, result);
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                // Store only a bounded size to avoid unbounded growth
+                const entries = Array.from(wikipediaCache.entries()).slice(-300);
+                const obj: Record<string, any> = {};
+                for (const [k, v] of entries) obj[k] = v;
+                sessionStorage.setItem('wikipediaCache', JSON.stringify(obj));
+            }
+        } catch {}
         return result;
     } catch (error) {
         if (import.meta.env.DEV) {
@@ -327,7 +422,10 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
 
             if (qid && /^Q\d+$/.test(qid)) {
                 // Recursively fetch using Q-ID which has full language logic
-                return await fetchWikipediaContent(qid, uiLang);
+                const res = await fetchWikipediaContent(qid, uiLang);
+                // Ensure QID propagates on fallback
+                if (res) (res as any).wikidataQID = qid;
+                return res;
             }
         } catch (error) {
             console.debug('English fallback failed:', error);
@@ -359,21 +457,24 @@ export function getWikipediaCacheSize(): number {
 }
 
 // Add a separate cache for domain look-ups to avoid mixing keys with page/Q-IDs
-const wikipediaDomainCache = new Map<string, WikipediaContent>();
+const wikipediaDomainCache = new Map<string, WikipediaContent | null>();
 
 /**
  * Attempt to resolve a news source domain (e.g. "cnn.com") to a Wikipedia page
  * and return its summary data.
  *
- * The heuristic is:
+ * Uses exact domain matching to avoid incorrect matches and "This may refer to" pages.
+ * Only returns results when there's a high confidence match for the specific domain.
+ *
+ * The approach is:
  * 1. Strip protocol / path and keep the hostname
- * 2. Pick the second-level domain (e.g. "cnn" from "www.cnn.com")
- * 3. Use Wikipedia's search API to find the most relevant article
- * 4. Return the {@link WikipediaContent} for the first result, or null if none found
+ * 2. Try exact matches for common domain patterns
+ * 3. Only return results that specifically mention the domain or are clearly about the organization
  */
 export async function fetchWikipediaContentForDomain(domain: string, lang?: string): Promise<WikipediaContent | null> {
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
+    
     // Normalise domain (remove protocol, path, port)
     let hostname = domain.trim();
     if (hostname.startsWith('http://') || hostname.startsWith('https://')) {
@@ -381,44 +482,247 @@ export async function fetchWikipediaContentForDomain(domain: string, lang?: stri
     }
     // Remove any path after the domain
     hostname = hostname.split('/')[0];
+    // Remove port if present
+    hostname = hostname.split(':')[0];
 
     const cacheKey = `${wikiLang}:${hostname}`;
     // If we have already fetched this domain, return cached value
     if (wikipediaDomainCache.has(cacheKey)) {
-        return wikipediaDomainCache.get(cacheKey)!;
+        return wikipediaDomainCache.get(cacheKey) || null;
     }
-
-    // Derive a basic search query from the hostname – take the second-level label
-    const parts = hostname.split('.');
-    let query = parts.length >= 2 ? parts[parts.length - 2] : hostname;
-    // Replace common edge-case labels (e.g. co.uk)
-    if (['co', 'com', 'net', 'org', 'gov'].includes(query) && parts.length >= 3) {
-        query = parts[parts.length - 3];
-    }
-    // Replace hyphens with spaces for better search matching
-    query = query.replace(/-/g, ' ');
 
     try {
-        // 1. Search for the most relevant Wikipedia article in the requested language
-        const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
-        const searchResp = await fetch(searchUrl);
-        if (!searchResp.ok) throw new Error('Failed to search Wikipedia');
-        const searchData = await searchResp.json();
-        const firstResultTitle: string | undefined = searchData?.query?.search?.[0]?.title;
+        // Try exact domain-based searches with high specificity
+        const searchQueries = generateExactDomainQueries(hostname);
 
-        if (!firstResultTitle) {
-            return null; // Nothing found
+        // Prepare org base variants for scoring
+        const orgBase = extractOrganizationName(hostname);
+        const spacedBase = deriveReadableBaseName(orgBase);
+        const orgBaseNoSpace = orgBase.replace(/\s+/g, '').toLowerCase();
+
+        type Candidate = { title: string; snippet: string; preScore: number };
+        const candidates: Candidate[] = [];
+
+        for (const query of searchQueries) {
+            const searchUrl = `https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=8&format=json&origin=*`;
+            const searchResp = await fetch(searchUrl);
+            if (!searchResp.ok) continue;
+
+            const searchData = await searchResp.json();
+            const results = searchData?.query?.search || [];
+
+            for (const result of results) {
+                const title = (result.title as string) || '';
+                const snippet = (result.snippet as string) || '';
+                const preScore = scoreWikipediaSearchHit(hostname, orgBase, spacedBase, title, snippet);
+                // Keep plausible candidates only
+                if (preScore > 0) candidates.push({ title, snippet, preScore });
+            }
         }
 
-        // 2. Fetch the summary for that article
-        const summary = await fetchWikipediaContent(firstResultTitle, uiLang);
-        // Cache the result for future look-ups
-        wikipediaDomainCache.set(cacheKey, summary);
-        return summary;
+        // Sort by preliminary score and fetch summaries for top ones
+        candidates.sort((a, b) => b.preScore - a.preScore);
+        const top = candidates.slice(0, 6);
+
+        let best: { score: number; summary: WikipediaContent } | null = null;
+        for (const c of top) {
+            const summary = await fetchWikipediaContent(c.title, uiLang);
+            const finalScore = c.preScore + scoreWikipediaSummary(orgBaseNoSpace, spacedBase, hostname, summary);
+            // If title exactly matches expected brand form with media keyword, boost heavily
+            const t = (summary.title || '').toLowerCase();
+            if (t.includes('futurism') && t.includes('website')) {
+                // This handles futurism.com → Futurism (website)
+                best = { score: (best?.score || 0) + 10 + finalScore, summary };
+                break;
+            }
+            if (!best || finalScore > best.score) {
+                best = { score: finalScore, summary };
+            }
+        }
+
+        if (best && best.score >= 2) {
+            wikipediaDomainCache.set(cacheKey, best.summary);
+            return best.summary;
+        }
+
+        // No strong match found - cache null to avoid repeated lookups
+        wikipediaDomainCache.set(cacheKey, null);
+        return null;
+
     } catch (err) {
         console.error('Error fetching Wikipedia content for domain:', domain, err);
+        wikipediaDomainCache.set(cacheKey, null);
         return null;
     }
+}
+
+/**
+ * Generate specific search queries for exact domain matching
+ */
+function generateExactDomainQueries(hostname: string): string[] {
+    const queries: string[] = [];
+    
+    // Extract organization name from domain
+    const orgName = extractOrganizationName(hostname);
+    
+    // Add exact domain search
+    queries.push(`"${hostname}"`);
+    
+    // Add organization name with common suffixes that indicate it's a media organization
+    queries.push(`"${orgName}" website`);
+    queries.push(`"${orgName}" news`);
+    queries.push(`"${orgName}" media`);
+    queries.push(`"${orgName}" newspaper`);
+    queries.push(`"${orgName}" magazine`);
+    // Also try a readable spaced variant when the org name is concatenated
+    const spaced = deriveReadableBaseName(orgName);
+    if (spaced && spaced.toLowerCase() !== orgName.toLowerCase()) {
+        queries.push(`"${spaced}" website`);
+        queries.push(`"${spaced}" news`);
+        queries.push(`"${spaced}" media`);
+        queries.push(`"${spaced}" newspaper`);
+        queries.push(`"${spaced}" magazine`);
+    }
+    
+    return queries;
+}
+
+/**
+ * Extract organization name from hostname
+ */
+function extractOrganizationName(hostname: string): string {
+    const parts = hostname.split('.');
+    let orgName = parts.length >= 2 ? parts[parts.length - 2] : hostname;
+    
+    // Handle special cases like co.uk
+    if (['co', 'com', 'net', 'org', 'gov'].includes(orgName) && parts.length >= 3) {
+        orgName = parts[parts.length - 3];
+    }
+    
+    // Remove common prefixes
+    orgName = orgName.replace(/^(www|m|mobile|news)\.?/, '');
+    
+    return orgName;
+}
+
+/**
+ * Convert a concatenated org base into a readable spaced form when possible.
+ * E.g., "washingtonpost" -> "Washington Post".
+ */
+function deriveReadableBaseName(orgBase: string): string {
+    const lower = orgBase.toLowerCase();
+    const known: Record<string, string> = {
+        'washingtonpost': 'Washington Post',
+        'newyorktimes': 'New York Times',
+        'losangelestimes': 'Los Angeles Times',
+        'wallstreetjournal': 'Wall Street Journal',
+        'financialtimes': 'Financial Times',
+        'theguardian': 'The Guardian',
+        'thetelegraph': 'The Telegraph',
+        'thehindu': 'The Hindu',
+        'straitstimes': 'The Straits Times',
+        'globaltimes': 'Global Times'
+    };
+    if (known[lower]) return known[lower];
+    // Heuristic: split on transitions between letters where next word is common media term
+    const mediaWords = ['post','times','news','media','press','journal','tribune','herald','gazette','chronicle','standard','independent','report','monitor'];
+    for (const w of mediaWords) {
+        if (lower.endsWith(w) && lower.length > w.length + 2) {
+            const head = lower.slice(0, lower.length - w.length);
+            return `${capitalize(head)} ${capitalize(w)}`;
+        }
+    }
+    return capitalize(orgBase);
+}
+
+function capitalize(s: string): string {
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Score a Wikipedia search hit using domain and org cues to prefer the true outlet page
+ */
+function scoreWikipediaSearchHit(hostname: string, orgBase: string, spacedBase: string, title: string, snippet: string): number {
+    const t = title.toLowerCase();
+    const s = (snippet || '').toLowerCase();
+    const host = hostname.toLowerCase();
+    const base = orgBase.toLowerCase();
+    const baseNoSpace = base.replace(/\s+/g, '');
+    const spaced = spacedBase.toLowerCase();
+
+    let score = 0;
+    // Direct name matches
+    if (t.includes(base)) score += 1;
+    if (t.replace(/\s+/g, '').includes(baseNoSpace)) score += 1;
+    if (spaced && (t.includes(spaced) || t.replace(/\s+/g, '').includes(spaced.replace(/\s+/g, '')))) score += 1;
+
+    // Media context boosts
+    const mediaTerms = ['news','newspaper','media','press','journal','times','post','herald','tribune','gazette','chronicle','magazine','website'];
+    if (mediaTerms.some(k => t.includes(k))) score += 1;
+    if (mediaTerms.some(k => s.includes(k))) score += 0.5;
+
+    // Penalize unrelated verticals under the same brand (e.g., Washingtonpost.Newsweek_Interactive)
+    const penalize = ['interactive','newsweek','labs','company','holding','foundation','disambiguation'];
+    if (penalize.some(k => t.includes(k))) score -= 1.5;
+
+    // If snippet mentions the hostname, big boost
+    if (s.includes(host)) score += 2;
+
+    return score;
+}
+
+/**
+ * Score fetched summary to confirm we picked the outlet page
+ */
+function scoreWikipediaSummary(baseNoSpace: string, spacedBase: string, hostname: string, summary: WikipediaContent): number {
+    if (!summary) return 0;
+    const title = (summary.title || '').toLowerCase();
+    const extract = (summary.extract || '').toLowerCase();
+    const host = hostname.toLowerCase();
+    let score = 0;
+
+    if (title.replace(/\s+/g, '').includes(baseNoSpace)) score += 1.5;
+    if (spacedBase && title.includes(spacedBase.toLowerCase())) score += 1.5;
+    const mediaTerms = ['newspaper','news','media','press','daily','broadsheet','online newspaper'];
+    if (mediaTerms.some(k => extract.includes(k))) score += 1;
+    if (extract.includes(host)) score += 2;
+    return score;
+}
+
+/**
+ * Check if a search result is an exact match for the domain
+ */
+function isExactDomainMatch(hostname: string, title: string, snippet: string): boolean {
+    const lowerTitle = title.toLowerCase();
+    const lowerTitleNoSpace = lowerTitle.replace(/\s+/g, '');
+    const lowerSnippet = snippet.toLowerCase();
+    const lowerHostname = hostname.toLowerCase();
+    const orgName = extractOrganizationName(hostname).toLowerCase();
+    
+    // Reject disambiguation pages and "may refer to" pages
+    if (lowerTitle.includes('disambiguation') || 
+        lowerTitle.includes('may refer to') ||
+        lowerSnippet.includes('may refer to') ||
+        lowerSnippet.includes('disambiguation')) {
+        return false;
+    }
+    
+    // Check for exact domain mention
+    if (lowerTitle.includes(lowerHostname) || lowerSnippet.includes(lowerHostname)) {
+        return true;
+    }
+    
+    // Check for organization name with media-related context
+    if (lowerTitle.includes(orgName) || lowerTitle === orgName || lowerTitleNoSpace.includes(orgName.replace(/\s+/g, ''))) {
+        // Must have media/news context to avoid false positives
+        const mediaKeywords = ['news', 'media', 'newspaper', 'magazine', 'broadcasting', 'television', 'radio', 'journal', 'press', 'times', 'post', 'herald', 'tribune', 'gazette', 'chronicle', 'channel', 'website'];
+        return mediaKeywords.some(keyword => 
+            lowerTitle.includes(keyword) || lowerSnippet.includes(keyword)
+        );
+    }
+    
+    return false;
 }
 
 // Generic cache for arbitrary search queries (e.g. person names, concepts)
@@ -430,7 +734,7 @@ const wikipediaSearchCache = new Map<string, WikipediaContent>();
  * Returns `null` when nothing relevant is found.
  */
 export async function fetchWikipediaContentBySearch(query: string, lang?: string): Promise<WikipediaContent | null> {
-    const uiLang = (lang || (browser ? language.ui : 'en')) || 'en';
+    const uiLang = getWikipediaLanguage(lang);
     const wikiLang = normalizeWikiLang(uiLang);
     const normalized = query.trim().toLowerCase();
     if (!normalized) return null;
@@ -480,8 +784,8 @@ export function extractWikipediaIdsFromContent(htmlContent: string): string[] {
 }
 
 /**
- * Enhanced search using server-side Knowledge Graph API
- * This calls our secure server endpoint instead of exposing API keys to the client
+ * Enhanced search using server-side Wikidata API
+ * This calls our secure server endpoint that uses Wikidata for entity resolution
  */
 export async function fetchWikipediaContentWithEnhancedSearch(
     query: string,
@@ -518,30 +822,46 @@ export async function fetchWikipediaContentWithKnowledgeGraph(
 ): Promise<WikipediaContent | null> {
     console.warn('fetchWikipediaContentWithKnowledgeGraph is deprecated. Use fetchWikipediaContentWithEnhancedSearch instead.');
 
-    // Redirect to secure server-side implementation
+    // Redirect to secure server-side Wikidata implementation
     return await fetchWikipediaContentWithEnhancedSearch(query, lang);
 }
 
 /**
- * Lookup entity by MID using server-side API
+ * Lookup entity by Wikidata QID using server-side API
  */
-export async function lookupEntityByMID(
-    mid: string,
+export async function lookupEntityByQID(
+    qid: string,
     lang?: string
 ): Promise<WikipediaContent | null> {
     try {
-        const response = await fetch(`/api/wikipedia/lookup?mid=${encodeURIComponent(mid)}&lang=${lang || 'en'}`);
+        const uiLang = getWikipediaLanguage(lang);
+        const wikiLang = normalizeWikiLang(uiLang);
+        const response = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(qid)}&lang=${uiLang}`);
 
         if (response.ok) {
             const data = await response.json();
-            if (data.error) {
-                console.debug('Server-side MID lookup error:', data.error);
+            if (data?.error) {
+                console.debug('Server-side QID lookup error:', data.error);
                 return null;
             }
-            return data;
+            // Fallback to English images if localized lacks image
+            try {
+                const hasImage = !!(data?.thumbnail || data?.originalImage);
+                if (!hasImage && wikiLang !== 'en') {
+                    const fbResp = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(qid)}&lang=en`);
+                    if (fbResp.ok) {
+                        const fb = await fbResp.json();
+                        if (fb) {
+                            if (!data.thumbnail && fb.thumbnail) data.thumbnail = fb.thumbnail;
+                            if (!data.originalImage && fb.originalImage) data.originalImage = fb.originalImage;
+                        }
+                    }
+                }
+            } catch {}
+            return data as WikipediaContent;
         }
     } catch (e) {
-        console.debug('MID lookup failed:', e);
+        console.debug('QID lookup failed:', e);
     }
 
     return null;

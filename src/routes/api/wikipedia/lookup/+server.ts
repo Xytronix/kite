@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { GOOGLE_CLOUD_PROJECT_ID, GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY } from '$env/static/private';
 
 interface WikipediaContent {
 	extract: string;
@@ -10,24 +9,24 @@ interface WikipediaContent {
 	wikiUrl: string;
 	entityType?: string;
 	confidence?: number;
-	googleKgMID?: string;
 	wikidataQID?: string;
 }
 
 export const GET: RequestHandler = async ({ url }) => {
-	const mid = url.searchParams.get('mid');
+	const qid = url.searchParams.get('qid');
 	const lang = url.searchParams.get('lang') || 'en';
 
-	if (!mid) {
-		return json({ error: 'MID parameter is required' }, { status: 400 });
+	if (!qid) {
+		return json({ error: 'QID parameter is required' }, { status: 400 });
 	}
 
-	if (!GOOGLE_CLOUD_PROJECT_ID || !GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY) {
-		return json({ error: 'Google Cloud Enterprise Knowledge Graph not configured' }, { status: 503 });
+	// Validate QID format
+	if (!/^Q\d+$/.test(qid)) {
+		return json({ error: 'Invalid QID format' }, { status: 400 });
 	}
 
 	try {
-		const result = await lookupEntityByMID(mid, lang);
+		const result = await lookupEntityByQID(qid, lang);
 		if (result) {
 			return json(result);
 		} else {
@@ -35,84 +34,77 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 	} catch (error) {
 		if (process.env.NODE_ENV === 'development') {
-			console.error('MID lookup API error:', error);
+			console.error('QID lookup API error:', error);
 		}
 		return json({ error: 'Failed to lookup entity' }, { status: 500 });
 	}
 };
 
-async function lookupEntityByMID(mid: string, lang: string): Promise<WikipediaContent | null> {
+async function lookupEntityByQID(qid: string, lang: string): Promise<WikipediaContent | null> {
 	try {
-		// Get access token from service account
-		const accessToken = await getGoogleCloudAccessToken();
-		if (!accessToken) return null;
-
-		const kgUrl = `https://enterpriseknowledgegraph.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT_ID}/locations/global/publicKnowledgeGraphEntities:Lookup?ids=${encodeURIComponent(mid)}&languages=${lang}`;
+		// Get Wikidata entity details
+		const entityUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&languages=${lang}|en&format=json&origin=*`;
 		
-		const response = await fetch(kgUrl, {
-			headers: {
-				'Authorization': `Bearer ${accessToken}`,
-				'Content-Type': 'application/json'
-			}
-		});
-
+		const response = await fetch(entityUrl);
 		if (!response.ok) return null;
 
 		const data = await response.json();
-		const entity = data.itemListElement?.[0]?.result;
+		const entityData = data.entities?.[qid];
+		
+		if (!entityData || entityData.missing) return null;
 
-		if (entity) {
-			// Extract identifiers
-			const identifiers = entity.identifier || [];
-			const googleKgMID = identifiers.find((id: any) => id.propertyID === 'googleKgMID')?.value;
-			const wikidataQID = identifiers.find((id: any) => id.propertyID === 'wikidataQID')?.value;
+		// Extract basic entity information
+		const label = entityData.labels?.[lang]?.value || entityData.labels?.en?.value || '';
+		const description = entityData.descriptions?.[lang]?.value || entityData.descriptions?.en?.value;
+		const sitelinks = entityData.sitelinks || {};
 
-			// Get Wikipedia content if available
-			const wikiUrl = entity.detailedDescription?.url;
-			let wikiContent: WikipediaContent;
-
-			if (wikiUrl && wikiUrl.includes('wikipedia.org')) {
-				const titleMatch = wikiUrl.match(/\/wiki\/(.+)$/);
-				if (titleMatch) {
-					const pageTitle = decodeURIComponent(titleMatch[1]);
-					wikiContent = await fetchWikipediaContent(pageTitle, lang);
-				} else {
-					wikiContent = createFallbackContent(entity);
-				}
-			} else {
-				wikiContent = createFallbackContent(entity);
-			}
-
-			// Enhance with Knowledge Graph metadata
+		// Get Wikipedia page from sitelinks
+		const wikiLang = normalizeWikiLang(lang);
+		const sitelink = sitelinks[`${wikiLang}wiki`] || sitelinks.enwiki;
+		
+		if (sitelink) {
+			// Fetch Wikipedia content
+			const actualLang = sitelink.site.replace('wiki', '');
+			const wikiContent = await fetchWikipediaContent(sitelink.title, actualLang);
+			
 			return {
 				...wikiContent,
-				title: entity.name || wikiContent.title,
-				extract: entity.detailedDescription?.articleBody || wikiContent.extract,
-				thumbnail: entity.image?.contentUrl ? { source: entity.image.contentUrl } : wikiContent.thumbnail,
-				wikiUrl: wikiUrl || wikiContent.wikiUrl,
-				entityType: Array.isArray(entity['@type']) ? entity['@type'][0] : entity['@type'],
-				googleKgMID,
-				wikidataQID
+				wikidataQID: qid
+			};
+		} else {
+			// No Wikipedia page available, return Wikidata info
+			return {
+				extract: description || 'No summary available.',
+				thumbnail: null,
+				originalImage: null,
+				title: label,
+				wikiUrl: `https://www.wikidata.org/wiki/${qid}`,
+				wikidataQID: qid
 			};
 		}
 	} catch (error) {
 		if (process.env.NODE_ENV === 'development') {
-			console.debug('Enterprise Knowledge Graph MID lookup failed:', error);
+			console.debug('Wikidata QID lookup failed:', error);
 		}
 	}
 	
 	return null;
 }
 
-function createFallbackContent(entity: any): WikipediaContent {
-	return {
-		extract: entity.description || entity.detailedDescription?.articleBody || 'No summary available.',
-		thumbnail: entity.image?.contentUrl ? { source: entity.image.contentUrl } : null,
-		originalImage: entity.image?.contentUrl ? { source: entity.image.contentUrl } : null,
-		title: entity.name || '',
-		wikiUrl: entity.url || entity.detailedDescription?.url || ''
+function normalizeWikiLang(lang: string | undefined): string {
+	if (!lang) return 'en';
+	const lower = lang.toLowerCase();
+	const overrides: Record<string, string> = {
+		'pt-br': 'pt',
+		'zh-hans': 'zh',
+		'zh-hant': 'zh',
+		'nb': 'no'
 	};
+	if (overrides[lower]) return overrides[lower];
+	return lower.split('-')[0] || 'en';
 }
+
+
 
 async function fetchWikipediaContent(title: string, lang: string): Promise<WikipediaContent> {
 	const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
@@ -141,49 +133,3 @@ async function fetchWikipediaContent(title: string, lang: string): Promise<Wikip
 	}
 }
 
-async function getGoogleCloudAccessToken(): Promise<string | null> {
-	if (!GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY) return null;
-
-	try {
-		// Parse service account key
-		const serviceAccount = JSON.parse(GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY);
-		
-		// Create JWT for Google OAuth
-		const jwt = await createJWT(serviceAccount);
-		
-		// Exchange JWT for access token
-		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({
-				grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-				assertion: jwt
-			})
-		});
-
-		if (!tokenResponse.ok) return null;
-
-		const tokenData = await tokenResponse.json();
-		return tokenData.access_token;
-	} catch (error) {
-		if (process.env.NODE_ENV === 'development') {
-			console.error('Failed to get Google Cloud access token:', error);
-		}
-		return null;
-	}
-}
-
-async function createJWT(serviceAccount: any): Promise<string> {
-	const jwt = await import('jsonwebtoken');
-	
-	const now = Math.floor(Date.now() / 1000);
-	const payload = {
-		iss: serviceAccount.client_email,
-		scope: 'https://www.googleapis.com/auth/cloud-platform',
-		aud: 'https://oauth2.googleapis.com/token',
-		exp: now + 3600,
-		iat: now
-	};
-
-	return jwt.sign(payload, serviceAccount.private_key, { algorithm: 'RS256' });
-}

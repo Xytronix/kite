@@ -17,7 +17,7 @@ interface SettingsState {
 const settingsState = $state<SettingsState>({
   isOpen: false,
   fontSize: "normal",
-  storyCount: 10,
+  storyCount: 12,
   categoryHeaderPosition: "bottom",
   showIntro: false,
   dedupeArticles: true,
@@ -236,13 +236,13 @@ export const settings = {
 
   reset() {
     settingsState.fontSize = "normal";
-    settingsState.storyCount = 10;
+    settingsState.storyCount = 12;
     settingsState.categoryHeaderPosition = "bottom";
     settingsState.dedupeArticles = true;
     
     applyFontSize("normal");
     saveToStorage("fontSize", "normal");
-    saveToStorage("storyCount", "10");
+    saveToStorage("storyCount", "12");
     saveToStorage("categoryHeaderPosition", "bottom");
     saveToStorage("dedupeArticles", "true");
   },
@@ -251,7 +251,7 @@ export const settings = {
     if (!browser) return;
 
     const fontSize = loadFromStorage("fontSize", "normal") as FontSize;
-    const storyCount = parseInt(loadFromStorage("storyCount", "10"));
+    const storyCount = parseInt(loadFromStorage("storyCount", "12"));
     const categoryHeaderPosition = loadFromStorage(
       "categoryHeaderPosition",
       "bottom",

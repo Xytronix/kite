@@ -153,10 +153,9 @@ export class NavigationHandlerService {
 						// Wait for category change to complete
 						await new Promise(resolve => setTimeout(resolve, 50));
 					} else {
-						// Default to first category if not found
-						console.warn('Category not found in list:', normalizedTarget);
-						callbacks.handleCategoryChange(state.categories[0]?.id || 'world', false);
-						await new Promise(resolve => setTimeout(resolve, 50));
+						// Do not force-switch when target category isn't present in this batch.
+						// Keep current category (may show empty state) to avoid unexpected jumps.
+						console.warn('Category not found in current batch, preserving current category:', normalizedTarget);
 					}
 				} else {
 					console.log('🚫 Skipping category change - already on target category');

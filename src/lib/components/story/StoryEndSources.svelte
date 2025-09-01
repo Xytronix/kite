@@ -288,7 +288,7 @@
             addBackground={true}
             backgroundMode="transparent-only"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 break-words">
             {decodeHtmlEntities(organizationNames.get(domain) || domain)}
           </span>
           <span class="text-xs text-gray-500 dark:text-gray-400">
@@ -326,5 +326,11 @@
 <style>
   .source-item {
     transition: all 0.2s ease;
+  }
+  
+  .source-item .break-words {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 </style>

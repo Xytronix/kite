@@ -250,8 +250,8 @@
 			}
 			
 			// Skip separate story-loading stage – SplashScreen handles all loading UI
-			loadingStage = '';
-			loadingProgress = 30;
+			loadingStage = s('loading.connecting') || 'Connecting...';
+			loadingProgress = 15;
 
 			console.log('🚀 Starting initial data load from kite.kagi.com');
 			console.log('📊 DataLoader: About to fetch initial data with params:', {
@@ -343,11 +343,13 @@
 			categoriesStore.init();
 			categoriesStore.initWithDefaults();
 			
-			// Filter enabled categories to only those that exist in the current batch
+			// Filter enabled categories to only those that exist in the current batch (case-insensitive)
 			const availableCategoryIds = categories.map(cat => cat.id);
-			const validEnabledCategories = categoriesStore.enabled.filter(catId => 
-				availableCategoryIds.includes(catId)
-			);
+			const validEnabledCategories = Array.from(new Set(
+				categoriesStore.enabled
+					.map((catId) => normalizeCategoryId(catId, categories))
+					.filter((id): id is string => !!id)
+			));
 			
 			// Debug logging for historical batch category issues
 			if (!isLatestBatch) {
@@ -394,14 +396,18 @@
 			const categoriesToLoad = [...enabledCategories];
 			let temporaryCategoryId: string | null = null;
 			
-			if (initialCategoryId && !enabledCategories.includes(initialCategoryId)) {
-				// Check if this category exists in the available categories
-				if (availableCategoryIds.includes(initialCategoryId)) {
-					console.log('Including non-enabled category from URL:', initialCategoryId);
-					categoriesToLoad.push(initialCategoryId);
-					temporaryCategoryId = initialCategoryId;
-					// Temporarily add to enabled categories so it shows in the navigation
-					categoriesStore.addTemporary(initialCategoryId);
+			if (initialCategoryId) {
+				const normalizedInitial = normalizeCategoryId(initialCategoryId, categories) || initialCategoryId;
+				if (!enabledCategories.includes(normalizedInitial)) {
+					// Check if this category exists in the available categories (case-insensitive supported via normalization)
+					if (availableCategoryIds.includes(normalizedInitial)) {
+						console.log('Including non-enabled category from URL:', normalizedInitial);
+						categoriesToLoad.push(normalizedInitial);
+						temporaryCategoryId = normalizedInitial;
+						// Temporarily add to enabled categories so it shows in the navigation
+						categoriesStore.addTemporary(normalizedInitial);
+						try { sessionStorage.setItem('kite-temp-category', normalizedInitial); } catch {}
+					}
 				}
 			}
 			
@@ -733,11 +739,13 @@
 			// Update categories store with new data
 			categoriesStore.setAllCategories(categories);
 			
-			// Filter enabled categories to only those that exist in the current batch
+			// Filter enabled categories to only those that exist in the current batch (case-insensitive)
 			const availableCategoryIds = categories.map(cat => cat.id);
-			const validEnabledCategories = categoriesStore.enabled.filter(catId => 
-				availableCategoryIds.includes(catId)
-			);
+			const validEnabledCategories = Array.from(new Set(
+				categoriesStore.enabled
+					.map((catId) => normalizeCategoryId(catId, categories))
+					.filter((id): id is string => !!id)
+			));
 			
 			// Persist enabled category changes only in latest mode; preserve user prefs during time travel
 			if (isLatestBatch) {
@@ -758,14 +766,18 @@
 			const categoriesToLoad = [...enabledCategories];
 			let temporaryCategoryId: string | null = null;
 			
-			if (initialCategoryId && !enabledCategories.includes(initialCategoryId)) {
-				// Check if this category exists in the available categories
-				if (availableCategoryIds.includes(initialCategoryId)) {
-					console.log('Including non-enabled category from URL (latest batch):', initialCategoryId);
-					categoriesToLoad.push(initialCategoryId);
-					temporaryCategoryId = initialCategoryId;
-					// Temporarily add to enabled categories so it shows in the navigation
-					categoriesStore.addTemporary(initialCategoryId);
+			if (initialCategoryId) {
+				const normalizedInitial = normalizeCategoryId(initialCategoryId, categories) || initialCategoryId;
+				if (!enabledCategories.includes(normalizedInitial)) {
+					// Check if this category exists in the available categories
+					if (availableCategoryIds.includes(normalizedInitial)) {
+						console.log('Including non-enabled category from URL (latest batch):', normalizedInitial);
+						categoriesToLoad.push(normalizedInitial);
+						temporaryCategoryId = normalizedInitial;
+						// Temporarily add to enabled categories so it shows in the navigation
+						categoriesStore.addTemporary(normalizedInitial);
+						try { sessionStorage.setItem('kite-temp-category', normalizedInitial); } catch {}
+					}
 				}
 			}
 			
@@ -869,6 +881,14 @@
 
 		} catch (error) {
 			console.error('Error reloading data for language change:', error);
+			// Ensure we don't get stuck on the splash screen
+			try {
+				afterInitial = true;
+				initialLoading = false;
+				// Surface a usable message for any potential splash still visible
+				hasError = true;
+				errorMessage = error instanceof Error ? error.message : 'Failed to reload data';
+			} catch {}
 			
 			if (onError) {
 				onError(error instanceof Error ? error.message : 'Failed to reload data');
@@ -947,15 +967,27 @@
 		
 		// Register reload callback early, and also listen to data-language change events
 		dataReloadService.onReload(reloadAllData);
+		// Listen for one-shot suppress flag from main page (auto top-up)
+		try {
+			(window as any).kiteDataLoader = {
+				setSuppressReloadOnce: () => { suppressReloadOnce = true; }
+			};
+		} catch {}
 		const handleDataLanguageChanged = () => {
 			persistentLogDataLoader('🌍 data-language-changed received - reloading data');
 			if (isReloadingData) {
 				persistentLogDataLoader('⏭️ Reload already in progress, skipping');
 				return;
 			}
-			// Hide splash, show corner loader during language reload
-			afterInitial = true;
-			initialLoading = false;
+			// First visit: keep SplashScreen visible while reloading due to auto-detected language
+			// Subsequent changes: hide splash and use lightweight loader
+			if (afterInitial || !initialLoading) {
+				afterInitial = true;
+				initialLoading = false;
+			} else {
+				// Still in initial load → ensure splash remains
+				initialLoading = true;
+			}
 			loadingProgress = 0;
 			// Reset error and show loading message
 			hasError = false;
@@ -994,6 +1026,7 @@
 	
 	// Watch for batch changes (time travel mode toggle)
 	let lastProcessedBatchId: string | null = null;
+	let suppressReloadOnce = false;
 	
 	// Track when batch changes and trigger reload
 	$effect(() => {
@@ -1022,6 +1055,11 @@
 				from: lastProcessedBatchId?.substring(0, 8) || 'null',
 				to: currentBatchId?.substring(0, 8) || 'null'
 			});
+			// If flagged by main page (auto top-up), skip any reload behavior once
+			if (suppressReloadOnce) {
+				persistentLogDataLoader('⏭️ Suppressing reload once (auto top-up)');
+				suppressReloadOnce = false;
+			}
 			// Update tracking variable and exit
 			lastProcessedBatchId = currentBatchId;
 			return;

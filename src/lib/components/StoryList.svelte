@@ -14,6 +14,7 @@ import { preloadStoryIcons, preloadCommonIcons, preloadSourceIcons } from '$lib/
 import { language } from '$lib/stores/language.svelte.js';
 import { dataService } from '$lib/services/dataService';
 import { timeTravel } from '$lib/stores/timeTravel.svelte.js';
+import { SUPPORTED_LANGUAGES } from '$lib/constants/languages';
 
 // Props
 interface Props {
@@ -328,12 +329,8 @@ let loadMoreClickGuard = $state(false);
 let lastClickTime = $state(0);
 let pendingOperations = $state(0);
 
-// Determine if we should offer switching to English based on availability today
-let canOfferEnglishSwitch = $state(false);
-let checkingEnglishAvailability = $state(false);
-const englishAvailabilityCache = new Map<string, boolean>();
-let englishCheckToken = 0;
-let englishCheckTimer: ReturnType<typeof setTimeout> | null = null;
+// Determine if we should offer switching to default language
+let canOfferDefaultSwitch = $state(false);
 
 // Spinner visibility with debounce to prevent flashing on fast transitions
 let showLoadingSpinner = $state(false);
@@ -397,70 +394,35 @@ $effect(() => {
     scheduleUnsuppress(600);
 });
 
-async function checkEnglishAvailability(categoryId: string) {
-    try {
-        if (!categoryId || categoryId.toLowerCase() === 'onthisday') {
-            canOfferEnglishSwitch = false;
-            return;
-        }
-        const myToken = ++englishCheckToken;
-        const cached = englishAvailabilityCache.get(categoryId);
-        if (cached !== undefined) {
-            canOfferEnglishSwitch = cached;
-            return;
-        }
-        if (checkingEnglishAvailability) return;
-        checkingEnglishAvailability = true;
+// Simple function to determine if we should offer switching to default language
+function shouldOfferDefaultLanguageSwitch(): boolean {
+    // Offer the switch only when:
+    // - current data language is not 'default'
+    // - there are no stories to show
+    // - and there is no option to load historical content (canLoadMore === false)
+    // This prevents showing the hint on short days that can be topped up from history.
+    return language.data !== 'default' && !canLoadMore;
+}
 
-        // Load latest batch and check if there is at least one English story for this category
-        const initialData = await dataService.loadInitialData('en');
-        // Normalize category ID to match API-provided IDs
-        let actualCategoryId = categoryId;
-        try {
-            const { UrlNavigationService } = await import('$lib/services/urlNavigationService');
-            const normalizedTarget = UrlNavigationService.normalizeCategoryId(categoryId);
-            const matched = initialData.categories.find(c => UrlNavigationService.normalizeCategoryId(c.id) === normalizedTarget);
-            if (matched) actualCategoryId = matched.id;
-        } catch {}
-        const categoryUuid = initialData.categoryMap[actualCategoryId];
-        if (!categoryUuid) {
-            englishAvailabilityCache.set(categoryId, false);
-            canOfferEnglishSwitch = false;
-            return;
-        }
-        const result = await dataService.loadStories(initialData.batchId, categoryUuid, 1, 'en');
-        const available = (result?.stories?.length || 0) > 0;
-        if (myToken !== englishCheckToken) {
-            return;
-        }
-        englishAvailabilityCache.set(categoryId, available);
-        canOfferEnglishSwitch = available;
-    } catch {
-        canOfferEnglishSwitch = false;
-    } finally {
-        checkingEnglishAvailability = false;
-    }
+// Get the display name for the default language option
+function getDefaultLanguageDisplayName(): string {
+    // Since we don't know what 'default' resolves to on the server,
+    // we use a generic term that works in all contexts
+    return 'Default';
 }
 
 $effect(() => {
-    // Only check when empty, not already English, category is known, and not actively loading
+    // Only offer switch when empty, not using default language, and no historical load is possible
     if (
         displayedStories.length === 0 &&
-        language.data !== 'en' &&
         currentCategory &&
         !isLoading &&
         !isLoadingMore &&
         pendingOperations === 0
     ) {
-        if (englishCheckTimer) clearTimeout(englishCheckTimer);
-        englishCheckTimer = setTimeout(() => {
-            checkEnglishAvailability(currentCategory);
-        }, 200);
+        canOfferDefaultSwitch = shouldOfferDefaultLanguageSwitch();
     } else {
-        if (englishCheckTimer) {
-            clearTimeout(englishCheckTimer);
-            englishCheckTimer = null;
-        }
+        canOfferDefaultSwitch = false;
     }
 });
 
@@ -900,7 +862,7 @@ onDestroy(() => {
 					<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 						{s('stories.noneTodayMsg') || 'Looks like there are no stories for this category today. Check back tomorrow.'}
 					</p>
-					{#if language.data !== 'en' && canOfferEnglishSwitch}
+					{#if canOfferDefaultSwitch}
 						<div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
 							<p class="mb-2">{s('stories.noSourcesInLanguage') || 'Sources may not be available in this language yet.'}</p>
 							<button
@@ -908,15 +870,15 @@ onDestroy(() => {
 									try {
 										if (browser) {
 											const url = new URL(window.location.href);
-											url.searchParams.set('data_lang', 'en');
+											url.searchParams.set('data_lang', 'default');
 											window.history.replaceState({}, '', url.toString());
 										}
-										language.setData('en' as any);
+										language.setData('default' as any);
 									} catch {}
 								}}
 								class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-300 text-gray-800 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
 							>
-								{s('stories.switchToEnglish') || 'Switch to English'}
+								{s('stories.switchToDefault') || 'Switch to default language'}
 							</button>
 						</div>
 					{/if}

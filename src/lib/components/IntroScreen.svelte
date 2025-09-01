@@ -167,9 +167,13 @@ $effect(() => {
 					<div class="mt-8 flex justify-center">
 						<button
 							onclick={handleClose}
-							class="focus:ring-opacity-75 rounded-lg bg-black px-6 py-3 font-semibold text-white transition-colors duration-200 ease-in-out hover:bg-gray-800 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+							class="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-gray-700 via-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-700 dark:from-gray-600 dark:via-gray-600 dark:to-gray-700 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all"
+							aria-label={s('article.closeStory') || 'Close'}
 						>
-							{@html s('about.understand.button') || 'Got it!'}
+							<span>{s('article.closeStory') || 'Close'}</span>
+							<svg class="h-4 w-4 opacity-90 group-hover:rotate-90 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+								<path d="M10 8.586l4.95-4.95a1 1 0 1 1 1.414 1.414L11.414 10l4.95 4.95a1 1 0 1 1-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 0 1-1.414-1.414L8.586 10l-4.95-4.95A1 1 0 0 1 5.05 3.636L10 8.586z"/>
+							</svg>
 						</button>
 					</div>
 				</div>

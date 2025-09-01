@@ -91,7 +91,7 @@ const displayTitle = $derived.by(() => {
 		<div class="col-start-1 row-start-2">
 			<div
 				data-no-wiki
-				class="dark:text-dark-text mb-2 flex cursor-pointer items-center gap-2 text-xl text-gray-800 text-left w-full focus-visible-ring rounded"
+				class="question-title dark:text-dark-text mb-2 flex cursor-pointer items-center gap-2 text-xl text-gray-800 text-left w-full focus-visible-ring rounded"
 				class:font-semibold={!isRead}
 				id="story-title-{story.cluster_number}"
 				role="button"

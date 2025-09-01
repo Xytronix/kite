@@ -136,7 +136,7 @@
           (referenceRect.width < 32 || referenceRect.height < 32);
         const needsExtraSpace = isInlineCitation || isSmallElement;
 
-        // Consistent offset regardless of placement to maintain same gap
+        // Reasonable offset with hover conflict prevention
         const baseOffset = needsExtraSpace ? 12 : 8;
         return baseOffset;
       }),
@@ -160,12 +160,13 @@
           const minHeight = 150;
           const maxHeight = Math.min(400, window.innerHeight * 0.7);
 
-          // Detect inline citations and use larger buffer
+          // Detect inline citations and use larger buffer to prevent overlap
           const referenceRect = elements.reference?.getBoundingClientRect();
           const isInlineCitation = referenceRect && referenceRect.height < 30;
+          const isSmallElement = referenceRect && (referenceRect.width < 32 || referenceRect.height < 32);
 
-          // Use consistent buffer regardless of placement
-          const buffer = isInlineCitation ? 24 : 16;
+          // Reasonable buffer with hover conflict prevention
+          const buffer = (isInlineCitation || isSmallElement) ? 24 : 16;
 
           const safeHeight = availableHeight - buffer;
           const optimalHeight = Math.min(
@@ -375,12 +376,26 @@
         hideTimeout = null;
       }
 
-      // Create a virtual reference element for better positioning on multi-line text
-      const virtualReference = createVirtualReference(
-        event,
-        wrapper as HTMLElement,
-      );
-      floating.elements.reference = virtualReference;
+      // Choose reference strategy:
+      // - For small elements like favicons, anchor to the actual element so placement
+      //   is always computed from its bottom edge (prevents tooltip overlapping the icon)
+      // - For larger/multi-line text, use a virtual reference based on the pointer/text range
+      const wrapperEl = wrapper as HTMLElement;
+      const rect = wrapperEl.getBoundingClientRect();
+      const isSmallElement = rect && (rect.width < 32 || rect.height < 32);
+      const isFaviconLike =
+        wrapperEl.classList.contains("section-favicon") ||
+        wrapperEl.classList.contains("favicon-wrapper");
+
+      if (isSmallElement || isFaviconLike) {
+        // Anchor to the real element; with placement: 'bottom-start' this ensures
+        // the tooltip calculates from the bottom position of the favicon
+        floating.elements.reference = wrapperEl;
+      } else {
+        // Create a virtual reference element for better positioning on multi-line text
+        const virtualReference = createVirtualReference(event, wrapperEl);
+        floating.elements.reference = virtualReference;
+      }
 
       // Force immediate position recalculation when switching reference elements
       if (showTooltip) {
@@ -628,7 +643,7 @@
 
     hideTimeout = window.setTimeout(() => {
       hideTooltip();
-    }, 100);
+    }, 150);
   }
 
   // Handle tooltip mouse leave
@@ -653,7 +668,7 @@
 
     hideTimeout = window.setTimeout(() => {
       hideTooltip();
-    }, 100);
+    }, 150);
   }
 
   // Handle tooltip mouse enter (cancel hide timeout)
@@ -664,7 +679,7 @@
     }
   }
 
-  // Check for tooltip overlap with reference element
+  // Check for tooltip overlap with reference element and prevent it
   function checkForOverlap() {
     if (
       !showTooltip ||
@@ -685,22 +700,36 @@
     );
 
     if (overlaps) {
-      // Force tooltip to a safe position
+      // Force tooltip to a safe position with larger gaps to prevent hover conflicts
       const tooltip = floating.elements.floating;
       const isInlineCitation = referenceRect.height < 30;
+      const isSmallElement = referenceRect.width < 32 || referenceRect.height < 32;
+      
+      // Use reasonable gaps to prevent overlap
+      const minGap = isInlineCitation || isSmallElement ? 16 : 12;
 
-      if (isInlineCitation) {
-        // For inline citations, position well below or above
-        const spaceBelow = window.innerHeight - referenceRect.bottom;
-        const spaceAbove = referenceRect.top;
+      const spaceBelow = window.innerHeight - referenceRect.bottom;
+      const spaceAbove = referenceRect.top;
+      const spaceLeft = referenceRect.left;
+      const spaceRight = window.innerWidth - referenceRect.right;
 
-        if (spaceBelow > 200) {
-          // Position below with large gap
-          tooltip.style.top = `${referenceRect.bottom + 50}px`;
-        } else if (spaceAbove > 200) {
-          // Position above with large gap
-          tooltip.style.top = `${referenceRect.top - tooltipRect.height - 50}px`;
-        }
+      // Try different positions with adequate spacing
+      if (spaceBelow > tooltipRect.height + minGap) {
+        // Position below with large gap
+        tooltip.style.top = `${referenceRect.bottom + minGap}px`;
+        tooltip.style.left = `${Math.max(8, Math.min(referenceRect.left, window.innerWidth - tooltipRect.width - 8))}px`;
+      } else if (spaceAbove > tooltipRect.height + minGap) {
+        // Position above with large gap
+        tooltip.style.top = `${referenceRect.top - tooltipRect.height - minGap}px`;
+        tooltip.style.left = `${Math.max(8, Math.min(referenceRect.left, window.innerWidth - tooltipRect.width - 8))}px`;
+      } else if (spaceRight > tooltipRect.width + minGap) {
+        // Position to the right
+        tooltip.style.left = `${referenceRect.right + minGap}px`;
+        tooltip.style.top = `${Math.max(8, Math.min(referenceRect.top, window.innerHeight - tooltipRect.height - 8))}px`;
+      } else if (spaceLeft > tooltipRect.width + minGap) {
+        // Position to the left
+        tooltip.style.left = `${referenceRect.left - tooltipRect.width - minGap}px`;
+        tooltip.style.top = `${Math.max(8, Math.min(referenceRect.top, window.innerHeight - tooltipRect.height - 8))}px`;
       }
     }
   }
@@ -958,7 +987,7 @@
       if (isMobile || !showTooltip) return;
       if (!isInside(e.target as Node)) {
         if (!hideTimeout)
-          hideTimeout = window.setTimeout(() => hideTooltip(), 180);
+          hideTimeout = window.setTimeout(() => hideTooltip(), 200);
       } else if (hideTimeout) {
         clearTimeout(hideTimeout);
         hideTimeout = null;
@@ -1072,7 +1101,7 @@
           options={{
             overflow: {
               x: "hidden",
-              y: needsScrollbar ? "scroll" : "hidden",
+              y: "scroll",
             },
             scrollbars: {
               visibility: needsScrollbar ? "auto" : "hidden",
@@ -1185,11 +1214,11 @@
             options={{
               overflow: {
                 x: "hidden",
-                y: needsScrollbar ? "scroll" : "hidden",
+                y: "scroll",
               },
               scrollbars: {
-                visibility: needsScrollbar ? "auto" : "hidden",
-                autoHide: needsScrollbar ? "leave" : "never",
+                visibility: "auto",
+                autoHide: "leave",
                 autoHideDelay: 300,
               },
             }}

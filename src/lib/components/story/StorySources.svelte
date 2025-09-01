@@ -57,7 +57,7 @@
     if (domains.length > 0) {
       const domainNames = domains.map((d) => d?.name).filter(Boolean);
       if (domainNames.length > 0) {
-        getOrganizationNames(domainNames)
+        getOrganizationNames(domainNames, language.data)
           .then((names) => {
             organizationNames = names;
           })
@@ -413,7 +413,8 @@
             />
           </div>
           <span
-            class="col-start-2 line-clamp-2 text-base leading-tight font-semibold"
+            class="col-start-2 line-clamp-2 text-base leading-tight font-semibold break-words"
+            style="hyphens: auto; -webkit-hyphens: auto;"
           >
             {decodeHtmlEntities(
               organizationNames.get(domain?.name) || domain?.name || "Unknown",
@@ -470,5 +471,12 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    /* Prefer whole-word wrapping; allow hyphenation if it helps fit */
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    text-overflow: ellipsis;
+    /* Try to balance words across two lines so the second word isn't started in the first line */
+    text-wrap: balance;
   }
 </style>

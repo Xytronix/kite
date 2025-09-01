@@ -8,6 +8,8 @@ import SourceTooltip from './SourceTooltip.svelte';
 import WikipediaTooltip from '$lib/components/WikipediaTooltip.svelte';
 
 import { aggregateCitationsFromTexts } from '$lib/utils/citationAggregator';
+import { getWikipediaUrlFromQid } from '$lib/services/wikidataService';
+import { language } from '$lib/stores/language.svelte';
 
 import { experimental } from '$lib/stores/experimental.svelte.js';
   import { s } from '$lib/client/localization.svelte';
@@ -30,13 +32,40 @@ let wikipediaTooltip = $state<WikipediaTooltip | undefined>();
 let hasWikipediaContent = $state(false);
 let wikipediaUrl = $state<string | null>(null);
 
+// Root element of this summary section to scope propagation
+let summaryRoot: HTMLElement | null = $state(null);
+
 
 
 // Handle location click - prioritize Wikipedia, fallback to maps
+function getUiWikiLang(): string {
+	try {
+		let ui = language.ui || 'en';
+		if (ui === 'default') {
+			const nav = typeof navigator !== 'undefined' ? navigator : ({} as any);
+			const browserLang = (nav.languages?.[0] || nav.language || 'en').toString();
+			ui = browserLang;
+		}
+		return ui.toLowerCase().split('-')[0] || 'en';
+	} catch { return 'en'; }
+}
+
 async function handleLocationClick() {
 	if (!story.location) return;
 	
 	console.debug('Location clicked:', cleanLocationName, 'hasWikipediaContent:', hasWikipediaContent, 'wikipediaUrl:', wikipediaUrl);
+
+	// Prefer precise location QID from story when available
+	try {
+		const qid = (story as any)?.location_qid as string | undefined;
+		if (qid && /^Q\d+$/.test(qid)) {
+			const url = await getWikipediaUrlFromQid(qid, getUiWikiLang());
+			if (url) {
+				window.open(url, '_blank', 'noopener,noreferrer');
+				return;
+			}
+		}
+	} catch {}
 	
 	// If we already know Wikipedia content is available, use it
 	if (hasWikipediaContent && wikipediaUrl) {
@@ -46,7 +75,7 @@ async function handleLocationClick() {
 	}
 	
 	// Check if the tooltip has already found Wikipedia content
-	const wikiElement = document.querySelector(`[data-wiki-id="${cleanLocationName}"]`) as HTMLElement;
+	const wikiElement = document.querySelector(`[data-wiki-id="${(story as any)?.location_qid || cleanLocationName}"]`) as HTMLElement;
 	if (wikiElement) {
 		const existingUrl = wikiElement.getAttribute('data-url');
 		if (existingUrl && existingUrl !== '') {
@@ -91,7 +120,7 @@ function handleLocationKeydown(event: KeyboardEvent) {
 
 
 
-// Wikipedia interaction handlers for tooltip
+// Wikipedia interaction handler for tooltip
 async function handleWikipediaInteraction(event: Event) {
 	// Check if Wikipedia tooltips are enabled
 	if (!experimental.showWikipediaTooltips) {
@@ -101,8 +130,7 @@ async function handleWikipediaInteraction(event: Event) {
 	// Let the WikipediaTooltip handle everything, including content validation
 	wikipediaTooltip?.handleWikipediaInteraction(event);
 }
-
-function handleWikipediaLeave(event: Event) {
+async function handleWikipediaLeave(event: Event) {
 	wikipediaTooltip?.handleWikipediaLeave(event);
 }
 
@@ -116,11 +144,48 @@ async function onWikipediaClick(_title: string, content: string, _imageUrl?: str
 	}
 }
 
+function normalizeWikiId(id: string | null | undefined): string {
+	try {
+		if (!id) return '';
+		let v = id;
+		if (v.includes('%')) {
+			try { v = decodeURIComponent(v); } catch {}
+		}
+		return v.replace(/\s+/g, '_').toLowerCase();
+	} catch { return (id || '').toLowerCase(); }
+}
+
+function propagateWikiUrlToStoryReferences(foundWikiId: string, url: string) {
+	try {
+		if (!summaryRoot || !url) return;
+		const targetNorm = normalizeWikiId(foundWikiId);
+		const qidNorm = normalizeWikiId((story as any)?.location_qid as string | undefined);
+		const nameNorm = normalizeWikiId(cleanLocationName);
+		const nodes = summaryRoot.querySelectorAll('[data-wiki-id]');
+		nodes.forEach((el) => {
+			const raw = el.getAttribute('data-wiki-id') || '';
+			const norm = normalizeWikiId(raw);
+			if (!norm) return;
+			// Match same entity by exact normalized id or known QID/name for this location
+			if (norm === targetNorm || (qidNorm && norm === qidNorm) || (nameNorm && norm === nameNorm)) {
+				try { el.setAttribute('data-url', url); } catch {}
+				if (el.tagName === 'A') {
+					try { (el as HTMLAnchorElement).setAttribute('href', url); } catch {}
+				}
+			}
+		});
+	} catch (e) {
+		console.debug('Failed to propagate Wikipedia URL across story references:', e);
+	}
+}
+
 function onWikipediaContentFound(_wikiId: string, wikiUrl: string, _title: string) {
 	// Update button state when Wikipedia content is found via tooltip
-	if (!hasWikipediaContent && wikiUrl) {
+	if (wikiUrl) {
 		hasWikipediaContent = true;
 		wikipediaUrl = wikiUrl;
+		// Propagate resolved URL to all matching references within this story summary
+		propagateWikiUrlToStoryReferences((story as any)?.location_qid || cleanLocationName, wikiUrl);
 		console.debug('Updated button state from tooltip - Wikipedia available for:', cleanLocationName);
 	}
 }
@@ -132,35 +197,40 @@ function onWikipediaContentFound(_wikiId: string, wikiUrl: string, _title: strin
 // Import the enhanced location search function from WikipediaTooltip
 async function fetchWikipediaContentWithCrossLanguage(locationName: string) {
 	// Use the same logic as the WikipediaTooltip for consistency
-	const { fetchWikipediaContent } = await import('$lib/services/wikipediaService');
+	const { fetchWikipediaContent, lookupEntityByQID } = await import('$lib/services/wikipediaService');
 	const { resolveWikiTitleWithContext } = await import('$lib/utils/wikiResolver');
 	
-	console.debug('Fetching Wikipedia content for location:', locationName);
+	// Only log for debugging specific locations
+	if (import.meta.env.DEV && locationName.includes('debug-this-location')) {
+		console.debug('Fetching Wikipedia content for location:', locationName);
+	}
 	
 	// Clean the location name - remove common prefixes that might interfere
 	let cleanLocation = locationName.trim();
 	cleanLocation = cleanLocation.replace(/^(?:learn more about|in|at|from|near|over|across|around|into)\s+/i, '');
 	
 	try {
-		// Try multiple search variations for better results
-		const searchVariations = [
-			cleanLocation,
-			cleanLocation.split(',')[0].trim(),
-			cleanLocation.replace(/,.*$/, '').trim(),
-		];
+		// If we have an exact QID from the story, resolve from that first
+		const qid = (story as any)?.location_qid as string | undefined;
+		if (qid && /^Q\d+$/.test(qid)) {
+		const byQ = await lookupEntityByQID(qid, getUiWikiLang());
+			if (byQ && byQ.extract && byQ.extract !== 'Failed to load Wikipedia content.') {
+				return byQ;
+			}
+		}
+		// Only search the words before the comma (e.g., "Gaza City, ..." -> "Gaza City")
+		const partBeforeComma = cleanLocation.split(',')[0].trim();
+		// Only log for debugging specific locations
+		if (import.meta.env.DEV && partBeforeComma.includes('debug-this-location')) {
+			console.debug('Wikipedia place search restricted to words before comma:', partBeforeComma);
+		}
 		
-		const uniqueVariations = [...new Set(searchVariations)];
-		
-		for (const variation of uniqueVariations) {
-			const resolveResult = await resolveWikiTitleWithContext(variation, 'place');
-			
-			if (resolveResult) {
-				const wikiId = resolveResult.qid || resolveResult.title;
-				const wikiContent = await fetchWikipediaContent(wikiId);
-				
-				if (wikiContent && wikiContent.extract && wikiContent.extract !== 'Failed to load Wikipedia content.') {
-					return wikiContent;
-				}
+		const resolveResult = await resolveWikiTitleWithContext(partBeforeComma, 'place');
+		if (resolveResult) {
+			const wikiId = resolveResult.qid || resolveResult.title;
+			const wikiContent = await fetchWikipediaContent(wikiId, getUiWikiLang());
+			if (wikiContent && wikiContent.extract && wikiContent.extract !== 'Failed to load Wikipedia content.') {
+				return wikiContent;
 			}
 		}
 		
@@ -212,7 +282,12 @@ $effect(() => {
 				if (wikiContent && wikiContent.wikiUrl && wikiContent.extract && wikiContent.extract !== 'Failed to load Wikipedia content.') {
 					hasWikipediaContent = true;
 					wikipediaUrl = wikiContent.wikiUrl;
-					console.debug('Proactive Wikipedia check successful for:', cleanLocationName, 'URL:', wikiContent.wikiUrl);
+					// Propagate to all matching references
+					propagateWikiUrlToStoryReferences((story as any)?.location_qid || cleanLocationName, wikiContent.wikiUrl);
+					// Only log successful checks for debugging
+					if (import.meta.env.DEV && cleanLocationName.includes('debug-this-location')) {
+						console.debug('Proactive Wikipedia check successful for:', cleanLocationName, 'URL:', wikiContent.wikiUrl);
+					}
 				} else {
 					console.debug('Proactive Wikipedia check found no content for:', cleanLocationName);
 				}
@@ -231,7 +306,7 @@ const allCitedArticles = $derived.by(() => {
 });
 </script>
 
-<section class="mt-6">
+<section class="mt-6" bind:this={summaryRoot}>
 	<div class="mb-6">
         <CitationText 
 			text={displaySummary} 
@@ -254,7 +329,7 @@ const allCitedArticles = $derived.by(() => {
 		>
 			<img src="/svg/map.svg" alt="Map icon" class="mr-2 h-5 w-5" />
 			<span 
-				data-wiki-id={cleanLocationName}
+				data-wiki-id={(story as any)?.location_qid || cleanLocationName}
 				data-url=""
 				class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
 				role="presentation"

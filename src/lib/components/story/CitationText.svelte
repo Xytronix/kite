@@ -7,6 +7,10 @@ import SourceTooltip from './SourceTooltip.svelte';
 import SmartImage from '../SmartImage.svelte';
 import Icon from '$lib/components/Icon.svelte';
 import { experimental } from '$lib/stores/experimental.svelte.js';
+import { onMount, onDestroy } from 'svelte';
+import { browser } from '$app/environment';
+import WikipediaTooltip from '../WikipediaTooltip.svelte';
+import { initializeWikipediaIntegration } from '$lib/utils/wikipediaIntegration.js';
 
 // Props
 interface Props {
@@ -207,11 +211,81 @@ const allArticleDomains = $derived.by(() => {
     const pool = (allArticles && allArticles.length > 0) ? allArticles : (articles || []);
     return Array.from(new Set(pool.map(a => a.domain))).filter(Boolean) as string[];
 });
+
+// Wikipedia integration
+let contentContainer: HTMLElement;
+let wikipediaTooltip = $state<WikipediaTooltip>();
+let wikipediaIntegration: ReturnType<typeof initializeWikipediaIntegration> | null = null;
+
+// Initialize Wikipedia integration
+function initializeWikipedia() {
+  if (!wikipediaTooltip || !browser) return;
+
+  wikipediaIntegration = initializeWikipediaIntegration(
+    wikipediaTooltip,
+    {
+      handleWikipediaInteraction: wikipediaTooltip.handleWikipediaInteraction,
+      handleWikipediaLeave: wikipediaTooltip.handleWikipediaLeave
+    },
+    {
+      enableAutoLinking: true,
+      enableTooltips: true,
+      autoLinkOnMount: false // We'll process manually when content changes
+    }
+  );
+}
+
+// Process content for Wikipedia auto-linking
+async function processWikipediaContent() {
+  if (!contentContainer || !wikipediaIntegration || !experimental.showWikipediaTooltips) return;
+  
+  try {
+    await wikipediaIntegration.processContent(contentContainer);
+  } catch (error) {
+    console.debug('Wikipedia auto-linking failed:', error);
+  }
+}
+
+// Process content when text changes
+$effect(() => {
+  if (text && contentContainer && wikipediaIntegration && experimental.showWikipediaTooltips) {
+    // Small delay to ensure DOM is updated
+    setTimeout(() => {
+      processWikipediaContent();
+    }, 10);
+  }
+});
+
+onMount(() => {
+  if (browser) {
+    initializeWikipedia();
+  }
+});
+
+// Live re-attachment when tooltips setting or tooltip component becomes available
+$effect(() => {
+  if (!browser) return;
+  if (!contentContainer) return;
+  // When setting is on and we have an integration, (re)process content
+  if (experimental.showWikipediaTooltips && wikipediaTooltip && !wikipediaIntegration) {
+    initializeWikipedia();
+  }
+  if (experimental.showWikipediaTooltips && wikipediaIntegration) {
+    // Small defer to ensure DOM is current
+    setTimeout(() => {
+      try { wikipediaIntegration?.refreshTooltips(contentContainer); } catch {}
+    }, 0);
+  }
+});
+
+onDestroy(() => {
+  wikipediaIntegration?.cleanup();
+});
 </script>
 
 <div class="citation-wrapper">
 	<!-- Main content -->
-	<div class="citation-content {inline ? 'inline' : 'block'}">
+	<div bind:this={contentContainer} class="citation-content {inline ? 'inline' : 'block'} wikipedia-content">
 		{#if inline}
 			<!-- Inline rendering for list items -->
 			{#each parsedData.formattedSegments as segment}
@@ -403,6 +477,24 @@ const allArticleDomains = $derived.by(() => {
 	/>
 {/if}
 
+<!-- Wikipedia Tooltip -->
+{#if experimental.showWikipediaTooltips}
+	<WikipediaTooltip 
+		bind:this={wikipediaTooltip}
+		onWikipediaClick={(title, content, imageUrl, wikiUrl) => {
+			// Handle Wikipedia popup if needed
+			console.debug('Wikipedia clicked:', { title, content, imageUrl, wikiUrl });
+		}}
+		onWikipediaContentFound={(wikiId, wikiUrl, title) => {
+			// Handle Wikipedia content found if needed
+			// Only log for debugging specific entities
+			if (import.meta.env.DEV && wikiId.includes('debug-this-entity')) {
+				console.debug('Wikipedia content found:', { wikiId, wikiUrl, title });
+			}
+		}}
+	/>
+{/if}
+
 <style>
 	.citation-wrapper {
 		display: block;
@@ -441,5 +533,23 @@ const allArticleDomains = $derived.by(() => {
 		display: flex;
 		align-items: center;
 		margin-bottom: 0.25rem;
+	}
+
+	/* Wikipedia links: consistent link colors (blue; darker on hover), no underline */
+	.wikipedia-content :global([data-wiki-id]) {
+		cursor: pointer;
+		color: #2563eb; /* text-blue-600 */
+	}
+
+	.wikipedia-content :global([data-wiki-id]:hover) {
+		color: #1e40af; /* text-blue-800 */
+	}
+
+	:global(.dark) .wikipedia-content :global([data-wiki-id]) {
+		color: #60a5fa; /* text-blue-400 */
+	}
+
+	:global(.dark) .wikipedia-content :global([data-wiki-id]:hover) {
+		color: #93c5fd; /* text-blue-300 */
 	}
 </style>

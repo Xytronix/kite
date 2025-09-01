@@ -463,6 +463,14 @@
     "text": "Calculating chaos index...",
     "translationContext": "Loading message shown when calculating the world chaos index"
   },
+  "loading.connected": {
+    "text": "Connected",
+    "translationContext": "Loading message shown when connection is established"
+  },
+  "loading.connecting": {
+    "text": "Connecting...",
+    "translationContext": "Loading message shown when establishing connection"
+  },
   "loading.default": {
     "text": "Loading...",
     "translationContext": "Default loading message"
@@ -2974,6 +2982,10 @@
   "stories.switchToEnglish": {
     "text": "Switch to English",
     "translationContext": "Button to switch data language to English"
+  },
+  "stories.switchToDefault": {
+    "text": "Switch to default language",
+    "translationContext": "Button to switch data language to the default language which always has content"
   },
   "stories.noneTodayTitle": {
     "text": "No stories today",

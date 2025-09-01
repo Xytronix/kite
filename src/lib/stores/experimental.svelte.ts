@@ -25,6 +25,8 @@ export interface ExperimentalFeatures {
   enableHistoricalLoadMore: boolean;
   /** When true, automatically top-up with recent historical stories when the current day has too few stories. */
   autoTopUpShortDays: boolean;
+  /** Entity linking approach: 'wikidata' (Wikidata entity linking), 'dbpedia' (DBpedia-based linking), 'mixed' (both) */
+  entityLinkingMode: 'wikidata' | 'dbpedia' | 'mixed';
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -45,6 +47,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   enableTimeTravel: false,
   enableHistoricalLoadMore: false,
   autoTopUpShortDays: false,
+  entityLinkingMode: 'mixed',
 };
 
 // Initialize experimental features state
@@ -63,6 +66,10 @@ function getInitialFeatures(): ExperimentalFeatures {
         parsed.enableTimeTravel = !parsed.hideTimeTravelIcon;
         delete parsed.hideTimeTravelIcon;
       }
+      // Migration: old linking modes -> new identifiers
+      if (parsed.entityLinkingMode === 'advanced') parsed.entityLinkingMode = 'wikidata';
+      if (parsed.entityLinkingMode === 'pattern') parsed.entityLinkingMode = 'dbpedia';
+      if (parsed.entityLinkingMode === 'both') parsed.entityLinkingMode = 'mixed';
       return { ...DEFAULT_FEATURES, ...parsed } as ExperimentalFeatures;
     }
   } catch (error) {
@@ -152,6 +159,10 @@ export const experimental = {
 
   get autoTopUpShortDays() {
     return experimentalState.autoTopUpShortDays;
+  },
+
+  get entityLinkingMode() {
+    return experimentalState.entityLinkingMode;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

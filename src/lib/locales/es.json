@@ -1467,6 +1467,10 @@
     "text": "¡Algo salió mal, no hay historias aquí!",
     "translationContext": "Message shown when no stories are found"
   },
+  "stories.switchToDefault": {
+    "text": "Cambiar al idioma predeterminado",
+    "translationContext": "Button to switch data language to the default language which always has content"
+  },
   "time.updated.days": {
     "text": "Actualizado hace {{count}} días",
     "translationContext": "Shown when content was updated multiple days ago, {{count}} will be replaced with the number of days"

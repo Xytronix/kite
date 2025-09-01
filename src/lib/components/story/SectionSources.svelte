@@ -360,8 +360,8 @@
         {#each citedDomains.slice(0, 8) as domain, index}
           <button
             type="button"
-            class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full p-0 transition-all hover:z-10 hover:scale-110"
-            style="z-index: {8 - index}"
+            class="favicon-wrapper source-item section-favicon relative flex h-6 w-6 cursor-pointer items-center justify-center overflow-hidden rounded-full p-0 transition-transform hover:scale-110"
+            style="z-index: {8 - index}; --hover-z-index: 100;"
             title={decodeHtmlEntities(organizationNames.get(domain) || domain)}
             aria-label="View citations from {decodeHtmlEntities(
               organizationNames.get(domain) || domain,
@@ -506,8 +506,10 @@
 
 <style>
   .favicon-wrapper {
-    transition:
-      transform 0.2s,
-      z-index 0.2s;
+    transition: transform 0.2s;
+  }
+  
+  .favicon-wrapper:hover {
+    z-index: 100 !important;
   }
 </style>

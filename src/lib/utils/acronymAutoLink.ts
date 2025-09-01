@@ -1,7 +1,7 @@
 import { experimental } from '$lib/stores/experimental.svelte.js';
 import { language } from '$lib/stores/language.svelte.js';
 import { browser } from '$app/environment';
-import { resolveQIdToWikipediaUrl } from './qidResolver.js';
+import { getWikipediaUrlFromQid } from '$lib/services/wikidataService.js';
 
 // Map language codes used in UI to Wikipedia sub-domains
 function normalizeWikiLang(lang: string | undefined): string {
@@ -46,6 +46,7 @@ export async function autoLinkAcronyms(root: HTMLElement) {
   while (walker.nextNode()) {
     const textNode = walker.currentNode as Text;
     const text = textNode.textContent as string;
+    // Ensure we only match full acronyms inside parentheses and not as part of a longer token
     acronymRegex.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = acronymRegex.exec(text))) {
@@ -80,9 +81,10 @@ export async function autoLinkAcronyms(root: HTMLElement) {
         // Resolve Q-IDs to proper Wikipedia URLs immediately
         const currentLang = (browser ? language.ui : 'en') || 'en';
         const wikiLang = normalizeWikiLang(currentLang);
-        let wikiUrl: string;
+        let wikiUrl: string | null;
         if (checkWikiId.startsWith('Q')) {
-          wikiUrl = await resolveQIdToWikipediaUrl(checkWikiId, currentLang);
+          wikiUrl = await getWikipediaUrlFromQid(checkWikiId, currentLang);
+          if (!wikiUrl) return; // do not create broken Q-ID links
         } else {
           wikiUrl = `https://${wikiLang}.wikipedia.org/wiki/${checkWikiId}`;
         }
@@ -91,7 +93,7 @@ export async function autoLinkAcronyms(root: HTMLElement) {
         anchor.setAttribute('href', wikiUrl);
         anchor.setAttribute('target', '_blank');
         anchor.setAttribute('rel', 'noopener noreferrer');
-        anchor.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });
+        anchor.addEventListener('click', e => { if (!wikiUrl) return; e.preventDefault(); e.stopPropagation(); window.open(wikiUrl, '_blank', 'noopener'); });
         const range = document.createRange();
         range.setStart(textNode, start);
         range.setEnd(textNode, start + acronym.length);

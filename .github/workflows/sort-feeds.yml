@@ -39,14 +39,20 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-bun-
 
-    - name: Install dependencies (prod only)
-      run: bun install --production --frozen-lockfile
+    - name: Install jq for JSON processing
+      run: sudo apt-get update && sudo apt-get install -y jq
+
+    - name: Install dependencies
+      run: bun install --frozen-lockfile
 
     - name: Sort feeds, media and locales
       run: |
-        bun scripts/sort-feeds.ts
-        bun scripts/sort-media.ts
-        bun scripts/sort-locales.ts
+        set -e
+        echo "🔄 Sorting data files..."
+        bun scripts/sort-feeds.ts || { echo "❌ Failed to sort feeds"; exit 1; }
+        bun scripts/sort-media.ts || { echo "❌ Failed to sort media"; exit 1; }
+        bun scripts/sort-locales.ts || { echo "❌ Failed to sort locales"; exit 1; }
+        echo "✅ All data files sorted successfully"
 
     - name: Generate issues for reviewdog
       if: github.event_name == 'pull_request'

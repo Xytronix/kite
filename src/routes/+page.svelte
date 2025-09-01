@@ -16,6 +16,7 @@
   import TemporaryCategoryTooltip from "$lib/components/TemporaryCategoryTooltip.svelte";
   import TimeTravel from "$lib/components/TimeTravel.svelte";
   import WikipediaPopup from "$lib/components/WikipediaPopup.svelte";
+  import LanguageMismatchTooltip from "$lib/components/LanguageMismatchTooltip.svelte";
   import { dataService, dataReloadService } from "$lib/services/dataService";
   import { imagePreloadingService } from "$lib/services/imagePreloadingService";
   import { navigationHandlerService } from "$lib/services/navigationHandlerService";
@@ -48,6 +49,7 @@
   let lastLoadedCategory = $state(""); // Track last loaded category to prevent duplicates
   let temporaryCategory = $state<string | null>(null);
   let showTemporaryCategoryTooltip = $state(false);
+  let showTemporaryCategoryBanner = $state(false);
   let temporaryCategoryElement = $state<HTMLElement | null>(null);
   let desktopCategoryNavigation = $state<any>();
   let pendingUrlNavigation = $state<NavigationParams | null>(null); // Store URL navigation until data is loaded
@@ -206,6 +208,10 @@
     imageUrl: "",
     wikiUrl: "",
   });
+  // Language mismatch tooltip state
+  let showLangMismatch = $state(false);
+  let preferredDataLanguage = $state<SupportedLanguage>(language.data as SupportedLanguage);
+  let langMismatchDismissKey = $state<string | null>(null);
 
   // State for story URL management - Initialize with empty reactive objects
   let expandedStories = $state<Record<string, boolean>>({});
@@ -249,6 +255,7 @@
   let timeTravelByCategory = $state<Record<string, boolean>>({});
   let isLatestBatch = $state(true);
   let historyManager = $state<HistoryManager>();
+  let suppressReloadOnBatchChange = $state(false);
 
   // Compute current story index from expanded stories
   const currentStoryIndex = $derived.by(() => {
@@ -311,16 +318,28 @@
       return categories;
     }
 
+    // Ensure temporary category appears in the list even if not provided by the batch
+    const categoriesForOrdering: Category[] = (() => {
+      // Only inject temp category when it's the active one; avoid influencing other categories
+      if (
+        temporaryCategory &&
+        currentCategory === temporaryCategory &&
+        !categories.some((c) => c.id === temporaryCategory)
+      ) {
+        return [{ id: temporaryCategory, name: temporaryCategory }, ...categories];
+      }
+      return categories;
+    })();
+
     // Filter only enabled categories and order them according to store order
-    // Now that the store always uses IDs, we only need to check cat.id
-    const enabledCategories = categories.filter(
+    const enabledCategories = categoriesForOrdering.filter(
       (cat) =>
         categoriesStore.enabled.includes(cat.id) ||
-        (temporaryCategory && cat.id === temporaryCategory), // Include temporary category
+        (temporaryCategory && cat.id === temporaryCategory),
     );
 
     // Sort by store order - use toSorted() to avoid mutations
-    return [...enabledCategories].sort((a, b) => {
+    const sorted = [...enabledCategories].sort((a, b) => {
       const aIndex = categoriesStore.enabled.findIndex((id) => id === a.id);
       const bIndex = categoriesStore.enabled.findIndex((id) => id === b.id);
 
@@ -338,6 +357,19 @@
       const orderB = categoriesStore.order.findIndex((id) => id === b.id);
       return orderA - orderB;
     });
+
+    // Place the temporary category at the very front ONLY if it wasn't enabled before
+    try {
+      if (temporaryCategory && !categoriesStore.enabled.includes(temporaryCategory)) {
+        const idx = sorted.findIndex((c) => c.id === temporaryCategory);
+        if (idx > 0) {
+          const temp = sorted[idx];
+          return [temp, ...sorted.slice(0, idx), ...sorted.slice(idx + 1)];
+        }
+      }
+    } catch {}
+
+    return sorted;
   });
 
   // Show restore UI when the currently displayed today's stories exceed the user's target (e.g., 3→12)
@@ -456,10 +488,28 @@
       };
     }
 
-    // Handle temporary category
+    // Handle temporary category (only when not already enabled)
     if (data.temporaryCategory) {
-      temporaryCategory = data.temporaryCategory;
-      // Tooltip will appear on hover only
+      const isAlreadyEnabled = (() => {
+        try {
+          return categoriesStore.enabled.includes(data.temporaryCategory);
+        } catch {
+          return false;
+        }
+      })();
+
+      if (!isAlreadyEnabled) {
+        temporaryCategory = data.temporaryCategory;
+        showTemporaryCategoryBanner = true;
+        try { sessionStorage.setItem('kite-temp-category', data.temporaryCategory); } catch {}
+      } else {
+        // Clear any stale temp category from prior sessions
+        try { sessionStorage.removeItem('kite-temp-category'); } catch {}
+        if (temporaryCategory === data.temporaryCategory) {
+          temporaryCategory = null;
+        }
+        showTemporaryCategoryBanner = false;
+      }
     }
 
     dataLoaded = true;
@@ -1255,6 +1305,13 @@
             !(item as any).__fromHistoricalBatch,
         ).length || 0;
       if (todaysOnlyCount === 0 && !experimental.autoTopUpShortDays) {
+        // Special case: for a temporary category linked via URL, allow historical fetch once
+        // even if auto top-up is disabled, so users see that category has content.
+        if (temporaryCategory && categoryId === temporaryCategory) {
+          console.log(
+            "🧭 Temporary category with zero today; allowing historical traversal despite autoTopUpShortDays being OFF",
+          );
+        } else {
         console.log(
           "🛑 No stories available for today - skipping historical fetch and showing empty state",
         );
@@ -1262,6 +1319,7 @@
         stories = [];
         storiesLoading = false;
         return;
+        }
       }
     }
 
@@ -1279,19 +1337,33 @@
     {
       const limitNow = categoryLimits[categoryId] || requestedLimit;
       if (cachedStoryCount > 0 && cachedStoryCount < limitNow) {
-        persistentLogMain(
-          "📊 Have cached but need more - showing cached first",
-        );
-        console.log(
-          "📊 Have",
-          cachedStoryCount,
-          "cached stories, need",
-          limitNow,
-          "total. Showing cached first.",
-        );
-        // Only show cached immediately for initial loads; keep current view for increments
-        if (!increment) {
-          stories = allCategoryStories[categoryId];
+        // Guard: if today has zero stories and auto top-up is OFF, do not show historical cached items
+        if (
+          !increment &&
+          isLatestBatch &&
+          !experimental.autoTopUpShortDays &&
+          currentDayCachedCount === 0
+        ) {
+          console.log(
+            "🛑 Today has zero stories; suppressing historical cached items for initial load",
+          );
+          stories = [];
+          restrictToCurrentBatch = true;
+        } else {
+          persistentLogMain(
+            "📊 Have cached but need more - showing cached first",
+          );
+          console.log(
+            "📊 Have",
+            cachedStoryCount,
+            "cached stories, need",
+            limitNow,
+            "total. Showing cached first.",
+          );
+          // Only show cached immediately for initial loads; keep current view for increments
+          if (!increment) {
+            stories = allCategoryStories[categoryId];
+          }
         }
 
         // For initial loads (not increments): if auto top-up is off, restrict to current batch only
@@ -1412,7 +1484,8 @@
         if (
           !increment &&
           !experimental.autoTopUpShortDays &&
-          batchId !== currentBatchId
+          batchId !== currentBatchId &&
+          !(temporaryCategory && categoryId === temporaryCategory)
         ) {
           persistentLogMain(
             "⏭️ Skipping historical batches (auto top-up disabled for initial load)",
@@ -1444,7 +1517,8 @@
         if (
           batchId !== currentBatchId &&
           !experimental.autoTopUpShortDays &&
-          !(increment && !autoTopUpAttempted)
+          !(increment && !autoTopUpAttempted) &&
+          !(temporaryCategory && categoryId === temporaryCategory)
         ) {
           persistentLogMain(
             "⏭️ Skipping historical batches (auto top-up disabled)",
@@ -1469,7 +1543,7 @@
           if (batchId === currentBatchId) {
             persistentLogMain("🔍 Checking if current batch has more stories");
             // Determine how many unique stories we already have from current day
-            const currentDayStories = allCategoryStories[categoryId].filter(
+            const currentDayStories = (allCategoryStories[categoryId] || []).filter(
               (it) =>
                 !(it as any).__dateDivider &&
                 !(it as any).__fromHistoricalBatch,
@@ -1498,6 +1572,61 @@
               "🔍 Batch matches current batch - using categoryMap",
             );
             catUuid = categoryMap[categoryId];
+            
+            // If category is not in the map (newly enabled), fetch it
+            if (!catUuid) {
+              persistentLogMain("🔍 Category not in map - fetching for current batch", {
+                categoryId,
+                batchId: batchId.substring(0, 8),
+              });
+              try {
+                const resp = await fetch(
+                  `/api/batches/${batchId}/categories?lang=${language.data}`,
+                );
+                if (resp.ok) {
+                  const data = await resp.json();
+                  const categories = (data && (data.categories || data)) || [];
+                  let catObj = categories.find(
+                    (c: any) =>
+                      c.id === categoryId || c.categoryId === categoryId,
+                  );
+
+                  // If not found, try matching by name (case insensitive)
+                  if (!catObj) {
+                    const categoryNames: Record<string, string> = {
+                      world: "World",
+                      usa: "USA",
+                      business: "Business",
+                      tech: "Technology",
+                      science: "Science",
+                      sports: "Sports",
+                      gaming: "Gaming",
+                    };
+                    const expectedName = categoryNames[categoryId?.toLowerCase?.() || categoryId];
+                    if (expectedName) {
+                      catObj = categories.find(
+                        (c: any) =>
+                          c.name?.toLowerCase() === expectedName.toLowerCase(),
+                      );
+                    }
+                  }
+
+                  catUuid = catObj?.id || catObj?.uuid;
+                  
+                  // Update the categoryMap for future use
+                  if (catUuid) {
+                    categoryMap[categoryId] = catUuid;
+                    persistentLogMain("✅ Updated categoryMap for newly enabled category", {
+                      categoryId,
+                      catUuid,
+                    });
+                  }
+                }
+              } catch (err) {
+                console.warn("Failed to fetch category UUID for current batch:", err);
+              }
+            }
+            
             persistentLogMain("✅ Using current batch", {
               batchId: batchId.substring(0, 8),
               catUuid,
@@ -1973,6 +2102,9 @@
                         .length;
                       if (isLatestBatch && currentDayCountExisting === 0) {
                         isLatestBatch = false;
+                        // Mark this batch change as internal (auto top-up) to avoid full reload loop
+                        suppressReloadOnBatchChange = true;
+                        try { (window as any).kiteDataLoader?.setSuppressReloadOnce?.(); } catch {}
                         timeTravelBatch.set(batchId);
                         try { timeTravel.selectBatch(batchId); } catch {}
                         try { timeTravel.selectDate(new Date(batchDateIso)); } catch {}
@@ -2267,6 +2399,8 @@
             // Set the limit exactly to the user's target (avoid cumulative overshoot)
             categoryLimits[categoryId] = targetPerCategory;
 
+            // Auto top-up may traverse into historical batches; keep currentCategory intact
+            // Auto top-up exclusively for the current category; do not alter category order or selection
             await loadStoriesForCategory(categoryId, true, true);
             return; // Subsequent call will handle slicing/state
           }
@@ -2361,6 +2495,26 @@
 
     // Initialize time travel batch store and clear stale batches
     timeTravelBatch.init();
+    // Restore temp category for session visibility only if not already enabled
+    try {
+      const tempCat = sessionStorage.getItem('kite-temp-category');
+      if (tempCat) {
+        const isAlreadyEnabled = (() => {
+          try { return categoriesStore.enabled.includes(tempCat); } catch { return false; }
+        })();
+        if (!isAlreadyEnabled) {
+          temporaryCategory = tempCat;
+          showTemporaryCategoryBanner = true;
+        } else {
+          // Clean up stale temp value if category is already enabled
+          try { sessionStorage.removeItem('kite-temp-category'); } catch {}
+          if (temporaryCategory === tempCat) {
+            temporaryCategory = null;
+          }
+          showTemporaryCategoryBanner = false;
+        }
+      }
+    } catch {}
     if (timeTravelBatch.isStale()) {
       console.log("🗑️ Clearing stale time travel batch on page mount");
       timeTravelBatch.set(null);
@@ -2392,6 +2546,21 @@
           urlParams.dataLang,
         );
         language.setData(urlParams.dataLang as SupportedLanguage);
+        // Remember user's saved preference to offer a switch-back tooltip (session-persistent)
+        try {
+          const saved = (localStorage.getItem('language.data') || 'en') as SupportedLanguage;
+          preferredDataLanguage = saved;
+          if (saved !== (urlParams.dataLang as any)) {
+            langMismatchDismissKey = `kite-lang-mismatch-dismissed:${urlParams.dataLang}->${saved}`;
+            const dismissed = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem(langMismatchDismissKey) : null;
+            showLangMismatch = !dismissed;
+          } else {
+            showLangMismatch = false;
+          }
+        } catch {
+          // If storage fails, still show the banner
+          showLangMismatch = true;
+        }
       }
     }
 
@@ -2561,6 +2730,8 @@
               storyIndex: null,
             });
           }
+          // Show an indicator without toggling global time-travel mode in services yet
+          showTemporaryCategoryBanner = true;
         } catch {}
 
       } catch (e) {
@@ -2636,6 +2807,13 @@
     });
 
     currentCategory = category;
+    // Clear current stories immediately to avoid showing previous category content
+    try { stories = []; } catch {}
+
+    // Prevent duplicate-load guard from blocking this navigation-triggered load
+    // We intentionally reset lastLoadedCategory so loadStoriesForCategory proceeds even if
+    // a previous load for the same category finished earlier.
+    try { lastLoadedCategory = ""; } catch {}
 
     // Reset view mode when changing categories (when map view is implemented)
     // if (category.toLowerCase() !== 'world') {
@@ -2651,17 +2829,10 @@
     // Keep time travel global across categories; do not clear state on category switch
 
     // Clear temporary category if user manually navigates
-    if (updateUrl && temporaryCategory) {
-      categoriesStore.removeTemporary();
-      temporaryCategory = null;
-      showTemporaryCategoryTooltip = false;
-    }
+    // Preserve temporary category during manual navigation; only user action should clear it
 
     // Reset any stale feed date to avoid showing an older header date
     try { feedDate.set(null); } catch {}
-
-    // Update the effect tracking variable to prevent duplicate loading
-    lastEffectLoadedCategory = category;
 
     // Load stories for the new category (will be instant for preloaded categories)
     persistentLogMain(
@@ -2675,11 +2846,15 @@
           "⏰ Category change timeout - forcing reset of isLoadingMore",
         );
         isLoadingMore = false;
+        // Safety: also clear storiesLoading to avoid spinner getting stuck
+        storiesLoading = false;
       }
     }, 10000); // 10 second timeout for category changes
 
     loadStoriesForCategory(category)
       .then(async () => {
+        // Update the effect tracking variable after successful load
+        lastEffectLoadedCategory = category;
         try {
           // After initial load, if the category doesn't meet the new target, fetch incrementally
           const target = categoryLimits[category] || settings.storyCount;
@@ -2737,6 +2912,9 @@
             storyIndex: null,
           });
         }
+
+        // Ensure loading spinner is cleared after navigation completes
+        storiesLoading = false;
 
         // Re-enable load more after category change is complete
         setTimeout(() => {
@@ -3092,6 +3270,34 @@
       } catch {}
     }
 
+    // If URL specifies a category that's not enabled, enable it temporarily for display
+    try {
+      if (params.categoryId !== undefined && params.categoryId !== null) {
+        // Normalize against loaded categories to handle case differences
+        const normalizedTarget = (() => {
+          try {
+            const match = (categories || []).find(
+              (c) => UrlNavigationService.normalizeCategoryId(c.id) === UrlNavigationService.normalizeCategoryId(params.categoryId!)
+            );
+            return match ? match.id : UrlNavigationService.normalizeCategoryId(params.categoryId!);
+          } catch { return UrlNavigationService.normalizeCategoryId(params.categoryId!); }
+        })();
+        const isEnabled = categoriesStore.enabled.includes(normalizedTarget);
+        if (!isEnabled) {
+          // Set local temporary category so navigation bars include it immediately
+          temporaryCategory = normalizedTarget;
+          try { sessionStorage.setItem('kite-temp-category', normalizedTarget); } catch {}
+          // Add to enabled temporarily when available in current categories
+          try {
+            const availableIds = (categories || []).map((c) => c.id);
+            if (availableIds.includes(normalizedTarget)) {
+              categoriesStore.addTemporary(normalizedTarget);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
     const updates = await navigationHandlerService.handleUrlNavigation(
       params,
       {
@@ -3126,11 +3332,26 @@
   $effect(() => {
     if (!browser || !dataLoaded) return;
 
-    // Step 1: Initialize category if needed (only once)
+    // Step 1: Initialize category if needed (only on first run)
+    // Prefer temporary category when present to ensure correct banner and nav state,
+    // but do NOT override user-initiated category changes after initial selection.
+    if (
+      temporaryCategory &&
+      currentCategory !== temporaryCategory &&
+      // Only force-switch before any category has been loaded by this effect
+      lastEffectLoadedCategory === ""
+    ) {
+      console.log(
+        `🔧 Switching to temporary category (initial only): ${temporaryCategory}`,
+      );
+      currentCategory = temporaryCategory;
+      return; // Exit early to let the effect re-run with the new category
+    }
+
+    // If current category isn't available, fall back to the first available
     if (
       orderedCategories.length > 0 &&
-      !orderedCategories.find((cat) => cat.id === currentCategory) &&
-      !(temporaryCategory && currentCategory === temporaryCategory)
+      !orderedCategories.find((cat) => cat.id === currentCategory)
     ) {
       console.log(`🔧 Setting initial category to: ${orderedCategories[0].id}`);
       currentCategory = orderedCategories[0].id;
@@ -3241,18 +3462,23 @@
     }, 150);
   });
 
-  // If the temporary category gets permanently enabled by the user (e.g., via Settings),
-  // clear the temporary state so it no longer shows the tooltip.
+  // Only clear temporary state if the category was permanently enabled via Settings
+  // i.e., it's included in enabled AND no longer marked temporary in the store
   $effect(() => {
-    if (
-      temporaryCategory &&
-      categoriesStore.enabled.includes(temporaryCategory)
-    ) {
-      console.log("Temporary category now permanently enabled, cleaning up");
-      categoriesStore.removeTemporary();
-      temporaryCategory = null;
-      showTemporaryCategoryTooltip = false;
-    }
+    try {
+      if (!temporaryCategory) return;
+      const storeTemp = categoriesStore.temporaryCategory;
+      const isInEnabled = categoriesStore.enabled.includes(temporaryCategory);
+      const isStillTemporary = storeTemp === temporaryCategory;
+      if (isInEnabled && !isStillTemporary) {
+        console.log("Temporary category permanently enabled by user, cleaning up");
+        categoriesStore.removeTemporary();
+        temporaryCategory = null;
+        showTemporaryCategoryTooltip = false;
+        try { sessionStorage.removeItem('kite-temp-category'); } catch {}
+        showTemporaryCategoryBanner = false;
+      }
+    } catch {}
   });
   // Language changes are now handled by DataLoader through the reload service
   // Chaos index will be reloaded with all other data when language changes
@@ -3300,6 +3526,15 @@
     console.log("🔍 timeTravelBatch.batchId changed to:", newBatch);
     // If batch actually changed, proactively reload data and prevent mixing content
     if ((newBatch || null) !== (currentBatchId || null)) {
+      // If this change was triggered by an internal auto top-up, do not clear caches or reload;
+      // keep the current category and view stable
+      try {
+        if (suppressReloadOnBatchChange) {
+          console.log('⏭️ Suppressing reload/clear for internal auto top-up batch change');
+          suppressReloadOnBatchChange = false;
+          return;
+        }
+      } catch {}
       // Update mode flag
       isLatestBatch = newBatch === null;
       // Clear current cached content to avoid mixing across batches
@@ -3599,6 +3834,77 @@
         {chaosIndex}
       />
 
+      {#if temporaryCategory && currentCategory === temporaryCategory && showTemporaryCategoryBanner}
+        <div class="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-sm">
+              {s('category.tempBannerPrefix', undefined, true) || (s('app.temporaryCategoryNotice') || 'Temporarily showing this category from shared link')}
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                onclick={() => {
+                  try {
+                    const alreadyEnabled = categoriesStore.enabled.includes(temporaryCategory);
+                    if (!alreadyEnabled) {
+                      // Insert the category into enabled respecting the master order
+                      const masterOrder = categoriesStore.order;
+                      const targetIndex = masterOrder.findIndex((id) => id === temporaryCategory);
+                      const currentEnabled = [...categoriesStore.enabled];
+                      if (targetIndex <= 0) {
+                        currentEnabled.unshift(temporaryCategory);
+                      } else {
+                        // Find the next enabled category that appears after target in master order
+                        let insertAt = currentEnabled.length;
+                        for (let i = 0; i < currentEnabled.length; i++) {
+                          const enabledId = currentEnabled[i];
+                          const enabledIndex = masterOrder.findIndex((id) => id === enabledId);
+                          if (enabledIndex > targetIndex) { insertAt = i; break; }
+                        }
+                        currentEnabled.splice(insertAt, 0, temporaryCategory);
+                      }
+                      categoriesStore.setEnabled(currentEnabled);
+                    }
+                    categoriesStore.removeTemporary();
+                    showTemporaryCategoryBanner = false;
+                    sessionStorage.removeItem('kite-temp-category');
+                  } catch (e) { console.warn('Failed to permanently add category', e); }
+                }}
+              >
+                {s('settings.categories.enableAll') || 'Add'}
+              </button>
+              <button
+                class="rounded-md px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                onclick={() => {
+                  try {
+                    // Dismiss should remove the temporary category for this session
+                    categoriesStore.removeTemporary();
+                    const tempId = temporaryCategory;
+                    temporaryCategory = null;
+                    showTemporaryCategoryBanner = false;
+                    sessionStorage.removeItem('kite-temp-category');
+                    // Also remove from enabled if it was not persisted previously
+                    try {
+                      const persisted = JSON.parse(localStorage.getItem('enabledCategories') || '[]');
+                      if (Array.isArray(persisted) && !persisted.includes(tempId)) {
+                        const idx = categoriesStore.enabled.indexOf(tempId);
+                        if (idx >= 0) {
+                          const next = [...categoriesStore.enabled];
+                          next.splice(idx, 1);
+                          categoriesStore.setEnabled(next);
+                        }
+                      }
+                    } catch {}
+                  } catch {}
+                }}
+              >
+                {s('common.cancel') || 'Dismiss'}
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <!-- Category Navigation - Desktop (normal document flow) -->
       <div class="hidden md:block">
         <CategoryNavigation
@@ -3691,6 +3997,32 @@
   imageUrl={wikipediaPopup.imageUrl}
   wikiUrl={wikipediaPopup.wikiUrl}
   onClose={closeWikipediaPopup}
+/>
+
+<!-- Language mismatch tooltip -->
+<LanguageMismatchTooltip
+  show={showLangMismatch}
+  preferredLanguage={preferredDataLanguage}
+  onSwitch={() => {
+    try {
+      const saved = (typeof localStorage !== 'undefined' ? (localStorage.getItem('language.data') as any) : null) || preferredDataLanguage;
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('data_lang', saved);
+        window.history.replaceState({}, '', url.toString());
+      }
+      language.setData(saved as any);
+    } catch {}
+    showLangMismatch = false;
+  }}
+  onDismiss={() => {
+    try {
+      if (langMismatchDismissKey && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(langMismatchDismissKey, '1');
+      }
+    } catch {}
+    showLangMismatch = false;
+  }}
 />
 
 <!-- Temporary Category Tooltip -->

@@ -86,7 +86,7 @@ const paragraphCitations = $derived.by(() => {
 	<div class="space-y-4">
 		{#each displayQna as qa}
 			<div class="rounded-lg bg-gray-100 p-4 dark:bg-gray-700">
-                <p data-no-wiki class="mb-2 font-semibold text-gray-800 dark:text-gray-200">
+                <p class="mb-2 font-semibold text-gray-800 dark:text-gray-200">
                     <CitationText 
 						text={qa.question} 
                         showFavicons={true} 

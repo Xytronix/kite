@@ -64,32 +64,29 @@ async function getMediaInfoForDomain(domain: string): Promise<any | null> {
  * Get high-quality favicon/logo URL for a domain (logo.dev first, then best quality from media_data.json)
  */
 export async function getFaviconUrl(domain: string, size: number = 32): Promise<string> {
-  // First, try logo.dev API if we have a valid token (primary external source) - prefer PNG for transparency
-  const theme = getThemePreference();
-  const logoDevUrl = hasValidLogoDevToken() ? getLogoDevUrl(domain, size, { format: 'png', retina: true, theme }) : null;
-  
-  // Check if we have higher quality options from media_data.json
+  // 1) Highest priority: logo.dev if token available
+  if (hasValidLogoDevToken()) {
+    const theme = getThemePreference();
+    const logoDevUrl = getLogoDevUrl(domain, size, { format: 'png', retina: true, theme });
+    if (logoDevUrl) return logoDevUrl;
+  }
+
+  // 2) Curated media data
   const mediaInfo = await getMediaInfoForDomain(domain);
-  
   if (mediaInfo) {
-    // Prefer iconify icon (vector) over logo.dev
     if (mediaInfo.iconify_icon) {
       return `https://api.iconify.design/${mediaInfo.iconify_icon.replace(':', '/')}.svg`;
     }
-    
-    // Prefer SVG logo URL over logo.dev
     if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
       return mediaInfo.logo_url;
     }
-    
-    // Prefer WebP logo URL over logo.dev (modern efficient raster)
     if (mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.webp')) {
       return mediaInfo.logo_url;
     }
   }
-  
-  // Fall back to logo.dev if available, otherwise use Google Favicons
-  return logoDevUrl || getGoogleFaviconUrl(domain, size);
+
+  // 3) External favicon services
+  return getGoogleFaviconUrl(domain, size);
 }
 
 /**
@@ -97,9 +94,12 @@ export async function getFaviconUrl(domain: string, size: number = 32): Promise<
  * This uses logo.dev as preferred fallback
  */
 export function getFaviconUrlSync(domain: string, size: number = 32): string {
-  // Use logo.dev as preferred synchronous fallback
-  const theme = getThemePreference();
-  return getLogoDevUrl(domain, size, { format: 'png', retina: true, theme });
+  // Without token, do not hit logo.dev; default to Google
+  if (hasValidLogoDevToken()) {
+    const theme = getThemePreference();
+    return getLogoDevUrl(domain, size, { format: 'png', retina: true, theme });
+  }
+  return getGoogleFaviconUrl(domain, size);
 }
 
 /**
@@ -107,6 +107,49 @@ export function getFaviconUrlSync(domain: string, size: number = 32): string {
  */
 export function getGoogleFaviconUrl(domain: string, size: number = 16): string {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+}
+
+/**
+ * Get Favicone fallback URL with size support
+ * Favicone provides favicon extraction with:
+ * - Size parameter: ?s=size (max 256px)
+ * - JSON metadata: ?json for hasIcon/format info
+ * - Direct icon URLs from their CDN
+ */
+export function getFaviconeUrl(domain: string, size?: number): string {
+  const baseUrl = `https://favicone.com/${domain}`;
+  return size ? `${baseUrl}?s=${Math.min(size, 256)}` : baseUrl;
+}
+
+/**
+ * Get Favicone JSON metadata for a domain
+ */
+export async function getFaviconeMetadata(domain: string): Promise<{
+  hasIcon: boolean;
+  icon: string;
+  format: string;
+} | null> {
+  try {
+    // Use same-origin server endpoint to avoid CORS and centralize logic
+    const resp = await fetch(getServerFaviconUrl(domain, 32));
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data?.url) {
+      return { hasIcon: true, icon: data.url, format: 'unknown' };
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to fetch Favicone metadata:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if Favicone has an icon for a domain (lightweight check)
+ */
+export async function hasFaviconeIcon(domain: string): Promise<boolean> {
+  const metadata = await getFaviconeMetadata(domain);
+  return metadata?.hasIcon ?? false;
 }
 
 /**
@@ -259,14 +302,27 @@ export async function getFaviconUrls(domain: string, size: number = 32): Promise
     // 1. Reliable services first (fast CDN, high success rate)
     const theme = getThemePreference();
     
-    // Only include Logo.dev URLs if we have a valid API token
+    // Favicon order: logo.dev (if token) -> media_data -> Google -> Favicone
     if (hasValidLogoDevToken()) {
-      // Try both PNG and JPG formats from Logo.dev for better coverage
       urls.push(getLogoDevUrl(domain, size, { format: 'png', retina: true, theme }));
       urls.push(getLogoDevUrl(domain, size, { format: 'jpg', retina: true, theme }));
       urls.push(getLogoDevTickerUrl(domain));
     }
-    
+
+    // Curated media data (known good sources)
+    if (mediaInfo && mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
+      urls.push(mediaInfo.logo_url);
+    }
+    if (mediaInfo && mediaInfo.logo_url && 
+        (mediaInfo.logo_url.toLowerCase().includes('.png') || 
+         mediaInfo.logo_url.toLowerCase().includes('.ico') ||
+         mediaInfo.logo_url.toLowerCase().includes('.jpg') ||
+         mediaInfo.logo_url.toLowerCase().includes('.jpeg') ||
+         mediaInfo.logo_url.toLowerCase().includes('.webp'))) {
+      urls.push(mediaInfo.logo_url);
+    }
+
+    // External services
     urls.push(getGoogleFaviconUrl(domain, size));
     
     // 2. Curated media data (known good sources)
@@ -394,7 +450,9 @@ export async function preloadCommonFavicons(allCategoryStories?: Record<string, 
   }
   
   const domains = extractDomainsFromStories(allCategoryStories, enabledCategories);
-  console.log('🚀 Preloading favicons for', domains.length, 'domains from enabled categories...');
+  if (import.meta.env.DEV && domains.length > 20) {
+    console.log('🚀 Preloading favicons for', domains.length, 'domains from enabled categories...');
+  }
   
   // Start all preloads in parallel
   const preloadPromises = domains.map(domain => {
@@ -409,7 +467,9 @@ export async function preloadCommonFavicons(allCategoryStories?: Record<string, 
   // Wait for all to complete, but don't fail if some fail
   const results = await Promise.allSettled(preloadPromises);
   const succeeded = results.filter(r => r.status === 'fulfilled').length;
-  console.log(`✅ Preloaded ${succeeded}/${domains.length} favicon entries from enabled categories`);
+  if (import.meta.env.DEV && domains.length > 20) {
+    console.log(`✅ Preloaded ${succeeded}/${domains.length} favicon entries from enabled categories`);
+  }
 }
 
 /**
@@ -446,18 +506,30 @@ async function loadFaviconDataForDomain(domain: string): Promise<FaviconCacheEnt
     if (mediaInfo && mediaInfo.logo_url && mediaInfo.logo_url.toLowerCase().includes('.svg')) {
       urls.push(mediaInfo.logo_url);
     }
-    
-    // 3. Fixed-size media data (PNG/ICO/JPG - good quality if size matches)
     if (mediaInfo && mediaInfo.logo_url && 
         (mediaInfo.logo_url.toLowerCase().includes('.png') || 
          mediaInfo.logo_url.toLowerCase().includes('.ico') ||
          mediaInfo.logo_url.toLowerCase().includes('.jpg') ||
-         mediaInfo.logo_url.toLowerCase().includes('.jpeg'))) {
+         mediaInfo.logo_url.toLowerCase().includes('.jpeg') ||
+         mediaInfo.logo_url.toLowerCase().includes('.webp'))) {
       urls.push(mediaInfo.logo_url);
     }
     
-    // 4. Server-side favicon (eliminates client network overhead)
-    urls.push(getServerFaviconUrl(domain, 32));
+    // 3. External services
+    urls.push(getGoogleFaviconUrl(domain, 32));
+    
+    // Prefer same-origin server endpoint to discover site favicon (avoids CORS)
+    try {
+      const resp = await fetch(getServerFaviconUrl(domain, 32));
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.url) {
+          urls.push(data.url);
+        }
+      }
+    } catch (error) {
+      // Silent fallback - don't block on favicon discovery
+    }
     
     const cacheEntry: FaviconCacheEntry = {
       urls: [...new Set(urls)], // Remove duplicates

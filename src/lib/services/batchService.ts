@@ -1,6 +1,7 @@
 import type { Category } from '$lib/types';
 import { fetchWithRetry } from '$lib/utils/fetchWithRetry.js';
 import { timeTravelBatch } from '$lib/stores/timeTravelBatch.svelte';
+import { normalizeForUrl } from '$lib/utils/categoryIdTransform';
 
 /**
  * Service for managing batch data and time travel functionality
@@ -226,10 +227,12 @@ class BatchService {
 			const categoryMap: Record<string, string> = {};
 
 			// Transform the response to match the expected Category interface
+			// Normalize category IDs to a consistent, URL-safe lowercase format
 			const categories: Category[] = data.categories.map((cat: any) => {
-				categoryMap[cat.categoryId] = cat.id; // Store the UUID mapping
+				const normalizedId = normalizeForUrl(cat.categoryId);
+				categoryMap[normalizedId] = cat.id; // Store the UUID mapping keyed by normalized ID
 				return {
-					id: cat.categoryId,
+					id: normalizedId,
 					name: cat.categoryName,
 				};
 			});

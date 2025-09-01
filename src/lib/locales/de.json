@@ -1475,6 +1475,10 @@
     "text": "Auf Englisch wechseln",
     "translationContext": "Button to switch data language to English"
   },
+  "stories.switchToDefault": {
+    "text": "Zur Standardsprache wechseln",
+    "translationContext": "Button to switch data language to the default language which always has content"
+  },
   "time.updated.days": {
     "text": "Vor {{count}} Tagen aktualisiert",
     "translationContext": "Shown when content was updated multiple days ago, {{count}} will be replaced with the number of days"

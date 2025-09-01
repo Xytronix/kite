@@ -4,6 +4,7 @@
 	import { experimental } from '$lib/stores/experimental.svelte.js';
 	import { iconService } from '$lib/services/iconService';
 	import Icon from './Icon.svelte';
+	import { debugInfo } from '$lib/utils/debugUtils';
 
 	// Inline globe SVG for instant loading
 	const GLOBE_SVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.721 12.752q.03-.373.029-.752c0-1.524-.35-2.967-.973-4.252a12.8 12.8 0 0 1-4.34 2.709a19 19 0 0 1-.214 4.772a17.2 17.2 0 0 0 5.498-2.477m-7.087 2.798a17.3 17.3 0 0 0 .332-4.647c-.952.227-1.945.347-2.966.347s-2.014-.12-2.966-.347a17.5 17.5 0 0 0 .332 4.647a17.4 17.4 0 0 0 5.268 0m-4.862 1.569a19 19 0 0 0 4.456 0A17.2 17.2 0 0 1 12 21.724a17.2 17.2 0 0 1-2.228-4.605M7.777 15.23a19 19 0 0 1-.214-4.773a12.8 12.8 0 0 1-4.34-2.709a9.7 9.7 0 0 0-.944 5.004a17.2 17.2 0 0 0 5.498 2.477m13.579-.476a9.77 9.77 0 0 1-7.478 6.816a18.6 18.6 0 0 0 1.988-4.718a18.6 18.6 0 0 0 5.49-2.098m-18.712 0c1.682.97 3.53 1.687 5.49 2.098a18.6 18.6 0 0 0 1.988 4.718a9.77 9.77 0 0 1-7.478-6.816M13.878 2.43a9.76 9.76 0 0 1 6.116 3.986a11.3 11.3 0 0 1-3.746 2.504a18.6 18.6 0 0 0-2.37-6.49M12 2.276a17.15 17.15 0 0 1 2.805 7.121a11.3 11.3 0 0 1-5.61 0A17.15 17.15 0 0 1 12 2.276m-1.878.154a18.6 18.6 0 0 0-2.37 6.49a11.3 11.3 0 0 1-3.746-2.504a9.75 9.75 0 0 1 6.116-3.985"/></svg>`;
@@ -55,11 +56,11 @@
 	// Create a unique ID for this component instance to prevent cross-contamination
 	const componentId = Math.random().toString(36).substring(7);
 	
-	// Debug logging to understand what's happening
+	// Debug logging for SmartImage (controlled by debug flags)
 	$effect(() => {
 		if (!domain) return;
 		const shouldPreferIconify = preferIconify || experimental.preferIconifyIcons;
-		console.log(`🔍 SmartImage Debug for ${domain}:`, {
+		debugInfo('SMART_IMAGE', `Debug for ${domain}:`, {
 			preferIconify,
 			experimentalPreferIconify: experimental.preferIconifyIcons,
 			shouldPreferIconify,
@@ -71,15 +72,7 @@
 			imageLoaded,
 			isLoading,
 			imageUrls: imageUrls.length,
-			currentIndex,
-			renderingBranch: (() => {
-				if (addBackground) return 'WITH_BACKGROUND';
-				if (instantCacheCheck?.type === 'iconify') return 'NO_BG_ICONIFY_CACHED';
-				if (useIconify && iconifyIcon) return 'NO_BG_ICONIFY_LOADED';
-				if (imageLoaded && imgElement) return 'NO_BG_IMAGE_LOADED';
-				if (imageUrls.length > 0 || isLoading) return 'NO_BG_LOADING';
-				return 'NO_BG_FALLBACK';
-			})()
+			currentIndex
 		});
 	});
 	
@@ -205,38 +198,8 @@
 					imageUrls = [src, ...fallbackUrls];
 					showLoadingIndicator = false;
 				} else if (domain) {
-					// Cache miss - fallback using proper prioritization order
-					
-					// 0. Check for iconify icon first if preferred (experimental setting)
-					if (shouldPreferIconify) {
-						try {
-							const iconName = await getIconifyIcon(domain);
-					if (iconName) {
-						iconifyIcon = iconName;
-						useIconify = true;
-						isLoading = false; // Done loading
-						showLoadingIndicator = false;
-						return;
-					}
-						} catch (error) {
-							// Silent fallback - no console spam
-						}
-					}
-					
-					// Build URLs in proper prioritization order
-					const urls: string[] = [];
-					
-					// 1. Logo.dev and logo.dev ticker
-					urls.push(getLogoDevUrl(domain, size, { format: 'png', retina: true }));
-					urls.push(getLogoDevTickerUrl(domain));
-					
-					// 5. Google Favicons (skip 2-4 for cache miss to be faster)
-					urls.push(getGoogleFaviconUrl(domain, size));
-					
-					// 6. Basic site favicon as final fallback
-					const cleanDomain = domain.replace(/^https?:\/\//, '').split('/')[0];
-					urls.push(`https://${cleanDomain}/favicon.ico`);
-					
+					// Cache miss - use centralized ordering from citationUtils
+					const urls = await getFaviconUrls(domain, size);
 					imageUrls = urls;
 					showLoadingIndicator = false; // try image before showing globe
 				} else if (fallbackUrls.length > 0) {

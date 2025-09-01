@@ -58,6 +58,44 @@
   // State for organization name
   let organizationName = $state<string>("");
 
+  // Enhanced organization name that uses multiple sources
+  const enhancedOrganizationName = $derived.by(() => {
+    // Priority order:
+    // 1. Media data organization name (if available)
+    // 2. Wikipedia title (if it looks like an organization name)
+    // 3. Processed organization name from domain
+    // 4. Raw domain as fallback
+
+    if (!currentSource?.name) return "Unknown Source";
+
+    // If we have media info with organization name, use that
+    if (mediaInfo?.organization && mediaInfo.organization !== currentSource.name) {
+      return decodeHtmlEntities(mediaInfo.organization);
+    }
+
+    // If we have Wikipedia info, try to extract organization name
+    if (wikipediaInfo?.title) {
+      const title = wikipediaInfo.title;
+      // Check if it's a media organization (contains website, news, etc.)
+      if (title.includes('(website)') || title.includes('(news') || title.includes('(media')) {
+        // Extract the base name before parentheses
+        const baseName = title.split('(')[0].trim();
+        if (baseName && baseName !== currentSource.name) {
+          return decodeHtmlEntities(baseName);
+        }
+      }
+      // For other Wikipedia titles that might be organization names
+      else if (!title.toLowerCase().includes('disambiguation') && 
+               !title.toLowerCase().includes('may refer to') &&
+               title !== currentSource.name) {
+        return decodeHtmlEntities(title);
+      }
+    }
+
+    // Fall back to the organization name from domain utils (or domain itself)
+    return organizationName || currentSource.name;
+  });
+
   // Load organization name when currentSource changes
   $effect(() => {
     if (currentSource?.name) {
@@ -308,7 +346,7 @@
               id="source-overlay-title"
               class="dark:text-dark-text text-xl font-bold"
             >
-              {organizationName || "Unknown Source"}
+              {enhancedOrganizationName}
             </h3>
           </div>
           <button
@@ -535,11 +573,6 @@
                 </div>
               {:else if wikipediaInfo}
                 <div class="mt-4 space-y-3">
-                  <h4
-                    class="text-lg font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    {wikipediaInfo.title}
-                  </h4>
                   <p class="leading-relaxed text-gray-600 dark:text-gray-400">
                     {wikipediaInfo.extract}
                   </p>

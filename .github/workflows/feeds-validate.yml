@@ -39,8 +39,12 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bun scripts/validate-feeds.ts 2> /tmp/feed_diag.log 1> /tmp/feed_patch.diff || true
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          exit_code=0
+          bun scripts/validate-feeds.ts 2> /tmp/feed_diag.log 1> /tmp/feed_patch.diff || exit_code=$?
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          
+          # Ensure log files exist even if empty
+          touch /tmp/feed_diag.log /tmp/feed_patch.diff
 
       - name: Reviewdog Reporter
         uses: reviewdog/action-setup@v1
