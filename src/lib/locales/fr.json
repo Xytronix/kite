@@ -1019,10 +1019,6 @@
     "text": "historique",
     "translationContext": "Label for results from historical batches"
   },
-  "search.historicalComplete": {
-    "text": "Recherche historique terminée",
-    "translationContext": "Status message when historical search is done"
-  },
   "search.historical_included": {
     "text": "{{count}} résultats historiques inclus",
     "translationContext": "Shows number of historical search results included. {{count}} is replaced with the number."
@@ -1030,6 +1026,10 @@
   "search.historical_needs_3_chars": {
     "text": "La recherche historique nécessite 3 caractères ou plus",
     "translationContext": "Message shown when query is too short for historical search"
+  },
+  "search.historicalComplete": {
+    "text": "Recherche historique terminée",
+    "translationContext": "Status message when historical search is done"
   },
   "search.load_more": {
     "text": "Charger plus de résultats",
@@ -1047,10 +1047,6 @@
     "text": "Naviguer",
     "translationContext": "Label for arrow key navigation"
   },
-  "search.noResults": {
-    "text": "Aucun résultat trouvé",
-    "translationContext": "Message shown when search returns no results"
-  },
   "search.no_results": {
     "text": "Aucun résultat trouvé",
     "translationContext": "Message when no results are found"
@@ -1066,6 +1062,10 @@
   "search.no_results_title": {
     "text": "Aucun résultat trouvé",
     "translationContext": "Title for empty search results"
+  },
+  "search.noResults": {
+    "text": "Aucun résultat trouvé",
+    "translationContext": "Message shown when search returns no results"
   },
   "search.of": {
     "text": "de",
@@ -1139,13 +1139,13 @@
     "text": "Recherche en cours...",
     "translationContext": "Loading message while searching"
   },
-  "search.searchingHistorical": {
-    "text": "Recherche de données historiques",
-    "translationContext": "Status message while searching historical batches"
-  },
   "search.searching_historical": {
     "text": "Recherche de l'historique...",
     "translationContext": "Loading message while searching historical data"
+  },
+  "search.searchingHistorical": {
+    "text": "Recherche de données historiques",
+    "translationContext": "Status message while searching historical batches"
   },
   "search.select": {
     "text": "Sélectionner",
@@ -1307,13 +1307,13 @@
     "text": "Cliquer pour désactiver, glisser pour réorganiser",
     "translationContext": "Tooltip for enabled category items that can be disabled"
   },
-  "settings.categories.disableFiltered": {
-    "text": "Désactiver tout",
-    "translationContext": "Button text to disable all filtered categories"
-  },
   "settings.categories.disabled": {
     "text": "Catégories désactivées",
     "translationContext": "Title for the disabled (hidden) categories section"
+  },
+  "settings.categories.disableFiltered": {
+    "text": "Désactiver tout",
+    "translationContext": "Button text to disable all filtered categories"
   },
   "settings.categories.enable": {
     "text": "Cliquer pour activer, glisser pour réorganiser",
@@ -1323,13 +1323,13 @@
     "text": "Enable All",
     "translationContext": "Button text to enable all categories"
   },
-  "settings.categories.enableFiltered": {
-    "text": "Enable All",
-    "translationContext": "Button text to enable all filtered categories"
-  },
   "settings.categories.enabled": {
     "text": "Catégories activées",
     "translationContext": "Title for the enabled categories section"
+  },
+  "settings.categories.enableFiltered": {
+    "text": "Enable All",
+    "translationContext": "Button text to enable all filtered categories"
   },
   "settings.categories.filterByType": {
     "text": "Filtrer par type...",
@@ -1839,6 +1839,10 @@
     "text": "Filter celebrity gossip and entertainment news",
     "translationContext": "Description for celebrity news filter"
   },
+  "settings.smartFilter.filtered": {
+    "text": "Stories Filtered",
+    "translationContext": "Label for filtered stories statistic"
+  },
   "settings.smartFilter.filterEntertainment": {
     "text": "Entertainment Industry",
     "translationContext": "Label for entertainment industry filter"
@@ -1930,10 +1934,6 @@
   "settings.smartFilter.filterViolenceDesc": {
     "text": "Filter violence, crime, and disturbing content",
     "translationContext": "Description for violent content filter"
-  },
-  "settings.smartFilter.filtered": {
-    "text": "Stories Filtered",
-    "translationContext": "Label for filtered stories statistic"
   },
   "settings.smartFilter.minimumQuality": {
     "text": "Minimum Quality",

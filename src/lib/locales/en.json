@@ -1275,13 +1275,13 @@
     "text": "Click to disable, drag to reorder",
     "translationContext": "Tooltip for enabled category items that can be disabled"
   },
-  "settings.categories.disableFiltered": {
-    "text": "Disable All",
-    "translationContext": "Button text to disable all filtered categories"
-  },
   "settings.categories.disabled": {
     "text": "Disabled Categories",
     "translationContext": "Title for the disabled (hidden) categories section"
+  },
+  "settings.categories.disableFiltered": {
+    "text": "Disable All",
+    "translationContext": "Button text to disable all filtered categories"
   },
   "settings.categories.enable": {
     "text": "Click to enable, drag to reorder",
@@ -1291,13 +1291,13 @@
     "text": "Enable All",
     "translationContext": "Button text to enable all categories"
   },
-  "settings.categories.enableFiltered": {
-    "text": "Enable All",
-    "translationContext": "Button text to enable all filtered categories"
-  },
   "settings.categories.enabled": {
     "text": "Enabled Categories",
     "translationContext": "Title for the enabled categories section"
+  },
+  "settings.categories.enableFiltered": {
+    "text": "Enable All",
+    "translationContext": "Button text to enable all filtered categories"
   },
   "settings.categories.filterByType": {
     "text": "Filter by type...",
@@ -1863,6 +1863,10 @@
     "text": "Filter recession fears and economic doom coverage",
     "translationContext": "Description for economic pessimism filter"
   },
+  "settings.contentFilter.filtered": {
+    "text": "Stories Filtered",
+    "translationContext": "Label for filtered statistic"
+  },
   "settings.contentFilter.filterEntertainment": {
     "text": "Entertainment Industry",
     "translationContext": "Label for entertainment industry filter"
@@ -2043,6 +2047,10 @@
     "text": "Filter articles with repetitive language patterns (basic pattern matching)",
     "translationContext": "Description for repetitive coverage filter"
   },
+  "settings.contentFilter.filters.parent": {
+    "text": "Filters",
+    "translationContext": "Main divider label for the filters section"
+  },
   "settings.contentFilter.filterScope": {
     "text": "Filter Scope & Mode",
     "translationContext": "Label for filter scope section"
@@ -2170,14 +2178,6 @@
   "settings.contentFilter.filterWeatherDesc": {
     "text": "Filter routine weather forecasts and updates",
     "translationContext": "Description for weather filter"
-  },
-  "settings.contentFilter.filtered": {
-    "text": "Stories Filtered",
-    "translationContext": "Label for filtered statistic"
-  },
-  "settings.contentFilter.filters.parent": {
-    "text": "Filters",
-    "translationContext": "Main divider label for the filters section"
   },
   "settings.contentFilter.financial": {
     "text": "Financial",
@@ -2827,6 +2827,10 @@
     "text": "Category Breakdown",
     "translationContext": "Label for category breakdown statistics"
   },
+  "settings.contentFilter.stats.filtered": {
+    "text": "Stories Filtered",
+    "translationContext": "Label for filtered stories statistic"
+  },
   "settings.contentFilter.stats.filterEffectiveness": {
     "text": "Filter Effectiveness",
     "translationContext": "Label for filter effectiveness statistic"
@@ -2834,10 +2838,6 @@
   "settings.contentFilter.stats.filterRate": {
     "text": "Filter Rate",
     "translationContext": "Label for filter rate statistic"
-  },
-  "settings.contentFilter.stats.filtered": {
-    "text": "Stories Filtered",
-    "translationContext": "Label for filtered stories statistic"
   },
   "settings.contentFilter.stats.noData": {
     "text": "No filtering statistics available yet. Statistics will appear once content has been processed through your filters.",
@@ -2883,10 +2883,6 @@
     "text": "How much weight to give to title similarity when comparing stories",
     "translationContext": "Help text for title weight"
   },
-  "settings.contentFilter.topReasons": {
-    "text": "Top Filter Reasons",
-    "translationContext": "Label for top filter reasons"
-  },
   "settings.contentFilter.topicsSubjects": {
     "text": "Topics & Subjects",
     "translationContext": "Label for topics and subjects section"
@@ -2902,6 +2898,10 @@
   "settings.contentFilter.topicsSubjects.parent": {
     "text": "Topics & Subjects",
     "translationContext": "Sub-section header within Filters divider"
+  },
+  "settings.contentFilter.topReasons": {
+    "text": "Top Filter Reasons",
+    "translationContext": "Label for top filter reasons"
   },
   "settings.contentFilter.totalProcessed": {
     "text": "Stories Processed",
@@ -3183,6 +3183,10 @@
     "text": "Filter celebrity gossip and entertainment news",
     "translationContext": "Description for celebrity news filter"
   },
+  "settings.smartFilter.filtered": {
+    "text": "Stories Filtered",
+    "translationContext": "Label for filtered stories statistic"
+  },
   "settings.smartFilter.filterEntertainment": {
     "text": "Entertainment Industry",
     "translationContext": "Label for entertainment industry filter"
@@ -3306,10 +3310,6 @@
   "settings.smartFilter.filterWeatherDesc": {
     "text": "Filter routine weather forecasts and updates",
     "translationContext": "Description for weather filter"
-  },
-  "settings.smartFilter.filtered": {
-    "text": "Stories Filtered",
-    "translationContext": "Label for filtered stories statistic"
   },
   "settings.smartFilter.import": {
     "text": "Import Settings",
@@ -3703,14 +3703,6 @@
     "text": "No more stories available for today",
     "translationContext": "Message shown when there are no more stories to load"
   },
-  "stories.noSourcesInLanguage": {
-    "text": "Sources may not be available in this language yet.",
-    "translationContext": "Shown when no stories appear due to unavailable feed language"
-  },
-  "stories.noStories": {
-    "text": "Something went wrong, there are no stories here!",
-    "translationContext": "Message shown when no stories are found"
-  },
   "stories.noneTodayMsg": {
     "text": "Looks like there are no stories for this category today. Check back tomorrow.",
     "translationContext": "Friendly message explaining no stories today"
@@ -3718,6 +3710,14 @@
   "stories.noneTodayTitle": {
     "text": "No stories today",
     "translationContext": "Title shown when a category has no stories for today"
+  },
+  "stories.noSourcesInLanguage": {
+    "text": "Sources may not be available in this language yet.",
+    "translationContext": "Shown when no stories appear due to unavailable feed language"
+  },
+  "stories.noStories": {
+    "text": "Something went wrong, there are no stories here!",
+    "translationContext": "Message shown when no stories are found"
   },
   "stories.restoreToToday": {
     "text": "Show only today's stories",
