@@ -348,6 +348,35 @@
   }
 }
 
+/* Wikipedia link styling (moved from component to avoid style preprocessor issues) */
+.prose [data-wiki-id] {
+  color: rgb(37, 99, 235);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: all 0.2s ease;
+}
+
+.prose [data-wiki-id]:hover {
+  color: rgb(30, 64, 175);
+  background-color: rgb(219, 234, 254);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  border-radius: 0.25rem;
+  text-decoration-style: solid;
+}
+
+.dark .prose [data-wiki-id] {
+  color: rgb(96, 165, 250);
+}
+
+.dark .prose [data-wiki-id]:hover {
+  color: rgb(147, 197, 253);
+  background-color: rgba(30, 58, 138, 0.3);
+}
+
 /* Suppress external font 404 errors from CBS News and other external content */
 @font-face {
   font-family: 'ProximaNova-Bold';

@@ -86,34 +86,3 @@ onMount(() => {
     console.log('Wikipedia content found:', { wikiId, title });
   }}
 />
-
-<style>
-  /* Custom styling for Wikipedia links in this example */
-  :global(.prose [data-wiki-id]) {
-    color: rgb(37 99 235); /* text-blue-600 */
-    cursor: pointer;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 3px;
-    text-decoration-thickness: 1px;
-    transition: all 0.2s ease;
-  }
-  
-  :global(.prose [data-wiki-id]:hover) {
-    color: rgb(30 64 175); /* text-blue-800 */
-    background-color: rgb(219 234 254); /* bg-blue-100 */
-    padding-left: 0.25rem; /* px-1 */
-    padding-right: 0.25rem; /* px-1 */
-    border-radius: 0.25rem; /* rounded */
-    text-decoration-style: solid;
-  }
-  
-  :global(.dark .prose [data-wiki-id]) {
-    color: rgb(96 165 250); /* text-blue-400 */
-  }
-  
-  :global(.dark .prose [data-wiki-id]:hover) {
-    color: rgb(147 197 253); /* text-blue-300 */
-    background-color: rgba(30 58 138 / 0.3); /* bg-blue-900/30 */
-  }
-</style>
