@@ -1,9 +1,7 @@
 import { browser } from "$app/environment";
 
-export type FontSize = "small" | "normal" | "large";
+export type FontSize = "xs" | "small" | "normal" | "large" | "xl";
 export type CategoryHeaderPosition = "top" | "bottom";
-export type StoryExpandMode = "always" | "doubleClick" | "never";
-export type StoryOpenMode = "multiple" | "single";
 
 interface SettingsState {
   isOpen: boolean;
@@ -12,41 +10,144 @@ interface SettingsState {
   categoryHeaderPosition: CategoryHeaderPosition;
   showIntro: boolean;
   activeTab?: string;
-  storyExpandMode: StoryExpandMode;
-  storyOpenMode: StoryOpenMode;
-  useLatestUrls: boolean;
+  dedupeArticles?: boolean;
 }
 
 // Initialize settings state
 const settingsState = $state<SettingsState>({
   isOpen: false,
   fontSize: "normal",
-  storyCount: 10,
+  storyCount: 12,
   categoryHeaderPosition: "bottom",
   showIntro: false,
-  storyExpandMode: "doubleClick",
-  storyOpenMode: "multiple", // Default to multiple stories open
-  useLatestUrls: false, // Default to false to maintain backwards compatibility
+  dedupeArticles: true,
 });
 
 // Helper functions
-function applyFontSize(size: FontSize) {
-  if (!browser) return;
-
-  const body = document.body;
-  body.classList.remove("text-sm", "text-base", "text-lg");
-
-  switch (size) {
-    case "small":
-      body.classList.add("text-sm");
-      break;
-    case "large":
-      body.classList.add("text-lg");
-      break;
-    default:
-      body.classList.add("text-base");
+function applyFontSize(fontSize: FontSize) {
+	if (!browser) return;
+  
+	try {
+	  const root = document.documentElement;
+  
+	  // Define font size scales
+	  const fontSizes = {
+		xs: {
+		  // Extra small sizes (12px base)
+		  "text-xs": "0.625rem", // 10px
+		  "text-sm": "0.75rem", // 12px
+		  "text-base": "0.75rem", // 12px
+		  "text-lg": "0.875rem", // 14px
+		  "text-xl": "1rem", // 16px
+		  "text-2xl": "1.125rem", // 18px
+		  "text-3xl": "1.25rem", // 20px
+		  "text-4xl": "1.5rem", // 24px
+		},
+		small: {
+		  // Small sizes (14px base)
+		  "text-xs": "0.675rem", // 10.8px
+		  "text-sm": "0.8rem", // 12.8px
+		  "text-base": "0.875rem", // 14px
+		  "text-lg": "1rem", // 16px
+		  "text-xl": "1.125rem", // 18px
+		  "text-2xl": "1.35rem", // 21.6px
+		  "text-3xl": "1.575rem", // 25.2px
+		  "text-4xl": "1.75rem", // 28px
+		},
+		normal: {
+		  // Normal sizes (16px base)
+		  "text-xs": "0.75rem", // 12px
+		  "text-sm": "0.875rem", // 14px
+		  "text-base": "1rem", // 16px
+		  "text-lg": "1.125rem", // 18px
+		  "text-xl": "1.25rem", // 20px
+		  "text-2xl": "1.5rem", // 24px
+		  "text-3xl": "1.875rem", // 30px
+		  "text-4xl": "2.25rem", // 36px
+		},
+		large: {
+		  // Large sizes (18px base)
+		  "text-xs": "0.875rem", // 14px
+		  "text-sm": "1rem", // 16px
+		  "text-base": "1.125rem", // 18px
+		  "text-lg": "1.25rem", // 20px
+		  "text-xl": "1.5rem", // 24px
+		  "text-2xl": "1.875rem", // 30px
+		  "text-3xl": "2.25rem", // 36px
+		  "text-4xl": "2.625rem", // 42px
+		},
+		xl: {
+		  // Extra large sizes (20px base)
+		  "text-xs": "1rem", // 16px
+		  "text-sm": "1.125rem", // 18px
+		  "text-base": "1.25rem", // 20px
+		  "text-lg": "1.375rem", // 22px
+		  "text-xl": "1.625rem", // 26px
+		  "text-2xl": "2rem", // 32px
+		  "text-3xl": "2.5rem", // 40px
+		  "text-4xl": "3rem", // 48px
+		},
+	  };
+  
+	  // Define icon size scales that are proportional to text sizes
+	  const iconSizes = {
+		xs: {
+		  // Extra small icons - proportional to text-xl (16px)
+		  "icon-xs": "0.5rem", // 8px
+		  "icon-sm": "0.625rem", // 10px
+		  "icon-base": "0.75rem", // 12px
+		  "icon-lg": "0.875rem", // 14px
+		  "icon-xl": "1rem", // 16px (matches text-xl)
+		},
+		small: {
+		  // Small icons - proportional to text-xl (18px)
+		  "icon-xs": "0.5625rem", // 9px
+		  "icon-sm": "0.6875rem", // 11px
+		  "icon-base": "0.8125rem", // 13px
+		  "icon-lg": "0.9375rem", // 15px
+		  "icon-xl": "1.125rem", // 18px (matches text-xl)
+		},
+		normal: {
+		  // Normal icons - proportional to text-xl (20px)
+		  "icon-xs": "0.625rem", // 10px
+		  "icon-sm": "0.75rem", // 12px
+		  "icon-base": "0.875rem", // 14px
+		  "icon-lg": "1rem", // 16px
+		  "icon-xl": "1.25rem", // 20px (matches text-xl)
+		},
+		large: {
+		  // Large icons - proportional to text-xl (24px)
+		  "icon-xs": "0.75rem", // 12px
+		  "icon-sm": "0.875rem", // 14px
+		  "icon-base": "1rem", // 16px
+		  "icon-lg": "1.25rem", // 20px
+		  "icon-xl": "1.5rem", // 24px (matches text-xl)
+		},
+		xl: {
+		  // Extra large icons - proportional to text-xl (26px)
+		  "icon-xs": "0.8125rem", // 13px
+		  "icon-sm": "0.9375rem", // 15px
+		  "icon-base": "1.0625rem", // 17px
+		  "icon-lg": "1.3125rem", // 21px
+		  "icon-xl": "1.625rem", // 26px (matches text-xl)
+		},
+	  };
+  
+	  // Apply the font size variables
+	  const sizes = fontSizes[fontSize];
+	  Object.entries(sizes).forEach(([key, value]) => {
+		root.style.setProperty(`--${key}`, value);
+	  });
+  
+	  // Apply the icon size variables
+	  const icons = iconSizes[fontSize];
+	  Object.entries(icons).forEach(([key, value]) => {
+		root.style.setProperty(`--${key}`, value);
+	  });
+	} catch (error) {
+	  console.warn("Failed to apply font size:", error);
+	}
   }
-}
 
 function saveToStorage(key: string, value: string) {
   if (!browser) return;
@@ -56,41 +157,6 @@ function saveToStorage(key: string, value: string) {
 function loadFromStorage(key: string, defaultValue: string): string {
   if (!browser) return defaultValue;
   return localStorage.getItem(key) || defaultValue;
-}
-
-// Initialize settings immediately if in browser
-if (browser) {
-  const fontSize = loadFromStorage("fontSize", "normal") as FontSize;
-  const storyCount = parseInt(loadFromStorage("storyCount", "10"));
-  const categoryHeaderPosition = loadFromStorage(
-    "categoryHeaderPosition",
-    "bottom",
-  ) as CategoryHeaderPosition;
-  const introShown = loadFromStorage("introShown", "false") === "true";
-  const useLatestUrlsRaw = loadFromStorage("useLatestUrls", "false");
-  const useLatestUrls = useLatestUrlsRaw === "true";
-
-  console.log("⚙️ Settings initialization:", {
-    useLatestUrlsRaw,
-    useLatestUrls,
-    localStorageValue: localStorage.getItem("useLatestUrls"),
-  });
-
-  settingsState.fontSize = fontSize;
-  settingsState.storyCount = Math.max(3, Math.min(12, storyCount));
-  settingsState.categoryHeaderPosition = categoryHeaderPosition;
-  settingsState.showIntro = !introShown;
-  settingsState.storyExpandMode = loadFromStorage(
-    "storyExpandMode",
-    "doubleClick",
-  ) as StoryExpandMode;
-  settingsState.storyOpenMode = loadFromStorage(
-    "storyOpenMode",
-    "multiple",
-  ) as StoryOpenMode;
-  settingsState.useLatestUrls = useLatestUrls;
-
-  applyFontSize(fontSize);
 }
 
 // Settings store API
@@ -119,31 +185,8 @@ export const settings = {
     return settingsState.activeTab;
   },
 
-  get storyExpandMode() {
-    return settingsState.storyExpandMode;
-  },
-
-  get storyOpenMode() {
-    return settingsState.storyOpenMode;
-  },
-
-  get useLatestUrls() {
-    return settingsState.useLatestUrls;
-  },
-
-  setStoryExpandMode(mode: StoryExpandMode) {
-    settingsState.storyExpandMode = mode;
-    saveToStorage("storyExpandMode", mode);
-  },
-
-  setStoryOpenMode(mode: StoryOpenMode) {
-    settingsState.storyOpenMode = mode;
-    saveToStorage("storyOpenMode", mode);
-  },
-
-  setUseLatestUrls(use: boolean) {
-    settingsState.useLatestUrls = use;
-    saveToStorage("useLatestUrls", use.toString());
+  get dedupeArticles() {
+    return settingsState.dedupeArticles ?? true;
   },
 
   open(tab?: string) {
@@ -176,6 +219,11 @@ export const settings = {
     saveToStorage("storyCount", clampedCount.toString());
   },
 
+  setDedupeArticles(enabled: boolean) {
+    settingsState.dedupeArticles = !!enabled;
+    saveToStorage("dedupeArticles", settingsState.dedupeArticles ? "true" : "false");
+  },
+
   setCategoryHeaderPosition(position: CategoryHeaderPosition) {
     settingsState.categoryHeaderPosition = position;
     saveToStorage("categoryHeaderPosition", position);
@@ -186,12 +234,37 @@ export const settings = {
     saveToStorage("introShown", (!show).toString());
   },
 
+  reset() {
+    settingsState.fontSize = "normal";
+    settingsState.storyCount = 12;
+    settingsState.categoryHeaderPosition = "bottom";
+    settingsState.dedupeArticles = true;
+    
+    applyFontSize("normal");
+    saveToStorage("fontSize", "normal");
+    saveToStorage("storyCount", "12");
+    saveToStorage("categoryHeaderPosition", "bottom");
+    saveToStorage("dedupeArticles", "true");
+  },
+
   init() {
-    // Settings are already initialized at module load time
-    // This method is kept for backwards compatibility
     if (!browser) return;
 
-    // Re-apply font size in case DOM wasn't ready at module load
-    applyFontSize(settingsState.fontSize);
+    const fontSize = loadFromStorage("fontSize", "normal") as FontSize;
+    const storyCount = parseInt(loadFromStorage("storyCount", "12"));
+    const categoryHeaderPosition = loadFromStorage(
+      "categoryHeaderPosition",
+      "bottom",
+    ) as CategoryHeaderPosition;
+    const introShown = loadFromStorage("introShown", "false") === "true";
+    const dedupeArticles = loadFromStorage("dedupeArticles", "true") === "true";
+
+    settingsState.fontSize = fontSize;
+    settingsState.storyCount = Math.max(3, Math.min(12, storyCount));
+    settingsState.categoryHeaderPosition = categoryHeaderPosition;
+    settingsState.showIntro = !introShown;
+    settingsState.dedupeArticles = dedupeArticles;
+
+    applyFontSize(fontSize);
   },
 };

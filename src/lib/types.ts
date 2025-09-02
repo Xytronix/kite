@@ -44,6 +44,12 @@ export interface OnThisDayData {
   events: OnThisDayEvent[];
 }
 
+// Technical details item can be a simple string or a structured object
+export interface TechnicalDetailItem {
+  title: string;
+  description: string;
+}
+
 export interface Story {
   id?: string;
   cluster_number: number;
@@ -70,7 +76,7 @@ export interface Story {
   timeline?: TimelineEvent[];
   future_outlook?: string;
   key_players?: string[];
-  technical_details?: string[];
+  technical_details?: Array<string | TechnicalDetailItem>;
   business_angle_text?: string;
   business_angle_points?: string[];
   user_action_items?: string[];
@@ -108,6 +114,8 @@ export interface Category {
   id: string;
   feeds?: string[];
 }
+
+
 
 export interface CategoryData {
   category: string;

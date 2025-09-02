@@ -1,13 +1,44 @@
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
   import type { Article } from "$lib/types";
-  import { getCitedArticlesForText } from "$lib/utils/citationAggregator";
+  import { aggregateCitationsFromTexts } from "$lib/utils/citationAggregator";
   import {
     replaceWithNumberedCitations,
     type CitationMapping,
   } from "$lib/utils/citationContext";
-  import { parseTimelineEvent } from "$lib/utils/textParsing";
   import CitationText from "./CitationText.svelte";
+  import SourceTooltip from "./SourceTooltip.svelte";
+  import SectionSources from "./SectionSources.svelte";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
+
+  // import { parseTimelineEvent } from '$lib/utils/textParsing';
+
+  // Temporary parseTimelineEvent function
+  function parseTimelineEvent(event: any) {
+    if (typeof event === "string") {
+      // Handle string format with "::" separator
+      const parts = event.split("::");
+      if (parts.length >= 2) {
+        return {
+          date: parts[0].trim(),
+          description: parts.slice(1).join("::").trim(),
+        };
+      }
+      return {
+        date: null,
+        description: event,
+      };
+    }
+
+    // Handle object format
+    return {
+      date: event.date || null,
+      description: event.content || event.description || event.text || "",
+    };
+  }
+
+  // import Icon from '@iconify/svelte';
+  // import { getSectionIcon } from '$lib/constants/sections';
 
   // Props
   interface Props {
@@ -18,21 +49,94 @@
 
   let { timeline, articles = [], citationMapping }: Props = $props();
 
-  // Parse timeline events and prepare display data
-  const displayEvents = $derived.by(() => {
-    return timeline.map((event) => {
-      const parsed = parseTimelineEvent(event);
-      if (citationMapping && parsed.content) {
+  // Shared tooltip reference
+  let citationTooltip = $state<SourceTooltip | undefined>();
+
+  // Parse timeline events once and prepare display data
+  const timelineData = $derived.by(() => {
+    // Debug: Check input data
+    console.log("Timeline input:", timeline);
+
+    // First, parse all timeline events to get structured data
+    const parsedEvents = timeline.map((event) => parseTimelineEvent(event));
+    console.log("Parsed events:", parsedEvents);
+
+    // For citation aggregation, we need to convert domain citations to numbered format first
+    // This is because timeline data may still have [domain#n] format
+    let processedDescriptions = parsedEvents.map((event) => event.description);
+
+    // If we have citation mapping, convert domain citations to numbered ones for aggregation
+    if (citationMapping) {
+      processedDescriptions = processedDescriptions.map((desc) =>
+        replaceWithNumberedCitations(desc, citationMapping),
+      );
+    }
+
+    // Get all cited articles from the processed descriptions
+    const citedArticles = aggregateCitationsFromTexts(
+      processedDescriptions,
+      citationMapping,
+      articles,
+    );
+
+    // Now create display events with numbered citations
+    const displayEvents = parsedEvents.map((event) => {
+      if (citationMapping && event.description) {
         return {
-          ...parsed,
-          content: replaceWithNumberedCitations(
-            parsed.content,
+          ...event,
+          description: replaceWithNumberedCitations(
+            event.description,
             citationMapping,
           ),
         };
       }
-      return parsed;
+      return event;
     });
+
+    console.log("Final display events:", displayEvents);
+
+    return {
+      displayEvents,
+      citedArticles,
+    };
+  });
+
+  // Get paragraph-level citations for more granular context
+  const paragraphCitations = $derived.by(() => {
+    if (!citationMapping) return [];
+
+    return timelineData.displayEvents
+      .map((event, index) => {
+        const citationNumbers = new Set<number>();
+
+        // Extract citation numbers from this specific event description
+        if (event.description) {
+          const citationMatches = event.description.match(/\[(\d+)\]/g);
+          if (citationMatches) {
+            citationMatches.forEach((match) => {
+              const num = parseInt(match.replace(/[\[\]]/g, ""));
+              if (!isNaN(num)) {
+                citationNumbers.add(num);
+              }
+            });
+          }
+        }
+
+        // Get articles for these specific citation numbers
+        const eventArticles: Article[] = [];
+        citationNumbers.forEach((num) => {
+          const article = citationMapping.numberToArticle.get(num);
+          if (article) {
+            eventArticles.push(article);
+          }
+        });
+
+        return {
+          articles: eventArticles,
+          title: `Event ${index + 1}${event.date ? ` (${event.date})` : ''}`,
+        };
+      })
+      .filter((p) => p.articles.length > 0); // Only include events with actual citations
   });
 </script>
 
@@ -41,12 +145,13 @@
     {s("section.timeline") || "Timeline"}
   </h3>
   <div class="timeline">
-    {#each displayEvents as event, index}
-      {@const eventCitations = getCitedArticlesForText(
-        event.content,
-        citationMapping,
-        articles,
-      )}
+    {#if timelineData.displayEvents.length === 0}
+      <p class="text-gray-500 italic dark:text-gray-400">
+        No timeline events available
+      </p>
+    {/if}
+
+    {#each timelineData.displayEvents as event, index}
       <div class="timeline-item">
         <div class="timeline-marker">
           <div class="timeline-dot">
@@ -60,20 +165,46 @@
             </div>
           {/if}
           <div class="timeline-description">
-            <CitationText
-              text={event.content}
-              showFavicons={false}
-              showNumbers={false}
-              inline={true}
-              articles={eventCitations.citedArticles}
-              {citationMapping}
-            />
+            {#if event.description}
+              <CitationText
+                text={event.description}
+                showFavicons={true}
+                showNumbers={false}
+                inline={true}
+                articles={timelineData.citedArticles.citedArticles}
+                allArticles={articles}
+                {citationMapping}
+                {citationTooltip}
+              />
+            {:else}
+              <span class="text-gray-400 italic">No description available</span>
+            {/if}
           </div>
         </div>
       </div>
     {/each}
   </div>
+
+  <!-- Section-level sources -->
+  {#if experimental.sourceIconPosition === 'section-end'}
+    <SectionSources
+      articles={timelineData.citedArticles.citedArticles}
+      {citationMapping}
+      sectionTitle={s("section.timeline") || "Timeline"}
+      {paragraphCitations}
+    />
+  {/if}
 </section>
+
+<!-- Shared Source Tooltip -->
+<SourceTooltip
+  bind:this={citationTooltip}
+  articles={timelineData.citedArticles.citedArticles}
+  citationNumbers={timelineData.citedArticles.citedNumbers}
+  hasCommonKnowledge={timelineData.citedArticles.hasCommonKnowledge}
+  citedItems={timelineData.citedArticles.citedItems}
+  {citationMapping}
+/>
 
 <style>
   .timeline {

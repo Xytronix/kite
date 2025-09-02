@@ -1,4 +1,6 @@
 import { browser } from "$app/environment";
+import locales from "$lib/locales";
+import { dataReloadService } from "$lib/services/dataService";
 
 export type SupportedLanguage =
   | "default"
@@ -9,6 +11,7 @@ export type SupportedLanguage =
   | "es"
   | "de"
   | "nl"
+  | "zh"
   | "ja"
   | "hi"
   | "uk"
@@ -21,120 +24,207 @@ export type SupportedLanguage =
   | "pl"
   | "ru"
   | "zh-Hans"
-  | "zh-Hant"
   | "sv"
   | "th"
   | "tr";
 
 interface LanguageState {
-  current: SupportedLanguage;
-  currentStrings: Record<string, any>;
-  currentLocale: string;
+  ui: SupportedLanguage;
+  data: SupportedLanguage;
+  strings: Record<string, any>;
+  locale: string;
 }
 
-// Initialize language state
-const languageState = $state<LanguageState>({
-  current: "en",
-  currentStrings: {},
-  currentLocale: "en",
+const state = $state<LanguageState>({
+  ui: "en",
+  data: "en",
+  strings: {},
+  locale: "en",
 });
 
-// Helper functions
-function saveLanguage(language: SupportedLanguage) {
-  if (!browser) return;
-  localStorage.setItem("language", language);
-}
-
-function loadLanguage(): SupportedLanguage {
-  if (!browser) return "en";
-
-  const stored = localStorage.getItem("language") as SupportedLanguage;
-
-  // Migrate "default" to "en" for UI language
-  if (stored === "default") {
-    localStorage.setItem("language", "en");
-    return "en";
-  }
-
-  return stored || "en";
-}
-
-// Load locale data from API
-async function loadLocaleData(lang: string) {
-  if (!browser) return;
-
-  try {
-    const response = await fetch(`/api/locale/${lang}`);
-    if (response.ok) {
-      const data = await response.json();
-      languageState.currentStrings = data.strings;
-      languageState.currentLocale = data.locale;
-    }
-  } catch (error) {
-    console.warn("Failed to load locale data:", error);
+function save(key: "ui" | "data", value: SupportedLanguage) {
+  if (browser) {
+    localStorage.setItem(`language.${key}`, value);
   }
 }
 
-function applyLanguage(language: SupportedLanguage) {
-  if (!browser) return;
-
-  // Set document language
-  if (language !== "default") {
-    document.documentElement.lang = language;
-  } else {
-    // Use browser default
-    const browserLang = navigator.language.split("-")[0];
-    document.documentElement.lang = browserLang;
+function load(key: "ui" | "data", defaultValue: SupportedLanguage): SupportedLanguage {
+  if (browser) {
+    return (localStorage.getItem(`language.${key}`) as SupportedLanguage) || defaultValue;
   }
-
-  // Dispatch language change event
-  window.dispatchEvent(
-    new CustomEvent("language-changed", {
-      detail: { language },
-    }),
-  );
+  return defaultValue;
 }
 
-// Language store API
-export const language = {
-  get current() {
-    return languageState.current;
-  },
+function isFirstVisit(): boolean {
+  if (!browser) return false;
+  return !localStorage.getItem('language.ui') && !localStorage.getItem('language.data');
+}
 
-  get currentStrings() {
-    return languageState.currentStrings;
-  },
+// Minimum number of keys we expect in a complete locale
+const MIN_LOCALE_KEYS = 400;
 
-  set(language: SupportedLanguage) {
-    languageState.current = language;
-    applyLanguage(language);
-    saveLanguage(language);
-  },
+function isCompleteLocale(strings: Record<string, any>): boolean {
+  const keyCount = Object.keys(strings).length;
+  return keyCount >= MIN_LOCALE_KEYS;
+}
 
-  init() {
-    if (!browser) return;
-
-    const storedLanguage = loadLanguage();
-    languageState.current = storedLanguage;
-    applyLanguage(storedLanguage);
-  },
-
-  initStrings(initialStrings: Record<string, any>) {
-    if (!browser) return;
-
-    // Initialize with page data
-    languageState.currentStrings = initialStrings;
-    languageState.currentLocale = "en";
-
-    // Watch for language changes
-    $effect(() => {
-      const lang = languageState.current;
-      const targetLang =
-        lang === "default" ? navigator.language.split("-")[0] : lang;
-
-      if (targetLang !== languageState.currentLocale) {
-        loadLocaleData(targetLang);
+async function loadStrings(lang: string) {
+  if (browser) {
+    console.log(`Loading locale strings for language: ${lang}`);
+    
+    try {
+      // First, try remote API for potentially updated translations
+      console.log(`Attempting to load from remote API...`);
+      const response = await fetch(`/api/locale/${lang}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.strings && data.locale && isCompleteLocale(data.strings)) {
+          // Remote data is complete, use it
+          state.strings = data.strings;
+          state.locale = data.locale;
+          console.log(`✅ Successfully loaded locale: ${data.locale} with ${Object.keys(data.strings).length} strings from remote API`);
+          return;
+        } else {
+          console.warn(`⚠️ Remote locale incomplete (${Object.keys(data.strings || {}).length} keys), falling back to local files`);
+        }
+      } else {
+        console.warn(`⚠️ Remote locale request failed (${response.status}), falling back to local files`);
       }
-    });
+    } catch (error) {
+      console.warn('⚠️ Remote locale failed, falling back to local files:', error);
+    }
+    
+    // Fallback to local files, but only if sufficiently complete
+    console.log(`Loading from local files...`);
+    const localeData = locales[lang as keyof typeof locales];
+    if (localeData) {
+      if (isCompleteLocale(localeData)) {
+        state.strings = localeData;
+        state.locale = lang;
+        console.log(`✅ Successfully loaded locale: ${lang} with ${Object.keys(localeData).length} strings from local files`);
+      } else {
+        console.warn(`⚠️ Local locale '${lang}' is incomplete (${Object.keys(localeData).length} keys). Falling back to English.`);
+        state.strings = locales.en;
+        state.locale = "en";
+        console.log(`Fallback to English locale with ${Object.keys(locales.en).length} strings`);
+      }
+    } else {
+      console.error(`Locale not found: ${lang}. Available locales:`, Object.keys(locales));
+      // Fallback to English if locale not found
+      state.strings = locales.en;
+      state.locale = "en";
+      console.log(`Fallback to English locale with ${Object.keys(locales.en).length} strings`);
+    }
+  }
+}
+
+function updateDocumentLanguage() {
+  if (browser) {
+    const lang = state.ui === "default" ? navigator.language.split("-")[0] : state.ui;
+    document.documentElement.lang = lang;
+  }
+}
+
+export const language = {
+  get ui() {
+    return state.ui;
   },
+  get data() {
+    return state.data;
+  },
+  get strings() {
+    return state.strings;
+  },
+  get locale() {
+    return state.locale;
+  },
+
+  setUI(lang: SupportedLanguage) {
+    state.ui = lang;
+    save("ui", lang);
+    updateDocumentLanguage();
+  },
+
+  setData(lang: SupportedLanguage) {
+    state.data = lang;
+    save("data", lang);
+    if (browser) {
+      window.dispatchEvent(
+        new CustomEvent("data-language-changed", {
+          detail: { language: lang },
+        })
+      );
+    }
+  },
+
+  // Temporarily set data language without persisting to localStorage.
+  // Useful for URL-based overrides that should not change the user's preferred language.
+  setDataTemporary(lang: SupportedLanguage) {
+    state.data = lang;
+    if (browser) {
+      window.dispatchEvent(
+        new CustomEvent("data-language-changed", {
+          detail: { language: lang },
+        })
+      );
+    }
+  },
+
+  reset() {
+    state.ui = "en";
+    state.data = "en";
+    save("ui", "en");
+    save("data", "en");
+    updateDocumentLanguage();
+    if (browser) {
+      window.dispatchEvent(
+        new CustomEvent("data-language-changed", {
+          detail: { language: "en" },
+        })
+      );
+    }
+  },
+
+  init(initialStrings: Record<string, any>) {
+    state.ui = load("ui", "en");
+    state.data = load("data", "en");
+    state.strings = initialStrings;
+    updateDocumentLanguage();
+  },
+
+  // Initialize with location-based defaults on first visit
+  initWithLocationDefaults(initialStrings: Record<string, any>, suggestedUI?: string, suggestedData?: string) {
+    const isFirst = isFirstVisit();
+    
+    if (isFirst && suggestedUI && suggestedData) {
+      // Use location-based suggestions for first visit (UI and data)
+      state.ui = suggestedUI as SupportedLanguage;
+      state.data = suggestedData as SupportedLanguage;
+      // Persist the suggestions
+      save("ui", state.ui);
+      save("data", state.data);
+      console.log(`🌐 First visit detected. Using suggested languages → UI='${state.ui}', data='${state.data}'.`);
+      // Notify app that data language changed so initial English load is replaced
+      if (browser) {
+        window.dispatchEvent(
+          new CustomEvent("data-language-changed", { detail: { language: state.data } })
+        );
+        // Also trigger centralized reload shortly after mount so DataLoader has time to register
+        setTimeout(() => {
+          try { dataReloadService.reloadData(); } catch {}
+        }, 300);
+      }
+    } else {
+      // Load existing preferences or use defaults
+      state.ui = load("ui", "en");
+      state.data = load("data", "en");
+    }
+    
+    state.strings = initialStrings;
+    updateDocumentLanguage();
+  },
+
+  isFirstVisit,
+
+  loadNewStrings: loadStrings,
 };

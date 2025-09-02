@@ -1,34 +1,50 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { goto, replaceState } from "$app/navigation";
+  import { goto, replaceState as skReplaceState } from "$app/navigation";
   import { page } from "$app/state";
-  import { dataService } from "$lib/services/dataService";
   import {
     UrlNavigationService,
     type NavigationParams,
   } from "$lib/services/urlNavigationService";
-  import { dataLanguage } from "$lib/stores/dataLanguage.svelte.js";
-  import { settings } from "$lib/stores/settings.svelte.js";
+  import { language } from "$lib/stores/language.svelte.js";
 
   interface Props {
     batchId: string;
     categoryId: string;
     storyIndex?: number | null;
-    isLatestBatch?: boolean;
     onNavigate?: (params: NavigationParams) => void;
   }
 
-  let {
+  const {
     batchId = $bindable(),
     categoryId = $bindable(),
-    storyIndex = $bindable(null),
-    isLatestBatch = false,
+    storyIndex = null, // Changed from $bindable() to regular prop since it's derived
     onNavigate,
   }: Props = $props();
 
-  // Track if we're restoring from history to prevent loops
-  let isRestoringFromHistory = $state(false);
-  let previousUrl = $state("");
+  // Minimal state tracking
+  let lastUrl = $state("");
+  let initialized = $state(false);
+  let isUpdatingUrl = $state(false); // Flag to prevent reactive conflicts
+
+  // Debug export for checking state
+  export function getNavigationState() {
+    return {
+      lastUrl,
+      initialized,
+      currentPageUrl: browser ? window.location.href : "",
+      currentBatchId: batchId,
+      currentCategoryId: categoryId,
+      currentStoryIndex: storyIndex,
+    };
+  }
+
+  // Force reset navigation state (for debugging)
+  export function resetNavigationState() {
+    console.log("🔧 HistoryManager navigation state reset");
+    lastUrl = "";
+    initialized = false;
+  }
 
   // Build URL based on current state
   function buildUrl(params?: Partial<NavigationParams>): string {
@@ -38,147 +54,141 @@
         params?.categoryId !== undefined ? params.categoryId : categoryId,
       storyIndex:
         params?.storyIndex !== undefined ? params.storyIndex : storyIndex,
+      slug: params?.slug,
     };
 
-    // Use /latest URLs ONLY for the actual latest batch when setting is enabled
-    // During time travel, always use the batch ID
-    const useLatestPrefix =
-      isLatestBatch &&
-      settings.useLatestUrls &&
-      !dataService.isTimeTravelMode?.();
-
-    console.log("🔗 Building URL:", {
-      isLatestBatch,
-      isTimeTravelMode: dataService.isTimeTravelMode?.(),
-      useLatestUrlsSetting: settings.useLatestUrls,
-      useLatestPrefix,
-      batchId: navigationParams.batchId,
-      categoryId: navigationParams.categoryId,
-    });
-
-    const url = UrlNavigationService.buildUrl(
-      navigationParams,
-      dataLanguage.current,
-      useLatestPrefix,
-    );
-
-    console.log("🔗 Built URL:", url);
-    return url;
+    return UrlNavigationService.buildUrl(navigationParams, language.data);
   }
 
   // Update URL without triggering navigation
   export function updateUrl(params?: Partial<NavigationParams>) {
-    if (!browser || isRestoringFromHistory) return;
+    if (!browser) return;
 
-    const newUrl = buildUrl(params);
+    try {
+      isUpdatingUrl = true; // Prevent reactive effect from interfering
 
-    // Only update if URL actually changed
-    if (newUrl !== previousUrl) {
-      previousUrl = newUrl;
-      replaceState(newUrl, {});
+      console.log("🔄 HistoryManager: updateUrl called with params:", {
+        params,
+        currentState: { batchId, categoryId, storyIndex },
+      });
+
+      const newUrl = buildUrl(params);
+      console.log("🔄 HistoryManager: Built URL:", newUrl);
+
+      // Only update if URL actually changed
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl;
+        skReplaceState(newUrl, { keepfocus: true, noscroll: true });
+        console.log("🔄 HistoryManager: Updated URL to:", newUrl);
+      } else {
+        console.log(
+          "🔄 HistoryManager: URL unchanged, skipping update:",
+          newUrl,
+        );
+      }
+    } catch (error) {
+      console.warn("HistoryManager updateUrl error:", error);
+    } finally {
+      // Reset flag after a small delay
+      setTimeout(() => {
+        isUpdatingUrl = false;
+      }, 100);
     }
   }
 
   // Navigate to new URL with history entry
   export function navigateTo(params: Partial<NavigationParams>) {
-    if (!browser || isRestoringFromHistory) return;
+    if (!browser) return;
 
-    const newUrl = buildUrl(params);
+    try {
+      isUpdatingUrl = true; // Prevent reactive effect from interfering
+      const newUrl = buildUrl(params);
 
-    // Only navigate if URL actually changed
-    if (newUrl !== previousUrl) {
-      previousUrl = newUrl;
-      goto(newUrl);
+      // Only navigate if URL actually changed
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl;
+        console.log("🔄 HistoryManager: Navigating to:", newUrl);
+        goto(newUrl, {
+          keepFocus: true,
+          noScroll: true,
+          state: { restored: false },
+        });
+      }
+    } catch (error) {
+      console.warn("HistoryManager navigateTo error:", error);
+    } finally {
+      // Reset flag after a small delay
+      setTimeout(() => {
+        isUpdatingUrl = false;
+      }, 100);
     }
   }
 
-  // Track if initial load has been processed
-  let initialLoadProcessed = $state(false);
-
-  // Handle initial page load and browser navigation
+  // Simple initialization - only run once
   $effect(() => {
-    if (!browser) return;
+    if (!browser || initialized) return;
 
-    console.log("🎯 HistoryManager effect running:", {
-      initialLoadProcessed,
-      isLatestBatch,
-      batchId,
-      categoryId,
-      useLatestUrlsSetting: settings.useLatestUrls,
+    initialized = true;
+    const urlString = UrlNavigationService.getFullUrl(page.url);
+    lastUrl = urlString;
+
+    // Parse URL and trigger navigation if we have parameters
+    const params = UrlNavigationService.parseUrl(page.url);
+    const hasParams =
+      params.batchId !== undefined ||
+      params.categoryId ||
+      params.storyIndex !== undefined ||
+      params.dataLang;
+
+    console.log("🔍 HistoryManager initialization:", {
+      url: urlString,
+      params,
+      hasParams,
+      willTriggerNavigation: hasParams && !!onNavigate,
     });
 
-    // Parse current URL
-    const params = UrlNavigationService.parseUrl(page.url);
-    const urlString = UrlNavigationService.getFullUrl(page.url);
-
-    // Handle initial page load
-    if (!initialLoadProcessed && onNavigate) {
-      initialLoadProcessed = true;
-      previousUrl = urlString;
-
-      // Only navigate if we have actual URL parameters to process
-      const hasParams =
-        params.batchId !== undefined ||
-        params.categoryId !== undefined ||
-        params.storyIndex !== undefined ||
-        params.dataLang !== undefined;
-
-      if (hasParams) {
-        isRestoringFromHistory = true;
-        onNavigate(params);
-
-        // Reset flag after a short delay
-        setTimeout(() => {
-          isRestoringFromHistory = false;
-        }, 100);
-      }
-      return;
-    }
-
-    // Check if we need to restore state from URL (browser navigation)
-    if (
-      UrlNavigationService.areUrlsDifferent(urlString, previousUrl) &&
-      !isRestoringFromHistory
-    ) {
-      isRestoringFromHistory = true;
-      previousUrl = urlString;
-
-      // Notify parent component about navigation
-      if (onNavigate) {
-        onNavigate(params);
-      }
-
-      // Reset flag after a short delay
+    if (hasParams && onNavigate) {
+      // Use setTimeout to avoid blocking the UI
       setTimeout(() => {
-        isRestoringFromHistory = false;
-      }, 100);
+        onNavigate(params);
+      }, 0);
     }
   });
 
-  // Track previous props to detect actual changes
-  let previousBatchId = $state<string>();
-  let previousCategoryId = $state<string>();
-  let previousStoryIndex = $state<number | null>();
-  let previousIsLatestBatch = $state<boolean>();
-
-  // Update URL when props change
+  // Watch for batch ID and category changes and update URL if needed
+  // Note: We don't watch storyIndex here to avoid flickering - story updates are handled explicitly
   $effect(() => {
-    if (!browser || isRestoringFromHistory || !initialLoadProcessed) return;
+    if (!browser || !initialized || isUpdatingUrl) return;
 
-    // Only update URL if props actually changed
-    const batchChanged = batchId !== previousBatchId;
-    const categoryChanged = categoryId !== previousCategoryId;
-    const storyChanged = storyIndex !== previousStoryIndex;
-    const latestBatchChanged = isLatestBatch !== previousIsLatestBatch;
+    // Get current URL to compare
+    const currentUrl = window.location.pathname + window.location.search;
 
-    if (batchChanged || categoryChanged || storyChanged || latestBatchChanged) {
-      previousBatchId = batchId;
-      previousCategoryId = categoryId;
-      previousStoryIndex = storyIndex;
-      previousIsLatestBatch = isLatestBatch;
+    // Only build URL with batch and category, not story index to avoid conflicts
+    const expectedUrl = buildUrl({ storyIndex: null });
 
-      // Update URL to reflect current state
-      updateUrl();
+    // Only update if the URL has actually changed and we're not overriding a story URL
+    const currentHasStoryIndex = /\/\d+(\?|$)/.test(currentUrl);
+    const shouldUpdate =
+      expectedUrl !== lastUrl &&
+      expectedUrl !== currentUrl &&
+      !currentHasStoryIndex;
+
+    if (shouldUpdate) {
+      console.log(
+        "🔄 HistoryManager: Batch/category state changed, updating URL:",
+        {
+          from: lastUrl,
+          current: currentUrl,
+          to: expectedUrl,
+          batchId,
+          categoryId,
+          reason: "batch or category change",
+          currentHasStoryIndex,
+        },
+      );
+      lastUrl = expectedUrl;
+      // Use replaceState to avoid creating new history entries for state synchronization
+      skReplaceState(expectedUrl, { keepfocus: true, noscroll: true });
     }
   });
 </script>

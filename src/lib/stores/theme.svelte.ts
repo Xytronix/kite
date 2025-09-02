@@ -71,6 +71,12 @@ export const theme = {
     saveTheme(theme);
   },
 
+  reset() {
+    themeState.current = "system";
+    applyTheme("system");
+    saveTheme("system");
+  },
+
   init() {
     if (!browser) return;
 

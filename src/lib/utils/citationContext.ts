@@ -5,8 +5,19 @@ export interface CitationMapping {
   citationToNumber: Map<string, number>;
   // Maps global citation number to article
   numberToArticle: Map<number, Article>;
+  // Maps article to global citation number (reverse lookup)
+  articleToNumber: Map<Article, number>;
   // Total number of unique citations
   totalCitations: number;
+}
+
+/**
+ * Enhanced article key generation that considers both domain and content
+ */
+function getEnhancedArticleKey(article: Article): string {
+  // Use normalized link as primary key for better deduplication
+  const normalizedLink = article.link.toLowerCase().replace(/^https?:\/\/(www\.)?/, '');
+  return normalizedLink || `${article.domain}::${article.title}`;
 }
 
 /**
@@ -35,6 +46,7 @@ export function buildCitationMapping(
 ): CitationMapping {
   const citationToNumber = new Map<string, number>();
   const numberToArticle = new Map<number, Article>();
+  const articleToNumber = new Map<Article, number>();
   let citationCounter = 1;
 
   // Helper to find article by domain and position
@@ -180,6 +192,13 @@ export function buildCitationMapping(
       // Assign a global citation number
       citationToNumber.set(citation, citationCounter);
       numberToArticle.set(citationCounter, article);
+      articleToNumber.set(article, citationCounter);
+      
+      // Debug logging for The Hindu articles
+      if (article.domain.toLowerCase().includes('hindu')) {
+        console.log(`Citation mapping: [${citation}] -> Citation #${citationCounter} -> "${article.title}" (${article.link})`);
+      }
+      
       citationCounter++;
     }
   };
@@ -294,7 +313,12 @@ export function buildCitationMapping(
   const mapping = {
     citationToNumber,
     numberToArticle,
+<<<<<<< HEAD
     totalCitations: citationCounter - 1,
+=======
+    articleToNumber,
+    totalCitations: citationCounter - 1
+>>>>>>> origin/refactor
   };
 
   return mapping;

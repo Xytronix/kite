@@ -1,4 +1,5 @@
 <script lang="ts">
+<<<<<<< HEAD
   import { s } from "$lib/client/localization.svelte";
   import Tooltip from "$lib/components/Tooltip.svelte";
   import type { SectionConfig } from "$lib/constants/sections";
@@ -18,6 +19,32 @@
       .sort((a, b) => a.order - b.order)
       .map((section) => ({ ...section, id: section.id }));
   });
+=======
+	import { flip } from 'svelte/animate';
+	import { dragHandleZone, dragHandle } from 'svelte-dnd-action';
+	import { s } from '$lib/client/localization.svelte';
+	import { sections } from '$lib/stores/sections.svelte.js';
+	import type { SectionConfig } from '$lib/constants/sections';
+	import { getSectionIcon } from '$lib/constants/sections';
+	import Icon from '@iconify/svelte';
+
+	// Local state for sections with required ID field
+	const flipDurationMs = 200;
+
+	// Initialize and keep local copy of sections that can be reordered
+	let sectionItems = $state(
+		sections.list
+			.sort((a, b) => a.order - b.order)
+			.map(section => ({ ...section, id: section.id }))
+	);
+
+	// Update local sectionItems whenever the sections store changes
+	$effect(() => {
+		sectionItems = sections.list
+			.sort((a, b) => a.order - b.order)
+			.map(section => ({ ...section, id: section.id }));
+	});
+>>>>>>> origin/refactor
 
   // Handle drag and drop
   function handleConsider(e: CustomEvent) {
@@ -41,6 +68,7 @@
     sections.toggleSection(sectionId);
   }
 
+<<<<<<< HEAD
   // Reset to defaults
   function resetToDefaults() {
     sections.reset();
@@ -69,6 +97,82 @@
         {s("settings.sections.instructions") ||
           "Drag to reorder sections. Toggle to enable/disable."}
       </p>
+=======
+	// Enable all sections
+	function enableAllSections() {
+		sections.enableAll();
+	}
+
+	// Disable all sections
+	function disableAllSections() {
+		// Disable each section individually since there might not be a disableAll method
+		sectionItems.forEach(section => {
+			if (section.enabled) {
+				sections.toggleSection(section.id);
+			}
+		});
+	}
+
+	// Reset to defaults
+	function resetToDefaults() {
+		sections.reset();
+	}
+
+	// Get localized section name
+	function getSectionName(id: string): string {
+		const key = `section.${id}`;
+		return s(key) || id.charAt(0).toUpperCase() + id.slice(1);
+	}
+
+	// Check if there are any disabled sections
+	const hasDisabledSections = $derived(sectionItems.some(section => !section.enabled));
+	
+	// Check if there are any enabled sections
+	const hasEnabledSections = $derived(sectionItems.some(section => section.enabled));
+
+	// Icon resolution moved to centralized mapping in `$lib/constants/sections.ts`
+</script>
+
+<div class="space-y-4">
+	<div>
+		<div class="flex items-center justify-between mb-3">
+			<div>
+				<h4 class="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+					{s('settings.sections.title') || 'Article Sections'}
+				</h4>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					{s('settings.sections.instructions') || 'Drag to reorder sections. Toggle to enable/disable.'}
+				</p>
+			</div>
+					<div class="flex items-center justify-end gap-2 flex-wrap">
+			{#if hasDisabledSections}
+				<button
+					type="button"
+					onclick={enableAllSections}
+					class="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 whitespace-nowrap"
+				>
+					{s('settings.sections.enableAll') || 'Enable All'}
+				</button>
+			{/if}
+			{#if hasEnabledSections}
+				<button
+					type="button"
+					onclick={disableAllSections}
+					class="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 whitespace-nowrap"
+				>
+					{s('settings.sections.disableAll') || 'Disable All'}
+				</button>
+			{/if}
+			<button
+				type="button"
+				onclick={resetToDefaults}
+				class="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800 whitespace-nowrap"
+			>
+				{s('settings.sections.reset') || 'Reset'}
+			</button>
+		</div>
+		</div>
+>>>>>>> origin/refactor
 
       <button
         class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 mr-2"
@@ -79,6 +183,7 @@
       </button>
     </div>
 
+<<<<<<< HEAD
     <div
       class="space-y-2"
       use:dragHandleZone={{
@@ -203,3 +308,40 @@
     {/if}
   </div>
 </div>
+=======
+						<!-- Section Icon -->
+						<Icon 
+							icon={getSectionIcon(section.id)} 
+							class="h-4 w-4 text-gray-500 dark:text-gray-400" 
+						/>
+
+						<!-- Section Name -->
+						<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+							{getSectionName(section.id)}
+						</span>
+					</div>
+
+					<!-- Toggle Switch -->
+					<button
+						type="button"
+						onclick={() => toggleSection(section.id)}
+						class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+						class:bg-blue-600={section.enabled}
+						class:bg-gray-200={!section.enabled}
+						class:dark:bg-gray-600={!section.enabled}
+						role="switch"
+						aria-checked={section.enabled}
+						aria-label={`${s('settings.sections.switch') || 'Enable/disable'} ${getSectionName(section.id)}`}
+					>
+						<span
+							class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+							class:translate-x-6={section.enabled}
+							class:translate-x-1={!section.enabled}
+						></span>
+					</button>
+				</div>
+			{/each}
+		</div>
+	</div>
+</div> 
+>>>>>>> origin/refactor

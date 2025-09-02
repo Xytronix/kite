@@ -27,10 +27,7 @@ function isValidCategory(categoryId: string): boolean {
 }
 
 function normalizeToId(categoryIdOrName: string): string {
-  return centralizedNormalizeToId(
-    categoryIdOrName,
-    categoriesState.allCategories,
-  );
+  return centralizedNormalizeToId(categoryIdOrName, categoriesState.allCategories);
 }
 
 function loadFromStorage(key: string): any {
@@ -211,26 +208,55 @@ export const categories = {
       "onthisday",
     ];
 
+    this._initWithCategories(allCategoryIds, defaultEnabledCategories);
+  },
+
+  // Initialize with location-based defaults
+  initWithLocationDefaults(suggestedCategories?: string[]) {
+    if (!browser || categoriesState.allCategories.length === 0) return;
+
+    const allCategoryIds = categoriesState.allCategories.map((cat) => cat.id);
+
+    // Use location-based suggestions if available, otherwise fall back to defaults
+    const defaultEnabledCategories = suggestedCategories && suggestedCategories.length > 0
+      ? suggestedCategories
+      : [
+          "world",
+          "usa", 
+          "business",
+          "tech",
+          "science",
+          "sports",
+          "gaming",
+          "onthisday",
+        ];
+
+    this._initWithCategories(allCategoryIds, defaultEnabledCategories);
+  },
+
+  // Private helper method for initialization logic
+  _initWithCategories(allCategoryIds: string[], defaultEnabledCategories: string[]) {
+    // Build a case-insensitive map from lowercase -> actual category ID
+    const idMap = new Map(allCategoryIds.map((id) => [id.toLowerCase(), id]));
+    // Normalize default list to the actual ID casing present from the API
+    const normalizedDefaults = defaultEnabledCategories
+      .map((id) => idMap.get(id.toLowerCase()))
+      .filter((id): id is string => !!id);
+
     // If no saved data, use defaults (enable only specific categories)
     if (
       categoriesState.order.length === 0 &&
       categoriesState.enabled.length === 0
     ) {
       // Ensure default categories come first in the order, maintaining their specified order
-      const orderedCategories = defaultEnabledCategories.filter((categoryId) =>
-        allCategoryIds.includes(categoryId),
-      );
+      const orderedCategories = normalizedDefaults;
       const remainingCategories = allCategoryIds.filter(
-        (categoryId) => !defaultEnabledCategories.includes(categoryId),
+        (categoryId) => !normalizedDefaults.includes(categoryId)
       );
       categoriesState.order = [...orderedCategories, ...remainingCategories];
       // Only enable the default categories that exist in the API
-      categoriesState.enabled = defaultEnabledCategories.filter((categoryId) =>
-        allCategoryIds.includes(categoryId),
-      );
-      categoriesState.disabled = allCategoryIds.filter(
-        (categoryId) => !defaultEnabledCategories.includes(categoryId),
-      );
+      categoriesState.enabled = [...normalizedDefaults];
+      categoriesState.disabled = remainingCategories;
     } else {
       // Clean up existing data to remove invalid categories and normalize to IDs
       categoriesState.order = categoriesState.order
@@ -254,7 +280,7 @@ export const categories = {
         (cat) =>
           !categoriesState.enabled.includes(cat) &&
           !categoriesState.disabled.includes(cat) &&
-          cat !== "onthisday", // OnThisDay should be enabled by default
+          cat.toLowerCase() !== 'onthisday', // OnThisDay should be enabled by default (case-insensitive)
       );
       categoriesState.disabled = [
         ...categoriesState.disabled,
@@ -262,12 +288,11 @@ export const categories = {
       ];
 
       // Enable OnThisDay if it's new and available
-      if (
-        allCategoryIds.includes("onthisday") &&
-        !categoriesState.enabled.includes("onthisday") &&
-        !categoriesState.disabled.includes("onthisday")
-      ) {
-        categoriesState.enabled.push("onthisday");
+      const onThisDayId = idMap.get('onthisday');
+      if (onThisDayId &&
+        !categoriesState.enabled.includes(onThisDayId) &&
+        !categoriesState.disabled.includes(onThisDayId)) {
+        categoriesState.enabled.push(onThisDayId);
       }
     }
 
@@ -286,40 +311,41 @@ export const categories = {
     if (!isValidCategory(normalizedId)) return;
 
     // Don't add if already enabled
-    if (categoriesState.enabled.includes(normalizedId)) return;
-
-    console.log("Adding temporary category:", normalizedId);
-    categoriesState.temporaryCategory = normalizedId;
-
-    // Add to enabled temporarily (don't save to storage)
-    const orderIndex = categoriesState.order.indexOf(normalizedId);
-    const insertIndex = categoriesState.enabled.findIndex(
-      (cat) => categoriesState.order.indexOf(cat) > orderIndex,
-    );
-
-    const newEnabled = [...categoriesState.enabled];
-    if (insertIndex === -1) {
-      newEnabled.push(normalizedId);
-    } else {
-      newEnabled.splice(insertIndex, 0, normalizedId);
+    if (categoriesState.enabled.includes(normalizedId)) {
+      // Already enabled: mark as temporary in state so UI knows it's transient
+      categoriesState.temporaryCategory = normalizedId;
+      return;
     }
 
-    categoriesState.enabled = newEnabled;
+    // Avoid logging $state proxies; keep logs concise in dev only
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('Adding temporary category:', String(normalizedId));
+    }
+    categoriesState.temporaryCategory = normalizedId;
+
+    // Add to enabled temporarily at the FRONT (don't save to storage)
+    // Ensure no duplicates and prioritize the temporary category visually
+    categoriesState.enabled = [
+      normalizedId,
+      ...categoriesState.enabled.filter((cat) => cat !== normalizedId),
+    ];
     // Don't save to storage - this is temporary
+    categoriesState.temporaryCategory = normalizedId;
   },
 
   removeTemporary() {
     if (!categoriesState.temporaryCategory) return;
 
-    console.log(
-      "Removing temporary category:",
-      categoriesState.temporaryCategory,
-    );
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('Removing temporary category:', String(categoriesState.temporaryCategory));
+    }
 
-    // Remove from enabled
-    categoriesState.enabled = categoriesState.enabled.filter(
-      (cat) => cat !== categoriesState.temporaryCategory,
-    );
+    // Only remove from enabled if it was never part of the persisted enabled list
+    const tempId = categoriesState.temporaryCategory;
+    const wasPersisted = loadFromStorage('enabledCategories')?.includes?.(tempId) || false;
+    if (!wasPersisted) {
+      categoriesState.enabled = categoriesState.enabled.filter((cat) => cat !== tempId);
+    }
 
     categoriesState.temporaryCategory = null;
     // Don't save to storage - just restoring to saved state

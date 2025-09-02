@@ -34,6 +34,7 @@ export function createProxy(endpoint: string): RequestHandler {
       proxyRequest.headers.delete('host');
       
       // Make the request to kite.kagi.com
+      // console.log(`🌐 Proxying request to: ${targetUrl.toString()}`);
       const response = await fetch(proxyRequest);
       
       // Create a new headers object and remove problematic encoding headers
@@ -44,6 +45,43 @@ export function createProxy(endpoint: string): RequestHandler {
       // Read the response body as a buffer to ensure proper handling
       const body = await response.arrayBuffer();
       
+      // Enhanced server-side logging for debugging navigation issues
+      const isStoriesRequest = targetPath.includes('/stories');
+      
+      if (!response.ok) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`❌ Proxy request failed: ${response.status} ${response.statusText} for ${targetUrl.toString()}`);
+          
+          // Special logging for stories requests that might cause navigation
+          if (isStoriesRequest) {
+            console.error(`🚨 STORIES REQUEST FAILED - This might cause client navigation!`);
+            console.error(`📊 Status: ${response.status} ${response.statusText}`);
+            console.error(`📊 Type: ${response.type}`);
+            console.error(`📊 Redirected: ${response.redirected}`);
+            console.error(`📊 URL: ${response.url}`);
+            console.error(`📊 Headers:`, Object.fromEntries(response.headers.entries()));
+          }
+          
+          // Try to decode error body for logging
+          try {
+            const errorText = new TextDecoder().decode(body);
+            console.error(`Error body: ${errorText}`);
+          } catch (e) {
+            console.error('Could not decode error body');
+          }
+        }
+      } else {
+        // Check for redirects even on successful responses
+        if (process.env.NODE_ENV === 'development' && isStoriesRequest && (response.redirected || [301, 302, 307, 308].includes(response.status))) {
+          console.warn(`🚨 STORIES REQUEST REDIRECTED - This might cause client navigation!`);
+          console.warn(`🔄 Original URL: ${targetUrl.toString()}`);
+          console.warn(`🔄 Final URL: ${response.url}`);
+          console.warn(`🔄 Status: ${response.status}`);
+          console.warn(`🔄 Location header: ${response.headers.get('location')}`);
+        }
+        // console.log(`✅ Proxy request successful: ${response.status} for ${targetUrl.toString()}`);
+      }
+      
       // Return the response with the same status and modified headers
       return new Response(body, {
         status: response.status,
@@ -52,7 +90,9 @@ export function createProxy(endpoint: string): RequestHandler {
       });
       
     } catch (error) {
-      console.error('Proxy error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Proxy error:', error);
+      }
       return new Response(JSON.stringify({ error: 'Proxy request failed' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

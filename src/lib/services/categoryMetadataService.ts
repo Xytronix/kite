@@ -27,6 +27,7 @@ export interface CategoryGroup {
 }
 
 class CategoryMetadataService {
+  private baseUrl = '/api';
   private cache: CategoryMetadata[] | null = null;
 
   /**
@@ -38,7 +39,11 @@ class CategoryMetadataService {
     }
 
     try {
+<<<<<<< HEAD
       const response = await fetch("/api/categories/metadata");
+=======
+      const response = await fetch(`${this.baseUrl}/categories/metadata`);
+>>>>>>> origin/refactor
       if (!response.ok) {
         throw new Error(
           `Failed to load category metadata: ${response.statusText}`,

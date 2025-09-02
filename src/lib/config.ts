@@ -21,7 +21,7 @@ export const API_ENDPOINTS = {
   categories: "/api/categories",
   stories: "/api/stories",
   media: "/api/media",
-} as const;
+} as const;5
 
 // Default values
 export const DEFAULT_STORY_LIMIT = 10;

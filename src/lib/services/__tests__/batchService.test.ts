@@ -1,172 +1,169 @@
-import { batchService } from "../batchService";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { batchService } from '../batchService';
 
 // Mock fetch
 global.fetch = vi.fn();
 
-describe("BatchService", () => {
+describe('BatchService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset the service state
     batchService.setTimeTravelBatch(null);
   });
 
-  describe("time travel functionality", () => {
-    it("should set and check time travel mode", () => {
+  describe('time travel functionality', () => {
+    it('should set and check time travel mode', () => {
       expect(batchService.isTimeTravelMode()).toBe(false);
-
-      batchService.setTimeTravelBatch("batch-123");
+      
+      batchService.setTimeTravelBatch('batch-123');
       expect(batchService.isTimeTravelMode()).toBe(true);
-      expect(batchService.getCurrentBatchId()).toBe("batch-123");
-
+      expect(batchService.getCurrentBatchId()).toBe('batch-123');
+      
       batchService.setTimeTravelBatch(null);
       expect(batchService.isTimeTravelMode()).toBe(false);
       expect(batchService.getCurrentBatchId()).toBe(null);
     });
   });
 
-  describe("loadInitialData", () => {
-    it("should load latest batch when not in time travel mode", async () => {
+  describe('loadInitialData', () => {
+    it('should load latest batch when not in time travel mode', async () => {
       const mockBatchResponse = {
-        id: "latest-batch",
-        createdAt: "2024-01-01T12:00:00Z",
+        id: 'latest-batch',
+        createdAt: '2024-01-01T12:00:00Z'
       };
 
       const mockCategoriesResponse = {
         categories: [
-          { id: "cat-1", categoryId: "world", categoryName: "World" },
-          { id: "cat-2", categoryId: "tech", categoryName: "Technology" },
+          { id: 'cat-1', categoryId: 'world', categoryName: 'World' },
+          { id: 'cat-2', categoryId: 'tech', categoryName: 'Technology' }
         ],
-        hasOnThisDay: true,
+        hasOnThisDay: true
       };
 
       const mockChaosResponse = {
         chaosIndex: 42,
-        chaosDescription: "Moderate turbulence",
-        chaosLastUpdated: "2024-01-01T12:00:00Z",
+        chaosDescription: 'Moderate turbulence',
+        chaosLastUpdated: '2024-01-01T12:00:00Z'
       };
 
       vi.mocked(fetch)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockBatchResponse,
+          json: async () => mockBatchResponse
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockCategoriesResponse,
+          json: async () => mockCategoriesResponse
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockChaosResponse,
+          json: async () => mockChaosResponse
         } as Response);
 
-      const result = await batchService.loadInitialData("en");
+      const result = await batchService.loadInitialData('en');
 
-      expect(fetch).toHaveBeenNthCalledWith(1, "/api/batches/latest?lang=en");
-      expect(fetch).toHaveBeenNthCalledWith(
-        2,
-        "/api/batches/latest-batch/categories?lang=en",
-      );
-      expect(fetch).toHaveBeenNthCalledWith(
-        3,
-        "/api/batches/latest-batch/chaos?lang=en",
-      );
+      expect(fetch).toHaveBeenNthCalledWith(1, '/api/batches/latest?lang=en', expect.anything());
+      expect(fetch).toHaveBeenNthCalledWith(2, '/api/batches/latest-batch/categories?lang=en', expect.anything());
+      expect(fetch).toHaveBeenNthCalledWith(3, '/api/batches/latest-batch/chaos?lang=en');
 
       expect(result).toEqual({
-        batchId: "latest-batch",
+        batchId: 'latest-batch',
         categories: [
-          { id: "world", name: "World" },
-          { id: "tech", name: "Technology" },
-          { id: "onthisday", name: "On This Day" },
+          { id: 'world', name: 'World' },
+          { id: 'tech', name: 'Technology' },
+          { id: 'onthisday', name: 'On This Day' }
         ],
         categoryMap: {
-          world: "cat-1",
-          tech: "cat-2",
+          world: 'cat-1',
+          tech: 'cat-2'
         },
-        timestamp: new Date("2024-01-01T12:00:00Z").getTime() / 1000,
+        timestamp: new Date('2024-01-01T12:00:00Z').getTime() / 1000,
         hasOnThisDay: true,
+        totalReadCount: 0,
         chaosIndex: 42,
-        chaosDescription: "Moderate turbulence",
-        chaosLastUpdated: "2024-01-01T12:00:00Z",
+        chaosDescription: 'Moderate turbulence',
+        chaosLastUpdated: '2024-01-01T12:00:00Z'
       });
     });
 
-    it("should load specific batch in time travel mode", async () => {
-      batchService.setTimeTravelBatch("historical-batch");
+    it('should load specific batch in time travel mode', async () => {
+      batchService.setTimeTravelBatch('historical-batch');
 
       const mockBatchResponse = {
-        id: "historical-batch",
-        createdAt: "2023-12-01T12:00:00Z",
+        id: 'historical-batch',
+        createdAt: '2023-12-01T12:00:00Z'
       };
 
       const mockCategoriesResponse = {
         categories: [
-          { id: "cat-1", categoryId: "world", categoryName: "World" },
+          { id: 'cat-1', categoryId: 'world', categoryName: 'World' }
         ],
-        hasOnThisDay: false,
+        hasOnThisDay: false
       };
 
       vi.mocked(fetch)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockBatchResponse,
+          json: async () => mockBatchResponse
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockCategoriesResponse,
+          json: async () => mockCategoriesResponse
         } as Response)
         .mockResolvedValueOnce({
           ok: false,
-          status: 404,
+          status: 404
         } as Response); // No chaos data for historical batch
 
-      const result = await batchService.loadInitialData("en");
+      const result = await batchService.loadInitialData('en');
 
-      expect(fetch).toHaveBeenNthCalledWith(1, "/api/batches/historical-batch");
-      expect(result.batchId).toBe("historical-batch");
+      expect(fetch).toHaveBeenNthCalledWith(1, '/api/batches/historical-batch', expect.anything());
+      expect(result.batchId).toBe('historical-batch');
+      expect(result.totalReadCount).toBe(0);
       expect(result.hasOnThisDay).toBe(false);
       expect(result.chaosIndex).toBeUndefined();
     });
 
-    it("should handle API errors", async () => {
+    it('should handle API errors', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
-        statusText: "Internal Server Error",
+        statusText: 'Internal Server Error'
       } as Response);
 
-      await expect(batchService.loadInitialData("en")).rejects.toThrow(
-        "Failed to get latest batch: Internal Server Error",
+      await expect(batchService.loadInitialData('en')).rejects.toThrow(
+        'Failed to get latest batch: Internal Server Error'
       );
     });
 
-    it("should handle missing chaos index gracefully", async () => {
+    it('should handle missing chaos index gracefully', async () => {
       const mockBatchResponse = {
-        id: "batch-1",
-        createdAt: "2024-01-01T12:00:00Z",
+        id: 'batch-1',
+        createdAt: '2024-01-01T12:00:00Z'
       };
 
       const mockCategoriesResponse = {
         categories: [],
-        hasOnThisDay: false,
+        hasOnThisDay: false
       };
 
       vi.mocked(fetch)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockBatchResponse,
+          json: async () => mockBatchResponse
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => mockCategoriesResponse,
+          json: async () => mockCategoriesResponse
         } as Response)
-        .mockRejectedValueOnce(new Error("Network error")); // Chaos endpoint fails
+        .mockRejectedValueOnce(new Error('Network error')); // Chaos endpoint fails
 
-      const result = await batchService.loadInitialData("en");
+      const result = await batchService.loadInitialData('en');
 
       expect(result.chaosIndex).toBeUndefined();
       expect(result.chaosDescription).toBeUndefined();
+      expect(result.totalReadCount).toBe(0);
       // Should still return other data successfully
-      expect(result.batchId).toBe("batch-1");
+      expect(result.batchId).toBe('batch-1');
     });
   });
 });

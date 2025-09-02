@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 /* Use CSS selector instead of the prefers-color-scheme media query: https://tailwindcss.com/docs/dark-mode */
+/* @custom-variant is a valid Tailwind CSS v4 directive - ignore CSS linter warning */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* OverlayScrollbars theming - Light theme (default) */
@@ -24,6 +25,7 @@
 }
 
 /* Extend default theme */
+/* @theme is a valid Tailwind CSS v4 directive - ignore CSS linter warning */
 @theme {
   /* Dynamic font size variables (can be overridden by JavaScript) */
   --text-xs: var(--text-xs, 0.75rem);
@@ -35,6 +37,13 @@
   --text-3xl: var(--text-3xl, 1.875rem);
   --text-4xl: var(--text-4xl, 2.25rem);
 
+  /* Dynamic icon size variables (proportional to text sizes) */
+  --icon-xs: var(--icon-xs, 0.625rem);
+  --icon-sm: var(--icon-sm, 0.75rem);
+  --icon-base: var(--icon-base, 0.875rem);
+  --icon-lg: var(--icon-lg, 1rem);
+  --icon-xl: var(--icon-xl, 1.25rem);
+
   /* TODO: Use proper way to adjust dark mode for background and text */
   --color-dark-bg: #1a202c;
   --color-dark-text: #e2e8f0;
@@ -42,6 +51,7 @@
 
 /* Custom overrides  */
 @layer base {
+
   /* This adds behavior as it was in Tailwind v3.
    * In v4 the button doesn't have a pointer as default.
    * https://github.com/tailwindlabs/tailwindcss/issues/8961#issuecomment-2685614710
@@ -50,6 +60,7 @@
   [role="button"] {
     cursor: pointer;
   }
+
   button:disabled,
   [role="button"]:disabled {
     cursor: default;
@@ -59,6 +70,7 @@
 [x-cloak] {
   display: none !important;
 }
+
 .story-image {
   max-width: 100%;
   height: auto;
@@ -73,6 +85,7 @@
   transform: translate(-50%, -50%);
 }
 
+<<<<<<< HEAD
 .flying-kite {
   width: 40px;
   height: 40px;
@@ -81,6 +94,9 @@
 }
 
 @keyframes kite-fly-away {
+=======
+@keyframes fly {
+>>>>>>> origin/refactor
   0% {
     transform: translate(0, 0) rotate(0deg) scale(0.3);
     opacity: 0;
@@ -102,6 +118,7 @@
   20% {
     transform: translate(60px, -25px) rotate(5deg) scale(1);
   }
+
   25% {
     transform: translate(45px, -32px) rotate(-8deg) scale(0.98);
   }
@@ -117,6 +134,7 @@
   45% {
     transform: translate(90px, -63px) rotate(-10deg) scale(0.88);
   }
+
   50% {
     transform: translate(130px, -70px) rotate(5deg) scale(0.85);
   }
@@ -133,6 +151,7 @@
     transform: translate(175px, -100px) rotate(6deg) scale(0.75);
     opacity: 0.95;
   }
+
   75% {
     transform: translate(160px, -108px) rotate(-8deg) scale(0.73);
     opacity: 0.9;
@@ -145,6 +164,7 @@
     transform: translate(180px, -122px) rotate(-6deg) scale(0.68);
     opacity: 0.6;
   }
+
   90% {
     transform: translate(210px, -130px) rotate(3deg) scale(0.65);
     opacity: 0.4;
@@ -153,11 +173,13 @@
     transform: translate(200px, -137px) rotate(-4deg) scale(0.63);
     opacity: 0.2;
   }
+
   100% {
     transform: translate(220px, -145px) rotate(2deg) scale(0.6);
     opacity: 0;
   }
 }
+
 .category-label {
   transition: background-color 0.8s ease-out;
 }
@@ -165,31 +187,49 @@
 /* Topic Colors */
 .topic-color-1 {
   color: #cc3333;
-} /* Red */
+}
+
+/* Red */
 .topic-color-2 {
   color: #b85c2e;
-} /* Orange/Brown */
+}
+
+/* Orange/Brown */
 .topic-color-3 {
   color: #0077cc;
-} /* Medium Blue */
+}
+
+/* Medium Blue */
 .topic-color-4 {
   color: #666633;
-} /* Olive */
+}
+
+/* Olive */
 .topic-color-5 {
   color: #8822cc;
-} /* Purple */
+}
+
+/* Purple */
 .topic-color-6 {
   color: #b8288f;
-} /* Magenta */
+}
+
+/* Magenta */
 .topic-color-7 {
   color: #e60039;
-} /* Brighter Red */
+}
+
+/* Brighter Red */
 .topic-color-8 {
   color: #00855a;
-} /* Forest Green */
+}
+
+/* Forest Green */
 .topic-color-9 {
   color: #d14900;
-} /* Burnt Orange */
+}
+
+/* Burnt Orange */
 
 .dark img[src="svg/kite.svg"]:not([src*="kite_dark"]),
 .dark img[src="svg/quote.svg"],
@@ -321,9 +361,12 @@
 /* Perspectives section styles */
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
 }
+
 .overflow-x-auto::-webkit-scrollbar {
   /* WebKit */
   width: 0;
@@ -343,14 +386,42 @@
 /* Focus-visible utilities for consistent accessibility */
 @layer utilities {
   .focus-visible-ring {
+    /* @apply is a valid Tailwind CSS directive - ignore CSS linter warning */
     @apply focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-focus-offset)] focus-visible:outline-none;
   }
 
   .dark .focus-visible-ring {
     --color-focus-offset: #1a202c;
   }
+
+  /* Responsive icon size utilities */
+  .icon-xs {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+  }
+
+  .icon-sm {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+  }
+
+  .icon-base {
+    width: var(--icon-base);
+    height: var(--icon-base);
+  }
+
+  .icon-lg {
+    width: var(--icon-lg);
+    height: var(--icon-lg);
+  }
+
+  .icon-xl {
+    width: var(--icon-xl);
+    height: var(--icon-xl);
+  }
 }
 
+<<<<<<< HEAD
 /* Spin animations for loading screen */
 @keyframes spin-slow {
   from {
@@ -377,3 +448,64 @@
 .animate-spin-reverse {
   animation: spin-reverse 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+=======
+/* Wikipedia link styling (moved from component to avoid style preprocessor issues) */
+.prose [data-wiki-id] {
+  color: rgb(37, 99, 235);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: all 0.2s ease;
+}
+
+.prose [data-wiki-id]:hover {
+  color: rgb(30, 64, 175);
+  background-color: rgb(219, 234, 254);
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  border-radius: 0.25rem;
+  text-decoration-style: solid;
+}
+
+.dark .prose [data-wiki-id] {
+  color: rgb(96, 165, 250);
+}
+
+.dark .prose [data-wiki-id]:hover {
+  color: rgb(147, 197, 253);
+  background-color: rgba(30, 58, 138, 0.3);
+}
+
+/* Suppress external font 404 errors from CBS News and other external content */
+@font-face {
+  font-family: 'ProximaNova-Bold';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ProximaNova-Regular';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoHeadline-Bold';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoHeadline-Black';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PublicoText';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-display: swap;
+}
+>>>>>>> origin/refactor
