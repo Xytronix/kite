@@ -359,24 +359,17 @@
 				console.log('✅ Valid enabled categories for this batch:', validEnabledCategories);
 			}
 			
-			// In latest mode, persistently update enabled categories to the ones available.
-			// In time-travel mode, do NOT mutate user preferences; use a local filtered list only.
-			if (isLatestBatch) {
-				if (validEnabledCategories.length !== categoriesStore.enabled.length) {
-					const missingCategories = categoriesStore.enabled.filter(cat => !availableCategoryIds.includes(cat));
-					console.warn('⚠️ Some enabled categories are not available in current batch:', missingCategories);
-					console.log('🔧 Updating enabled categories from', categoriesStore.enabled, 'to', validEnabledCategories);
-					categoriesStore.setEnabled(validEnabledCategories);
-				}
-			} else {
+			// Do NOT prune user's enabled categories to the current batch.
+			// We use a local filtered list (validEnabledCategories) for loading,
+			// but we keep the user's saved preferences intact in both latest and time-travel modes.
+			if (!isLatestBatch) {
 				console.log('⏭️ Time-travel mode: not persisting enabled category changes');
 			}
 			
-			// Ensure we have at least one valid category
+			// Ensure we have at least one valid category for loading (without changing saved prefs)
 			if (validEnabledCategories.length === 0) {
 				console.warn('⚠️ No enabled categories available in batch, using first available category');
 				if (categories.length > 0) {
-					categoriesStore.setEnabled([categories[0].id]);
 					validEnabledCategories.push(categories[0].id);
 				}
 			}
@@ -747,13 +740,8 @@
 					.filter((id): id is string => !!id)
 			));
 			
-			// Persist enabled category changes only in latest mode; preserve user prefs during time travel
-			if (isLatestBatch) {
-				if (validEnabledCategories.length !== categoriesStore.enabled.length) {
-					console.warn('Some enabled categories are not available in current batch, updating enabled list');
-					categoriesStore.setEnabled(validEnabledCategories);
-				}
-			} else {
+			// Preserve user preferences in both modes; do not prune enabled categories to current batch
+			if (!isLatestBatch) {
 				console.log('⏭️ Time-travel mode: not persisting enabled category changes during reload');
 			}
 			

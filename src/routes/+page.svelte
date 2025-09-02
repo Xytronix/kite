@@ -320,26 +320,23 @@
 
     // Ensure temporary category appears in the list even if not provided by the batch
     const categoriesForOrdering: Category[] = (() => {
-      // Only inject temp category when it's the active one; avoid influencing other categories
-      if (
-        temporaryCategory &&
-        currentCategory === temporaryCategory &&
-        !categories.some((c) => c.id === temporaryCategory)
-      ) {
+      // When a temporary category is present from a shared link, always make it visible in nav
+      // even if it isn't part of the current batch payload. This avoids single-tab UI after cold loads.
+      if (temporaryCategory && !categories.some((c) => c.id === temporaryCategory)) {
         return [{ id: temporaryCategory, name: temporaryCategory }, ...categories];
       }
       return categories;
     })();
 
     // Filter only enabled categories and order them according to store order
-    const enabledCategories = categoriesForOrdering.filter(
+    let enabledCategories = categoriesForOrdering.filter(
       (cat) =>
         categoriesStore.enabled.includes(cat.id) ||
         (temporaryCategory && cat.id === temporaryCategory),
     );
 
     // Sort by store order - use toSorted() to avoid mutations
-    const sorted = [...enabledCategories].sort((a, b) => {
+    let sorted = [...enabledCategories].sort((a, b) => {
       const aIndex = categoriesStore.enabled.findIndex((id) => id === a.id);
       const bIndex = categoriesStore.enabled.findIndex((id) => id === b.id);
 
@@ -368,6 +365,17 @@
         }
       }
     } catch {}
+
+    // Fallback: if filtering produced 0/1 categories but more are available,
+    // show all available categories ordered by the store to avoid single-tab nav on cold loads.
+    if (sorted.length <= 1 && categoriesForOrdering.length > 1) {
+      const orderIndices = new Map(categoriesStore.order.map((id, i) => [id, i] as const));
+      sorted = [...categoriesForOrdering].sort((a, b) => {
+        const ai = orderIndices.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+        const bi = orderIndices.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
 
     return sorted;
   });
@@ -2541,25 +2549,36 @@
     if (urlParams.dataLang && urlParams.dataLang !== language.data) {
       // Validate it's a supported language
       if (UrlNavigationService.isValidDataLanguage(urlParams.dataLang)) {
+        // 1) Capture the user's previously saved preference BEFORE applying the URL language,
+        //    so we can decide whether to show a switch-back banner.
+        let priorSaved: SupportedLanguage | null = null;
+        try {
+          const savedRaw = localStorage.getItem('language.data');
+          priorSaved = (savedRaw as SupportedLanguage) || null;
+        } catch {}
+
         console.log(
           "Setting data language from URL on mount:",
           urlParams.dataLang,
         );
-        language.setData(urlParams.dataLang as SupportedLanguage);
-        // Remember user's saved preference to offer a switch-back tooltip (session-persistent)
+
+        // 2) Apply the URL-provided data language (temporary override; do not persist user preference)
+        language.setDataTemporary(urlParams.dataLang as SupportedLanguage);
+
+        // 3) Decide whether to show the mismatch banner (only if a previous preference existed)
         try {
-          const saved = (localStorage.getItem('language.data') || 'en') as SupportedLanguage;
-          preferredDataLanguage = saved;
-          if (saved !== (urlParams.dataLang as any)) {
-            langMismatchDismissKey = `kite-lang-mismatch-dismissed:${urlParams.dataLang}->${saved}`;
+          if (priorSaved && priorSaved !== (urlParams.dataLang as any)) {
+            preferredDataLanguage = priorSaved;
+            langMismatchDismissKey = `kite-lang-mismatch-dismissed:${urlParams.dataLang}->${priorSaved}`;
             const dismissed = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem(langMismatchDismissKey) : null;
             showLangMismatch = !dismissed;
           } else {
+            // No prior preference or already equal → no banner
             showLangMismatch = false;
           }
         } catch {
-          // If storage fails, still show the banner
-          showLangMismatch = true;
+          // If storage fails unexpectedly, default to no banner to avoid user disruption
+          showLangMismatch = false;
         }
       }
     }
@@ -4005,13 +4024,13 @@
   preferredLanguage={preferredDataLanguage}
   onSwitch={() => {
     try {
-      const saved = (typeof localStorage !== 'undefined' ? (localStorage.getItem('language.data') as any) : null) || preferredDataLanguage;
+      const target = preferredDataLanguage as any;
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
-        url.searchParams.set('data_lang', saved);
+        url.searchParams.set('data_lang', target);
         window.history.replaceState({}, '', url.toString());
       }
-      language.setData(saved as any);
+      language.setData(target);
     } catch {}
     showLangMismatch = false;
   }}

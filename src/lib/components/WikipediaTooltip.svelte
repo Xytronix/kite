@@ -777,9 +777,11 @@
             // Valid content found - update tooltip
             tooltipTitle = loadedData.title || title; // Use the resolved Wikipedia title or fallback to original title
             tooltipContent = loadedData?.extract || "No summary available.";
-            tooltipImage = loadedData?.thumbnail?.source || "";
+            // Prefer thumbnail; fall back to original image
+            tooltipImage = loadedData?.thumbnail?.source || loadedData?.originalImage?.source || "";
+            // Full image prefers original; fall back to thumbnail
             tooltipFullImage =
-              loadedData?.originalImage?.source || tooltipImage;
+              loadedData?.originalImage?.source || loadedData?.thumbnail?.source || tooltipImage;
             // Always use the resolved URL from the API, especially important for Q-IDs
             const resolvedUrl = loadedData?.wikiUrl;
             const fallbackUrl = tooltipWikiUrl;
@@ -1124,7 +1126,7 @@
     async function refreshTooltipForLanguageChange(forcedLang?: string) {
       try {
         if (!showTooltip || !currentWikiId) return;
-        const newLang = (forcedLang || getTooltipLanguage());
+        const newLang = forcedLang || getTooltipLanguage();
         // Avoid duplicate work if already showing this language
         if (
           (currentTooltipLang || "") &&
@@ -1132,15 +1134,20 @@
         ) {
           return;
         }
+
         const cacheKey = `${newLang}:${currentWikiId}`;
         const applyData = (d: WikipediaContent) => {
           tooltipTitle = d.title || tooltipTitle;
           tooltipContent = d.extract || tooltipContent;
-          tooltipImage = d.thumbnail?.source || tooltipImage;
-          tooltipFullImage = d.originalImage?.source || tooltipFullImage;
+          // Prefer thumbnail; fall back to original image when thumbnail is missing
+          tooltipImage = d.thumbnail?.source || d.originalImage?.source || tooltipImage;
+          // Full image prefers original; fall back to thumbnail
+          tooltipFullImage = d.originalImage?.source || d.thumbnail?.source || tooltipFullImage;
           tooltipWikiUrl = d.wikiUrl || tooltipWikiUrl;
           currentTooltipLang = newLang;
-          try { currentWikiElementRef?.setAttribute("data-url", tooltipWikiUrl || ""); } catch {}
+          try {
+            currentWikiElementRef?.setAttribute("data-url", tooltipWikiUrl || "");
+          } catch {}
           isLoading = false;
         };
 

@@ -140,11 +140,22 @@ async function handleLanguageChange(newLanguage: string) {
 
 // Data Language change handler
 async function handleDataLanguageChange(newLanguage: string) {
+	// Persist the preferred data language
 	language.setData(newLanguage as SupportedLanguage);
 	currentDataLanguage = newLanguage;
 	isDataLanguageLoading = true;
 	
 	try {
+		// Reflect the preference in the URL so links/bookmarks remain consistent
+		if (typeof window !== 'undefined') {
+			try {
+				const url = new URL(window.location.href);
+				url.searchParams.set('data_lang', newLanguage);
+				window.history.replaceState({}, '', url.toString());
+			} catch (e) {
+				console.warn('Failed to update data_lang in URL:', e);
+			}
+		}
 		// Reload all data for the new data language
 		await dataReloadService.reloadData();
 	} finally {

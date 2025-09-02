@@ -213,21 +213,7 @@ export async function fetchWikipediaContent(wikiId: string, lang?: string): Prom
                 throw new Error('No Wikipedia page found for this entity');
             }
 
-            // If localized lookup lacks images, try English to borrow an image (keep localized wikiUrl)
-            try {
-                const langNorm = normalizeWikiLang(uiLang);
-                const hasImage = !!(lookupData?.thumbnail || lookupData?.originalImage);
-                if (!hasImage && langNorm !== 'en') {
-                    const fbResp = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(id)}&lang=en`);
-                    if (fbResp.ok) {
-                        const fb = await fbResp.json();
-                        if (fb) {
-                            if (!lookupData.thumbnail && fb.thumbnail) lookupData.thumbnail = fb.thumbnail;
-                            if (!lookupData.originalImage && fb.originalImage) lookupData.originalImage = fb.originalImage;
-                        }
-                    }
-                }
-            } catch {}
+            // Backend now handles image fallback from English when needed; no client-side merge
 
             // Use response (possibly enriched with fallback images)
             wikipediaCache.set(cacheKey, lookupData);
@@ -835,7 +821,6 @@ export async function lookupEntityByQID(
 ): Promise<WikipediaContent | null> {
     try {
         const uiLang = getWikipediaLanguage(lang);
-        const wikiLang = normalizeWikiLang(uiLang);
         const response = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(qid)}&lang=${uiLang}`);
 
         if (response.ok) {
@@ -844,20 +829,7 @@ export async function lookupEntityByQID(
                 console.debug('Server-side QID lookup error:', data.error);
                 return null;
             }
-            // Fallback to English images if localized lacks image
-            try {
-                const hasImage = !!(data?.thumbnail || data?.originalImage);
-                if (!hasImage && wikiLang !== 'en') {
-                    const fbResp = await fetch(`/api/wikipedia/lookup?qid=${encodeURIComponent(qid)}&lang=en`);
-                    if (fbResp.ok) {
-                        const fb = await fbResp.json();
-                        if (fb) {
-                            if (!data.thumbnail && fb.thumbnail) data.thumbnail = fb.thumbnail;
-                            if (!data.originalImage && fb.originalImage) data.originalImage = fb.originalImage;
-                        }
-                    }
-                }
-            } catch {}
+            // Rely on backend to provide any English fallback images
             return data as WikipediaContent;
         }
     } catch (e) {

@@ -63,9 +63,24 @@ async function lookupEntityByQID(qid: string, lang: string): Promise<WikipediaCo
 		const sitelink = sitelinks[`${wikiLang}wiki`] || sitelinks.enwiki;
 		
 		if (sitelink) {
-			// Fetch Wikipedia content
+			// Fetch Wikipedia content for localized sitelink
 			const actualLang = sitelink.site.replace('wiki', '');
-			const wikiContent = await fetchWikipediaContent(sitelink.title, actualLang);
+			let wikiContent = await fetchWikipediaContent(sitelink.title, actualLang);
+
+			// If the localized page lacks images, try English fallback using enwiki sitelink
+			const hasImage = !!(wikiContent?.thumbnail || wikiContent?.originalImage);
+			if (!hasImage && normalizeWikiLang(actualLang) !== 'en') {
+				const enSitelink = sitelinks.enwiki;
+				if (enSitelink) {
+					try {
+						const enContent = await fetchWikipediaContent(enSitelink.title, 'en');
+						if (enContent) {
+							if (!wikiContent.thumbnail && enContent.thumbnail) wikiContent.thumbnail = enContent.thumbnail;
+							if (!wikiContent.originalImage && enContent.originalImage) wikiContent.originalImage = enContent.originalImage;
+						}
+					} catch {}
+				}
+			}
 			
 			return {
 				...wikiContent,

@@ -157,6 +157,19 @@ export const language = {
     }
   },
 
+  // Temporarily set data language without persisting to localStorage.
+  // Useful for URL-based overrides that should not change the user's preferred language.
+  setDataTemporary(lang: SupportedLanguage) {
+    state.data = lang;
+    if (browser) {
+      window.dispatchEvent(
+        new CustomEvent("data-language-changed", {
+          detail: { language: lang },
+        })
+      );
+    }
+  },
+
   reset() {
     state.ui = "en";
     state.data = "en";
