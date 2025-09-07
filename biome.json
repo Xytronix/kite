@@ -85,6 +85,27 @@
       }
     },
     {
+      "includes": ["src/routes/+page.svelte"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConst": "off",
+            "useImportType": "off",
+            "noNonNullAssertion": "off",
+            "noInferrableTypes": "off",
+            "noUselessElse": "warn"
+          },
+          "complexity": {
+            "noForEach": "off",
+            "useOptionalChain": "warn"
+          },
+          "suspicious": {
+            "noExplicitAny": "warn"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/*.config.js", "**/*.config.ts", "vite.config.*", "tailwind.config.*"],
       "linter": {
         "rules": {
