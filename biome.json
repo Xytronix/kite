@@ -8,7 +8,8 @@
       ".svelte-kit/**",
       "dist/**",
       "coverage/**",
-      "*.min.js"
+      "*.min.js",
+      "src/routes/+page.svelte"
     ],
     "ignoreUnknown": true
   },
