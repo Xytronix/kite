@@ -127,7 +127,12 @@
 	>{emoji}</span>
 {:else}
 	<!-- Only show loading indicator if no emoji is available -->
-	<div class="{className} inline-flex items-center justify-center">
-		<div class="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-	</div>
+	<!-- Reserve space to avoid layout shift while loading -->
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		class="{className} opacity-0"
+		aria-hidden="true"
+		role="img"
+	/>
 {/if}
