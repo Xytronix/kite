@@ -336,6 +336,8 @@
 					alt={alt}
 					class="w-full h-full object-cover rounded-full relative z-10"
 					{loading}
+					decoding="async"
+					fetchpriority={loading === 'eager' ? 'high' : 'low'}
 					data-component-id={componentId}
 					onerror={handleError}
 					onload={handleLoad}
@@ -380,6 +382,8 @@
 					alt={alt}
 					class="w-full h-full rounded-full object-cover"
 					{loading}
+					decoding="async"
+					fetchpriority={loading === 'eager' ? 'high' : 'low'}
 					style="display: none;"
 					data-component-id={componentId}
 					onerror={handleError}
@@ -411,6 +415,8 @@
 				alt={alt}
 				class="w-full h-full rounded-full object-cover overflow-hidden"
 				{loading}
+				decoding="async"
+				fetchpriority={loading === 'eager' ? 'high' : 'low'}
 				data-component-id={componentId}
 				onerror={handleError}
 				onload={handleLoad}
@@ -443,6 +449,8 @@
 				alt={alt}
 				class="w-full h-full rounded-full object-cover"
 				{loading}
+				decoding="async"
+				fetchpriority={loading === 'eager' ? 'high' : 'low'}
 				style="display: none;"
 				data-component-id={componentId}
 				onerror={handleError}
@@ -452,9 +460,13 @@
 			<div class="w-full h-full"></div>
 		{:else}
 			<!-- FINAL FALLBACK -->
-			<div class="w-full h-full opacity-50 flex items-center justify-center">
-				{@html GLOBE_SVG}
-			</div>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 24 24"
+				class="w-full h-full opacity-0"
+				aria-hidden="true"
+				role="img"
+			/>
 		{/if}
 	{/key}
 </div>
