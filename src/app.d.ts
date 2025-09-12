@@ -1,91 +1,24 @@
-/// <reference types="@sveltejs/kit" />
-import type { Writable } from "svelte/store";
-
-// src/app.d.ts
+// See https://kit.svelte.dev/docs/types#app
+// for information about these interfaces
 declare global {
-  namespace App {
-    // interface Error {}
-    interface Locals {
-      session: Session | null;
+    namespace App {
+        // interface Error {}
+        // interface Locals {}
+        // interface PageData {}
+        // interface PageState {}
+        // interface Platform {}
     }
-    interface PageData {
-      session: Session | null;
-      locale?: string;
-      strings?: Record<string, string>;
+
+    // Global window properties for logging flags
+    interface Window {
+        __common_icons_logged?: boolean;
+        __critical_icons_logged?: boolean;
     }
-    interface PageState {}
-    interface Platform {}
-  }
-
-  // For TypeScript support in the Turnstile script
-  interface Window {
-    turnstile: {
-      render: (
-        container: string | HTMLElement,
-        options: {
-          sitekey: string;
-          callback: (token: string) => void;
-          "refresh-expired"?: string;
-          theme?: string;
-          size?: string;
-        },
-      ) => void;
-      reset: (widgetId: string) => void;
-    };
-  }
-
-  interface globalThis {
-    session?: Session;
-  }
-
-  type SessionContext = Writable<Session | null>;
-
-  interface Session {
-    token: string;
-    id?: string;
-    loggedIn?: boolean;
-    subscription: boolean;
-    expiresAt: Date;
-    theme?: string;
-    mobileTheme?: string;
-    customCss?: string;
-    customCssEnabled?: boolean;
-    customCssAvailable?: boolean;
-    language?: string;
-    accountType: string;
-  }
-
-  // Kagi API response types
-  interface KagiSubscriptionResponse {
-    subscription?: {
-      status: string;
-      account_type: string;
-      billing_type: string;
-      period_end: string | null;
-      billing_account_id: number;
-    };
-    orion_subscription?: any | null;
-  }
-
-  interface KagiUserResponse {
-    user_id: string;
-    user: {
-      id: number;
-      theme: string | null;
-      mobile_theme: string | null;
-      theme_light_variety: string;
-      theme_dark_variety: string;
-      custom_css: string | null;
-      custom_css_enabled: boolean;
-      language: string | null;
-    };
-  }
 }
 
-// CSS module types
-declare module "*.css" {
-  const content: string;
-  export default content;
-}
+// TypeScript module shims for packages without proper typings
+declare module '@skeletonlabs/floating-ui-svelte';
+declare module 'overlayscrollbars-svelte';
+declare module 'overlayscrollbars-svelte/*';
 
 export {};
