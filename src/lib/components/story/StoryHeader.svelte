@@ -6,6 +6,7 @@
     type CitationMapping,
   } from "$lib/utils/citationContext";
   import CitationText from "./CitationText.svelte";
+  import IconDisplay from '$lib/components/IconDisplay.svelte';
 
   // Props
   interface Props {
@@ -74,7 +75,7 @@
     class="category-label inline-flex items-center rounded py-1 text-xs text-gray-700 dark:text-gray-300 uppercase"
   >
     {#if categoryEmoji}
-      <span class="mr-1">{categoryEmoji}</span>
+      <IconDisplay emoji={categoryEmoji} className="mr-1 icon-base" />
     {/if}
     <span class={getTopicColorClass(story.category)}>
       {story.category}
@@ -93,7 +94,7 @@
       aria-label="Expand story: {story.title}"
     >
       {#if articleEmoji}
-        <span class="mr-2">{articleEmoji}</span>
+        <IconDisplay emoji={articleEmoji} className="mr-2 icon-base" />
       {/if}
       <span
         ><CitationText

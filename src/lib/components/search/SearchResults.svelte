@@ -14,6 +14,8 @@
   import { useOverlayScrollbars } from "overlayscrollbars-svelte";
   import "overlayscrollbars/overlayscrollbars.css";
   import { slide } from "svelte/transition";
+  import { experimental } from "$lib/stores/experimental.svelte.js";
+  import IconDisplay from "$lib/components/IconDisplay.svelte";
 
   interface Props {
     results: SearchResult[];
@@ -487,7 +489,11 @@
             <div class="flex items-start justify-between gap-2">
               <div class="flex items-start gap-2 flex-1">
                 {#if result.story.emoji}
-                  <span class="text-lg mt-0.5">{result.story.emoji}</span>
+                  {#if experimental.showArticleIcons}
+                    <IconDisplay emoji={result.story.emoji} className="text-lg mt-0.5" />
+                  {:else}
+                    <span class="text-lg mt-0.5">{result.story.emoji}</span>
+                  {/if}
                 {/if}
                 <h3
                   class="font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1"
