@@ -1,15 +1,14 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { page } from "$app/state";
   import { s } from "$lib/client/localization.svelte";
-  import { generateShareUrl } from "$lib/utils/urlShortener";
+  import { generateShareUrl, slugify } from "$lib/utils/urlShortener";
+  import Icon from '$lib/components/Icon.svelte';
   import {
     useFloating,
     offset,
     flip,
     shift,
   } from "@skeletonlabs/floating-ui-svelte";
-  import { IconShare, IconCheck, IconLoader2 } from "@tabler/icons-svelte";
   import { onMount, onDestroy } from "svelte";
   import Portal from "svelte-portal";
 
@@ -23,7 +22,7 @@
     class?: string;
   }
 
-  let {
+  const {
     title = s("article.shareDefaultTitle") || "Check out this story",
     description = "",
     batchId,
@@ -35,7 +34,7 @@
 
   let showCopiedFeedback = $state(false);
   let isLoading = $state(false);
-  let feedbackTimer: NodeJS.Timeout | undefined;
+  let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Floating UI setup for the "Copied!" tooltip
   const floating = useFloating({
@@ -79,111 +78,90 @@
     }
   });
 
-  async function handleShare() {
+  /**
+   * Robustly copy text to the user clipboard.
+   * 1. Prefer the modern Clipboard API (requires secure context)
+   * 2. Fallback to the deprecated `execCommand('copy')` for older browsers
+   *    – Ensure we focus & select the textarea before executing the command.
+   *
+   * Returns `true` when the copy succeeds, `false` otherwise.
+   */
+  async function copyToClipboard(text: string): Promise<boolean> {
+    try {
+      if (browser && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (err) {
+      // Continue to fallback below
+      console.warn(
+        "Primary clipboard API failed – falling back to execCommand",
+        err,
+      );
+    }
+
+    // Fallback for Safari < 13 and other legacy browsers
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "-9999px";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return successful;
+    } catch (err) {
+      console.error("Fallback clipboard copy failed", err);
+      return false;
+    }
+  }
+
+  async function handleShare(event?: MouseEvent) {
+    event?.stopPropagation?.();
     if (!browser || isLoading || showCopiedFeedback) return;
 
-    isLoading = true;
+    // Generate full URL first (sync to preserve user-gesture context)
+    const baseUrl = window.location.origin;
+    const fullUrl = generateShareUrl(baseUrl, {
+      batchId,
+      categoryId,
+      storyIndex,
+      dataLang,
+      // Don't use slug - use numeric format only
+    });
 
+    // Decide mobile vs desktop early
+    const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
+
+    // Perform share / copy IMMEDIATELY while still in user-gesture
     try {
-      // Generate full URL first
-      const baseUrl = window.location.origin;
-      const fullUrl = generateShareUrl(baseUrl, {
-        batchId,
-        categoryId,
-        storyIndex,
-        dataLang,
-      });
-
-      let shareUrl = fullUrl;
-
-      // Try to get short URL from API
-      try {
-        const response = await fetch("/api/shorten", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: fullUrl,
-            batchId,
-            categoryId,
-            storyIndex,
-            languageCode: dataLang,
-          }),
-        });
-
-        if (response.ok) {
-          const { shortUrl } = await response.json();
-          shareUrl = shortUrl;
-        }
-      } catch (err) {
-        console.warn("Failed to shorten URL, using full URL:", err);
-      }
-
-      isLoading = false;
-
-      // Check if mobile and Web Share API is available
-      const isMobile = /mobile|android|iphone|ipad/i.test(navigator.userAgent);
-
       if (isMobile && navigator.share) {
-        try {
-          // Format the shared text nicely
-          // Include title, description, and attribution
-          const shareTitle = `${title} - Kite News`;
-          const shareText = description
-            ? `${description}\n\nRead more on Kite:`
-            : `${title}\n\nRead more on Kite:`;
-
-          await navigator.share({
-            title: shareTitle,
-            text: shareText,
-            url: shareUrl,
-          });
-
-          // Don't show floating tooltip on mobile - native share is enough
-          return;
-        } catch (err) {
-          // User cancelled or error occurred
-          if (err instanceof Error && err.name !== "AbortError") {
-            console.error("Error sharing:", err);
-          }
-          // Fall through to clipboard copy if share fails
-        }
+        const shareTitle = `${title} - Kite News`;
+        const shareText = description
+          ? `${description}\n\nRead more on Kite:`
+          : `${title}\n\nRead more on Kite:`;
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: fullUrl,
+        });
+        return; // Native share handled
       }
 
-      // Desktop: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-
+      const copied = await copyToClipboard(fullUrl);
+      if (copied) {
         // Show feedback
         showCopiedFeedback = true;
-
-        // Clear any existing timer
         if (feedbackTimer) clearTimeout(feedbackTimer);
-
-        // Hide feedback after 2 seconds
-        feedbackTimer = setTimeout(() => {
-          showCopiedFeedback = false;
-        }, 2000);
-      } catch (err) {
-        console.error("Failed to copy URL:", err);
-        // Fallback: select and copy
-        const textArea = document.createElement("textarea");
-        textArea.value = shareUrl;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-
-        // Show feedback
-        showCopiedFeedback = true;
-        feedbackTimer = setTimeout(() => {
-          showCopiedFeedback = false;
-        }, 2000);
+        feedbackTimer = setTimeout(() => (showCopiedFeedback = false), 2000);
+      } else {
+        console.error("Clipboard copy failed (initial)");
       }
-    } catch (error) {
-      console.error("Share failed:", error);
-      isLoading = false;
+    } catch (err) {
+      console.error("Initial share/copy failed:", err);
     }
   }
 </script>
@@ -192,6 +170,7 @@
 <button
   bind:this={floating.elements.reference}
   onclick={handleShare}
+  type="button"
   class="group relative flex h-10 w-10 items-center justify-center rounded-lg {className}"
   aria-label={s("article.shareStory") || "Share story"}
   title={s("article.shareStory") || "Share story"}
@@ -199,17 +178,15 @@
 >
   {#if isLoading}
     <!-- Loading spinner -->
-    <IconLoader2
-      size={20}
-      stroke={2}
-      class="animate-spin text-gray-500 dark:text-gray-400"
+    <Icon
+      icon="tabler:loader-2"
+      class="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400"
     />
   {:else}
     <!-- Share icon -->
-    <IconShare
-      size={20}
-      stroke={2}
-      class="transition-colors text-gray-600 group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200"
+    <Icon
+      icon="tabler:share"
+      class="h-5 w-5 text-gray-600 transition-colors group-hover:text-gray-800 dark:text-gray-400 dark:group-hover:text-gray-200"
     />
   {/if}
 </button>
@@ -221,10 +198,10 @@
       bind:this={floating.elements.floating}
       class="absolute top-0 left-0 z-[2000] flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg transition-opacity duration-200 dark:bg-green-700 {floating.isPositioned
         ? 'opacity-100'
-        : 'opacity-0 invisible'}"
+        : 'invisible opacity-0'}"
       style={floating.floatingStyles}
     >
-      <IconCheck size={16} stroke={2.5} class="text-white" />
+      <Icon icon="tabler:check" class="h-4 w-4 text-white" />
       <span>{s("article.shareCopied") || "Copied!"}</span>
     </div>
   </Portal>
