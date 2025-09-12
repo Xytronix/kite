@@ -17,10 +17,79 @@ class IconService {
 	private isPreloading = false;
 	private missingIcons = new Set<string>();
 	private checkedIcons = new Set<string>();
+	// Persistent cache keys and limits (client-only)
+	private static PERSIST_INDEX_KEY = '__ICON_CACHE_V1_INDEX__';
+	private static PERSIST_PREFIX = '__ICON_CACHE_V1__:';
+	private static PERSIST_MAX_ENTRIES = 400;
 
 	constructor() {
+		// Load any persisted icons from previous sessions first
+		this.loadPersistentCache();
 		// Immediately load critical icons synchronously
 		this.preloadCriticalIconsSync();
+	}
+
+	/**
+	 * Load icon data from localStorage into in-memory cache (client-only)
+	 */
+	private loadPersistentCache(): void {
+		if (typeof window === 'undefined') return;
+		try {
+			const indexRaw = window.localStorage.getItem(IconService.PERSIST_INDEX_KEY);
+			if (!indexRaw) return;
+			const keys: string[] = JSON.parse(indexRaw);
+			// Limit the number of items loaded at startup to keep it fast
+			const toLoad = keys.slice(-Math.min(keys.length, 200));
+			for (const key of toLoad) {
+				const raw = window.localStorage.getItem(IconService.PERSIST_PREFIX + key);
+				if (!raw) continue;
+				try {
+					const data: IconData = JSON.parse(raw);
+					// Basic shape validation
+					if (data && typeof data.body === 'string') {
+						this.cache.set(key, data);
+					}
+				} catch {
+					// Ignore corrupted entries
+				}
+			}
+		} catch {
+			// Ignore persistence failures
+		}
+	}
+
+	/**
+	 * Persist icon data to localStorage with an insertion-order index (client-only)
+	 */
+	private persistIcon(iconName: string, data: IconData): void {
+		if (typeof window === 'undefined') return;
+		// Write asynchronously to avoid blocking rendering
+		setTimeout(() => {
+			try {
+				const indexKey = IconService.PERSIST_INDEX_KEY;
+				const itemKey = IconService.PERSIST_PREFIX + iconName;
+				const indexRaw = window.localStorage.getItem(indexKey);
+				let index: string[] = [];
+				if (indexRaw) {
+					try { index = JSON.parse(indexRaw); } catch { index = []; }
+				}
+				// Move key to the end (most recent)
+				index = index.filter(k => k !== iconName);
+				index.push(iconName);
+				// Trim if exceeding max entries
+				while (index.length > IconService.PERSIST_MAX_ENTRIES) {
+					const evict = index.shift();
+					if (evict) {
+						try { window.localStorage.removeItem(IconService.PERSIST_PREFIX + evict); } catch {}
+					}
+				}
+				// Save payload and index
+				window.localStorage.setItem(itemKey, JSON.stringify(data));
+				window.localStorage.setItem(indexKey, JSON.stringify(index));
+			} catch {
+				// Ignore persistence failures silently
+			}
+		}, 0);
 	}
 
 	/**
@@ -135,6 +204,8 @@ class IconService {
 
 			// Cache the result
 			this.cache.set(iconName, iconData);
+			// Persist for future sessions
+			this.persistIcon(iconName, iconData);
 			return iconData;
 
 		} catch (error) {
@@ -274,6 +345,8 @@ class IconService {
 
 					// Cache the result
 					this.cache.set(iconName, iconData);
+					// Persist for future sessions
+					this.persistIcon(iconName, iconData);
 					foundIcons.push(iconName);
 				} else {
 					this.missingIcons.add(iconName);

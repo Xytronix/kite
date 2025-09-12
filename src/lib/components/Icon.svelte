@@ -85,8 +85,14 @@
     {@html iconData.body}
   </svg>
 {:else if loadingState === "loading"}
-  <!-- No loading indicator - just render nothing to avoid white placeholders -->
-  <!-- The parent component should handle loading states if needed -->
+  <!-- Reserve space to avoid layout shift while loading -->
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    class="{finalClass()} opacity-0"
+    aria-hidden="true"
+    role="img"
+  />
 {:else if loadingState === "error"}
   <!-- Show fallback globe icon for errors -->
   <svg
