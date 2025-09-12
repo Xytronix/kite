@@ -391,6 +391,66 @@ export const EMOJI_TO_ICONIFY: Record<string, string> = {
 const unmappedEmojis = new Set<string>();
 
 /**
+ * Validate icon name format
+ */
+function isValidIconName(iconName: string): boolean {
+	if (!iconName || typeof iconName !== 'string') return false;
+	const parts = iconName.split(':');
+	if (parts.length !== 2) return false;
+	const [prefix, name] = parts;
+	return /^[a-z0-9-]+$/.test(prefix) && /^[a-z0-9-_]+$/.test(name);
+}
+
+/**
+ * Schedule a task when the browser is idle; fallback to setTimeout
+ */
+function runWhenIdle(task: () => void): void {
+	if (typeof window !== 'undefined' && (window as any).requestIdleCallback) {
+		(window as any).requestIdleCallback(() => task());
+	} else {
+		setTimeout(task, 0);
+	}
+}
+
+/**
+ * Dedupe, validate, and chunk icon preloads with failure tolerance.
+ * Filters out invalid names and icons already cached, then schedules
+ * chunked preloads during idle time to minimize impact on the main thread.
+ */
+export function preloadIconsSafely(
+	icons: string[],
+	highPriority: boolean = false,
+	chunkSize: number = 50
+): void {
+	if (!icons || icons.length === 0) return;
+
+	// Dedupe
+	const unique = Array.from(new Set(icons));
+
+	// Filter invalid and already-cached icons
+	const toLoad = unique.filter((name) => isValidIconName(name) && !iconService.isCached(name));
+	if (toLoad.length === 0) return;
+
+	if (highPriority) {
+		// Let the service handle batching; run immediately
+		iconService.preload(toLoad, true);
+		return;
+	}
+
+	// Chunk and schedule during idle time
+	for (let i = 0; i < toLoad.length; i += chunkSize) {
+		const chunk = toLoad.slice(i, i + chunkSize);
+		runWhenIdle(() => {
+			try {
+				iconService.preload(chunk, false);
+			} catch {
+				// Ignore chunk failures; service already tolerates errors
+			}
+		});
+	}
+}
+
+/**
  * Convert emoji to Iconify icon name
  */
 export function getIconName(emoji: string): string | null {
@@ -455,7 +515,7 @@ export function preloadStoryIcons(stories: any[], highPriority: boolean = false)
 		if (import.meta.env.DEV && iconsToPreload.size > 5) {
 			console.log(`📰 Preloading ${iconsToPreload.size} story icons${highPriority ? ' (high priority)' : ''}`);
 		}
-		iconService.preload(Array.from(iconsToPreload), highPriority);
+		preloadIconsSafely(Array.from(iconsToPreload), highPriority);
 	}
 }
 
@@ -520,7 +580,7 @@ export function preloadSourceIcons(stories: any[]): void {
 	});
 
 	if (sourceIcons.size > 2) { // More than just the fallbacks
-		iconService.preload(Array.from(sourceIcons), false);
+		preloadIconsSafely(Array.from(sourceIcons), false);
 	}
 }
 
@@ -564,7 +624,7 @@ export async function preloadStoryCitations(story: any): Promise<void> {
 	knownIcons.add('heroicons-outline:globe-alt');
 
 	if (knownIcons.size > 0) {
-		iconService.preload(Array.from(knownIcons), true); // High priority for story details
+		preloadIconsSafely(Array.from(knownIcons), true); // High priority for story details
 	}
 }
 
@@ -750,7 +810,7 @@ export function preloadCommonIcons(): void {
 		console.log('🎨 Preloading common UI icons');
 		window.__common_icons_logged = true;
 	}
-	iconService.preload(commonIcons, true); // High priority for UI icons
+	preloadIconsSafely(commonIcons, true); // High priority for UI icons
 }
 
 
