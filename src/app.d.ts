@@ -20,6 +20,5 @@ declare global {
 declare module '@skeletonlabs/floating-ui-svelte';
 declare module 'overlayscrollbars-svelte';
 declare module 'overlayscrollbars-svelte/*';
-declare module '@iconify/svelte';
 
 export {};
