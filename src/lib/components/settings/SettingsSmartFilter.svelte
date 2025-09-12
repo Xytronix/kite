@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { s } from '$lib/client/localization.svelte';
 	import { smartContentFilter } from '$lib/stores/smartContentFilter.svelte';
-	import Icon from '@iconify/svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import Select from '$lib/components/Select.svelte';
 

@@ -9,7 +9,7 @@
   import { getTimeAgo, getMostRecentArticleDate } from "$lib/utils/getTimeAgo";
   import SmartImage from "../SmartImage.svelte";
   import SourceTooltip from "./SourceTooltip.svelte";
-  import Icon from "@iconify/svelte";
+  import Icon from "$lib/components/Icon.svelte";
 
   // Props
   interface Props {

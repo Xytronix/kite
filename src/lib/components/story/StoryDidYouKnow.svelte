@@ -4,7 +4,7 @@ import CitationText from './CitationText.svelte';
 import SectionSources from './SectionSources.svelte';
 import { useCitationProcessing } from '$lib/utils/citationProcessing';
 import type { CitationProps } from '$lib/types/citation';
-import Icon from '@iconify/svelte';
+import Icon from '$lib/components/Icon.svelte';
 import { getSectionIcon } from '$lib/constants/sections';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 

@@ -7,7 +7,7 @@ import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/c
 import { aggregateCitationsFromPoints } from '$lib/utils/citationAggregator';
 import { parseStructuredText } from '$lib/utils/textParsing';
 import type { Article } from '$lib/types';
-import Icon from '@iconify/svelte';
+import Icon from '$lib/components/Icon.svelte';
 import { getSectionIcon } from '$lib/constants/sections';
 import { experimental } from '$lib/stores/experimental.svelte.js';
 

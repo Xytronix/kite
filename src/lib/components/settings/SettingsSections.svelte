@@ -5,7 +5,7 @@
 	import { sections } from '$lib/stores/sections.svelte.js';
 	import type { SectionConfig } from '$lib/constants/sections';
 	import { getSectionIcon } from '$lib/constants/sections';
-	import Icon from '@iconify/svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	// Local state for sections with required ID field
 	const flipDurationMs = 200;

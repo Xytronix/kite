@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { s } from "$lib/client/localization.svelte";
   import { generateShareUrl, slugify } from "$lib/utils/urlShortener";
-  import Icon from "@iconify/svelte";
+  import Icon from '$lib/components/Icon.svelte';
   import {
     useFloating,
     offset,

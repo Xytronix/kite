@@ -10,7 +10,7 @@ import { dataReloadService } from '$lib/services/dataService.js';
 import { locationService, type LocationInfo } from '$lib/services/locationService';
 import Select from '$lib/components/Select.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
-import Icon from '@iconify/svelte';
+import Icon from '$lib/components/Icon.svelte';
 
 // Props
 interface Props {

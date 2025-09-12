@@ -13,7 +13,7 @@
   import CitationText from "./CitationText.svelte";
   import SectionSources from "./SectionSources.svelte";
   import SourceTooltip from "./SourceTooltip.svelte";
-  import Icon from "@iconify/svelte";
+  import Icon from '$lib/components/Icon.svelte';
 
   // Props
   interface Props {

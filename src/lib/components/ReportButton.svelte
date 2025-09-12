@@ -1,6 +1,6 @@
 <script lang="ts">
 		import BaseModal from './BaseModal.svelte';
-	import Icon from '@iconify/svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import { s } from '$lib/client/localization.svelte';
 	import { browser } from '$app/environment';
 

@@ -7,7 +7,7 @@
     createSafeAction,
     createSafeAsyncAction,
   } from "$lib/utils/scrollLock";
-  import Icon from "@iconify/svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import { tick } from "svelte";
 
   // UI control state variables

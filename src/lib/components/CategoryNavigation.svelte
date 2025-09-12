@@ -5,7 +5,7 @@
   import type { Category } from "$lib/types";
   import { getCategoryDisplayName } from "$lib/utils/category";
   import { toCamelCase } from "$lib/utils/string.js";
-  import Icon from "@iconify/svelte";
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from "svelte";
   import { fade, scale } from "svelte/transition";
 

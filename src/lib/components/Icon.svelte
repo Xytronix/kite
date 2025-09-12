@@ -6,9 +6,11 @@
     icon: string;
     class?: string;
     size?: string;
+    width?: number | string;
+    height?: number | string;
   }
 
-  let { icon, class: className = "", size }: Props = $props();
+  let { icon, class: className = "", size, width, height }: Props = $props();
 
   // State for the fetched icon data
   let iconData = $state<IconData | null>(null);
@@ -78,6 +80,8 @@
     xmlns="http://www.w3.org/2000/svg"
     viewBox="{iconData.left} {iconData.top} {iconData.width} {iconData.height}"
     class={finalClass()}
+    width={width}
+    height={height}
     aria-hidden="true"
     role="img"
     fill="currentColor"

@@ -3,7 +3,7 @@ import type { OnThisDayEvent } from '$lib/types';
 import OnThisDayEventTimeline from './onthisday/OnThisDayEventTimeline.svelte';
 import OnThisDayPeopleCarousel from './onthisday/OnThisDayPeopleCarousel.svelte';
 import WikipediaTooltip from './WikipediaTooltip.svelte';
-import Icon from '@iconify/svelte';
+import Icon from '$lib/components/Icon.svelte';
 import { initializeWikipediaIntegration } from '$lib/utils/wikipediaIntegration';
 import { wikipediaTooltipManager } from '$lib/utils/wikipediaTooltipManager';
 import { onDestroy } from 'svelte';

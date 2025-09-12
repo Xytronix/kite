@@ -1,7 +1,7 @@
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
   import { experimental } from "$lib/stores/experimental.svelte.js";
-  import Icon from "@iconify/svelte";
+  import Icon from "$lib/components/Icon.svelte";
 
   // Toggle handlers
   function toggleArticleIcons() {

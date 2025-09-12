@@ -22,7 +22,7 @@
 	import StoryListSection from './StoryListSection.svelte';
 	import StoryTextSection from './StoryTextSection.svelte';
  	import { getSectionIcon } from '$lib/constants/sections';
-    import Icon from '@iconify/svelte';
+    import Icon from '$lib/components/Icon.svelte';
     import { linkKnownEntityAcrossRoot, refreshWikipediaTooltips } from '$lib/utils/linkingUtils.js';
 
 	// Props

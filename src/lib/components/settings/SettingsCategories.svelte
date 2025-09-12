@@ -15,7 +15,7 @@
 	import { categoryMetadataService, type CategoryMetadata } from '$lib/services/categoryMetadataService';
 	import { locationService, type LocationInfo } from '$lib/services/locationService';
 	import Select from '$lib/components/Select.svelte';
-	import Icon from '@iconify/svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	
 	// Props
 	interface Props {

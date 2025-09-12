@@ -9,7 +9,7 @@
   import { timeTravel } from "$lib/stores/timeTravel.svelte.js";
   import { timeTravelBatch } from "$lib/stores/timeTravelBatch.svelte.js";
   import ChaosIndex from "./ChaosIndex.svelte";
-  import Icon from "@iconify/svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import { get } from "svelte/store";
 
   // Props

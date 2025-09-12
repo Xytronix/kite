@@ -2,7 +2,7 @@
 import CitationText from './CitationText.svelte';
 import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
 import type { Article } from '$lib/types';
-import Icon from '@iconify/svelte';
+import Icon from '$lib/components/Icon.svelte';
 import { getSectionIcon } from '$lib/constants/sections';
 
 // Props

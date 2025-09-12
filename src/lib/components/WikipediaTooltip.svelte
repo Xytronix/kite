@@ -14,7 +14,7 @@
   } from "$lib/utils/mapUtils";
   import { scrollLock } from "$lib/utils/scrollLock";
   import { resolveWikiTitleWithContext } from "$lib/utils/wikiResolver";
-  import Icon from "@iconify/svelte";
+  import Icon from "$lib/components/Icon.svelte";
   import {
     useFloating,
     offset,
