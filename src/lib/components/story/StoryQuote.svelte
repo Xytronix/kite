@@ -1,69 +1,120 @@
 <script lang="ts">
-import CitationText from './CitationText.svelte';
-import { replaceWithNumberedCitations, type CitationMapping } from '$lib/utils/citationContext';
-import type { Article } from '$lib/types';
-import Icon from '$lib/components/Icon.svelte';
-import { getSectionIcon } from '$lib/constants/sections';
+  import { s } from "$lib/client/localization.svelte";
+  import type { Article } from "$lib/types";
+  import {
+    replaceWithNumberedCitations,
+    type CitationMapping,
+  } from "$lib/utils/citationContext";
+  import CitationText from "./CitationText.svelte";
 
-// Props
-interface Props {
-	quote: string;
-	author?: string;
-	attribution?: string;
-	sourceUrl?: string;
-	sourceDomain?: string;
-	articles?: Article[];
-	citationMapping?: CitationMapping;
-}
+  // Props
+  interface Props {
+    quote: string;
+    author?: string;
+    attribution?: string;
+    sourceUrl?: string;
+    sourceDomain?: string;
+    articles?: Article[];
+    citationMapping?: CitationMapping;
+  }
 
-let { quote, author, attribution, sourceUrl, sourceDomain, articles = [], citationMapping }: Props = $props();
+  let {
+    quote,
+    author,
+    attribution,
+    sourceUrl,
+    sourceDomain,
+    articles = [],
+    citationMapping,
+  }: Props = $props();
 
-// Convert citations to numbered format if mapping is available
-const displayQuote = $derived.by(() => {
-	if (!citationMapping) return quote;
-	return replaceWithNumberedCitations(quote, citationMapping);
-});
+  // Helper function to strip outer quotes
+  function stripOuterQuotes(text: string): string {
+    if (!text) return text;
 
-// Remove surrounding straight or smart quotes if present
-function removeOuterQuotes(text: string): string {
-    const t = (text || '').trim();
-    const pairs: Array<[string, string]> = [["\"", "\""], ["“", "”"], ["'", "'"], ["‘", "’"]];
-    for (const [open, close] of pairs) {
-        if (t.startsWith(open) && t.endsWith(close) && t.length >= open.length + close.length + 1) {
-            return t.slice(open.length, t.length - close.length).trim();
-        }
+    let trimmed = text.trim();
+    // Check for various quote characters: straight double, straight single, and curly quotes
+    const quoteChars = ['"', "'", "\u201C", "\u201D", "\u2018", "\u2019"];
+
+    // Remove leading quotes (including multiple consecutive quotes)
+    while (trimmed.length > 0 && quoteChars.includes(trimmed[0])) {
+      trimmed = trimmed.slice(1);
     }
-    return t;
-}
 
-const displayCleanQuote = $derived.by(() => removeOuterQuotes(displayQuote));
+    // Trim spaces after removing leading quotes
+    trimmed = trimmed.trimStart();
+
+    // Trim trailing spaces before checking for trailing quotes
+    trimmed = trimmed.trimEnd();
+
+    // Remove trailing quotes (including multiple consecutive quotes)
+    while (
+      trimmed.length > 0 &&
+      quoteChars.includes(trimmed[trimmed.length - 1])
+    ) {
+      trimmed = trimmed.slice(0, -1);
+    }
+
+    // Final trim to remove any remaining spaces
+    return trimmed.trim();
+  }
+
+  // Convert citations to numbered format if mapping is available
+  const displayQuote = $derived.by(() => {
+    const cleanedQuote = stripOuterQuotes(quote);
+    if (!citationMapping) return cleanedQuote;
+    return replaceWithNumberedCitations(cleanedQuote, citationMapping);
+  });
 </script>
 
 <section class="my-8 rounded-lg bg-[#F3F6FE] p-4 dark:bg-gray-700">
-    <div class="relative">
-        <Icon 
-            icon={getSectionIcon('quotes')} 
-            class="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-700 dark:text-gray-200" 
-            aria-hidden="true"
-        />
-        <blockquote class="text-lg text-black dark:text-white pl-10">
-            <CitationText text={displayCleanQuote} showFavicons={true} showNumbers={false} {articles} allArticles={articles} {citationMapping} />
-        </blockquote>
-    </div>
-	{#if author || attribution}
-		<p class="mt-2 text-left text-gray-700 dark:text-gray-300">
-			{#if sourceUrl}
-				<a
-					href={sourceUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-[#183FDC] hover:underline dark:text-[#5B89FF]"
-				>
-					{author}{attribution ? ` in the ${attribution}` : ''}{sourceDomain && !attribution ? ` (via ${sourceDomain})` : ''}
-				</a>
-			{:else}
-				<span>{author}{attribution ? ` in the ${attribution}` : ''}</span>
-			{/if}
-		</p>
-	{/if}
-</section> 
+  <!-- Quote text on first line -->
+  <p class="text-black dark:text-white mb-2 first-letter-capitalize">
+    <span class="italic">"</span>{#if sourceUrl}<a
+        href={sourceUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="underline text-black dark:text-white hover:text-[#183FDC] dark:hover:text-[#5B89FF] transition-colors"
+        ><CitationText
+          text={displayQuote}
+          showFavicons={true}
+          showNumbers={false}
+          {articles}
+          {citationMapping}
+        /></a
+      >{:else}<span class="underline"
+        ><CitationText
+          text={displayQuote}
+          showFavicons={true}
+          showNumbers={false}
+          {articles}
+          {citationMapping}
+        /></span
+      >{/if}<span class="italic">"</span>
+  </p>
+
+  <!-- Attribution information on second line -->
+  {#if author || attribution}
+    <p class="text-black dark:text-white text-sm">
+      {#if author && attribution}
+        <span>{author} - {attribution}</span>
+      {:else if attribution}
+        <span>{attribution}</span>
+      {:else if author}
+        <span>{author}</span>
+      {/if}
+    </p>
+  {/if}
+
+  {#if sourceDomain && !sourceUrl}
+    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+      (via {sourceDomain})
+    </p>
+  {/if}
+</section>
+
+<style>
+  :global(.first-letter-capitalize::first-letter) {
+    text-transform: uppercase;
+  }
+</style>
