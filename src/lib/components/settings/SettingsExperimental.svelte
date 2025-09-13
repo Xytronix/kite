@@ -96,25 +96,21 @@
     experimental.setFeatures({ showArticleIcons: true });
   }
 
-  // Dynamic text based on current style
+  // Dynamic text based on current style (localized)
   $: decorationType =
     styleMode === "icons"
-      ? "Icons"
+      ? s("common.icons")
       : styleMode === "emojis"
-        ? "Emojis"
-        : "Decorations";
-  $: headlineDescription =
-    styleMode === "icons"
-      ? "Show icons on story titles and article headlines."
-      : styleMode === "emojis"
-        ? "Show emojis on story titles and article headlines."
-        : "Show decorations on story titles and article headlines.";
-  $: categoryDescription =
-    styleMode === "icons"
-      ? "Show icons on category tags and filters."
-      : styleMode === "emojis"
-        ? "Show emojis on category tags and filters."
-        : "Show decorations on category tags and filters.";
+        ? s("common.emojis")
+        : s("settings.experimental.decorations");
+  $: headlineDescription = s(
+    "settings.experimental.headlineDescription",
+    { typeLower: decorationType.toLowerCase() },
+  );
+  $: categoryDescription = s(
+    "settings.experimental.categoryDescription",
+    { typeLower: decorationType.toLowerCase() },
+  );
 
   /** Apply current style to headlines/categories depending on toggle state */
   function applyStyleToTargets() {
@@ -182,7 +178,7 @@
         class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         <Icon icon="tabler:palette" class="mr-2 h-4 w-4" />
-        Decoration Style
+        {s("settings.experimental.decorationStyle.label")}
       </span>
     </div>
     <div
@@ -205,7 +201,7 @@
         class:dark:hover:bg-gray-700={styleMode !== "none"}
         aria-pressed={styleMode === "none"}
       >
-        None
+        {s("common.none")}
       </button>
       <button
         onclick={() => setVisualMode("icons")}
@@ -223,7 +219,7 @@
         class:dark:hover:bg-gray-700={styleMode !== "icons"}
         aria-pressed={styleMode === "icons"}
       >
-        Icons
+        {s("common.icons")}
       </button>
       <button
         onclick={() => setVisualMode("emojis")}
@@ -241,11 +237,11 @@
         class:dark:hover:bg-gray-700={styleMode !== "emojis"}
         aria-pressed={styleMode === "emojis"}
       >
-        Emojis
+        {s("common.emojis")}
       </button>
     </div>
     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-      Select visual decoration style for headlines and categories.
+      {s("settings.experimental.decorationStyle.description")}
     </p>
   </div>
 
@@ -258,7 +254,7 @@
           class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           <Icon icon="tabler:news" class="mr-2 h-4 w-4" />
-          Apply {decorationType} to Headlines
+          {s("settings.experimental.applyToHeadlines", { type: decorationType })}
         </label>
         <button
           id="toggle-headlines"
@@ -272,7 +268,7 @@
           aria-checked={headlinesOn}
         >
           <span class="sr-only"
-            >Toggle headlines {decorationType.toLowerCase()}</span
+            >{s("settings.experimental.toggleHeadlines", { typeLower: decorationType.toLowerCase() })}</span
           >
           <span
             class="inline-block h-4 w-4 transform rounded-full bg-white transition"
@@ -294,7 +290,7 @@
           class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           <Icon icon="tabler:tags" class="mr-2 h-4 w-4" />
-          Apply {decorationType} to Categories
+          {s("settings.experimental.applyToCategories", { type: decorationType })}
         </label>
         <button
           id="toggle-categories"
@@ -308,7 +304,7 @@
           aria-checked={categoriesOn}
         >
           <span class="sr-only"
-            >Toggle categories {decorationType.toLowerCase()}</span
+            >{s("settings.experimental.toggleCategories", { typeLower: decorationType.toLowerCase() })}</span
           >
           <span
             class="inline-block h-4 w-4 transform rounded-full bg-white transition"
@@ -467,7 +463,7 @@
         class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         <Icon icon="tabler:brand-tabler" class="mr-2 h-4 w-4" />
-        Prefer Iconify Icons Over Brand Logos
+        {s("settings.experimental.preferIconify.label")}
       </label>
       <button
         id="prefer-iconify"
@@ -480,7 +476,7 @@
         role="switch"
         aria-checked={experimental.preferIconifyIcons}
       >
-        <span class="sr-only">Prefer Iconify icons</span>
+        <span class="sr-only">{s("settings.experimental.preferIconify.srLabel")}</span>
         <span
           class="inline-block h-4 w-4 transform rounded-full bg-white transition"
           class:translate-x-6={experimental.preferIconifyIcons}
@@ -489,8 +485,7 @@
       </button>
     </div>
     <p class="text-xs text-gray-500 dark:text-gray-400">
-      Use consistent Iconify icons instead of brand-specific logo URLs for
-      source favicons.
+      {s("settings.experimental.preferIconify.description")}
     </p>
   </div>
 
@@ -535,7 +530,7 @@
         class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         <Icon icon="tabler:sitemap" class="mr-2 h-4 w-4" />
-        Source Icon Position
+        {s("settings.experimental.sourceIconPosition.label")}
       </span>
     </div>
     <div
@@ -559,7 +554,7 @@
           "none"}
         aria-pressed={experimental.sourceIconPosition === "none"}
       >
-        None
+        {s("common.none")}
       </button>
       <button
         onclick={() => setSourceIconPosition("inline")}
@@ -578,7 +573,7 @@
           "inline"}
         aria-pressed={experimental.sourceIconPosition === "inline"}
       >
-        Inline
+        {s("settings.experimental.sourceIconPosition.inline")}
       </button>
       <button
         onclick={() => setSourceIconPosition("section-end")}
@@ -602,7 +597,7 @@
           "section-end"}
         aria-pressed={experimental.sourceIconPosition === "section-end"}
       >
-        Section End
+        {s("settings.experimental.sourceIconPosition.sectionEnd")}
       </button>
       <button
         onclick={() => setSourceIconPosition("story-end")}
@@ -622,12 +617,11 @@
           "story-end"}
         aria-pressed={experimental.sourceIconPosition === "story-end"}
       >
-        Story End
+        {s("settings.experimental.sourceIconPosition.storyEnd")}
       </button>
     </div>
     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-      Control where source icons appear: none (disabled), inline with content,
-      at the end of each section, or only at the end of the story.
+      {s("settings.experimental.sourceIconPosition.description")}
     </p>
   </div>
 

@@ -67,6 +67,18 @@
     "text": "I understand",
     "translationContext": "Text for the I understand button"
   },
+  "common.none": {
+    "text": "None",
+    "translationContext": "Generic label for none option"
+  },
+  "common.icons": {
+    "text": "Icons",
+    "translationContext": "Generic label for icons option"
+  },
+  "common.emojis": {
+    "text": "Emojis",
+    "translationContext": "Generic label for emojis option"
+  },
   "about.why.description": {
     "text": "Driven by relentless ad monetization, news has <a class=\"text-blue-600 hover:underline dark:text-blue-400\" href=\"https://gwern.net/doc/culture/2010-dobelli.pdf\">become</a> mental junk food - an endless stream of clickbait that destroys our ability to think deeply and clearly. We can do better, and create what news should have been all along - pure, essential information that respects your intelligence and time.",
     "translationContext": "Description of why Kite exists, including HTML link"
@@ -2346,6 +2358,74 @@
   "settings.experimental.citations.label": {
     "text": "Show Source Citations",
     "translationContext": "Label for citations setting"
+  },
+  "settings.experimental.decorationStyle.label": {
+    "text": "Decoration Style",
+    "translationContext": "Header label for visual decoration style control"
+  },
+  "settings.experimental.decorationStyle.description": {
+    "text": "Select visual decoration style for headlines and categories.",
+    "translationContext": "Description for decoration style control"
+  },
+  "settings.experimental.decorations": {
+    "text": "Decorations",
+    "translationContext": "Generic label for decorations fallback"
+  },
+  "settings.experimental.applyToHeadlines": {
+    "text": "Apply {{type}} to Headlines",
+    "translationContext": "Label for applying chosen decoration type to headlines"
+  },
+  "settings.experimental.applyToCategories": {
+    "text": "Apply {{type}} to Categories",
+    "translationContext": "Label for applying chosen decoration type to categories"
+  },
+  "settings.experimental.toggleHeadlines": {
+    "text": "Toggle headlines {{typeLower}}",
+    "translationContext": "Screen-reader label for toggling headlines decoration"
+  },
+  "settings.experimental.toggleCategories": {
+    "text": "Toggle categories {{typeLower}}",
+    "translationContext": "Screen-reader label for toggling categories decoration"
+  },
+  "settings.experimental.headlineDescription": {
+    "text": "Show {{typeLower}} on story titles and article headlines.",
+    "translationContext": "Description adjusted per decoration type for headlines"
+  },
+  "settings.experimental.categoryDescription": {
+    "text": "Show {{typeLower}} on category tags and filters.",
+    "translationContext": "Description adjusted per decoration type for categories"
+  },
+  "settings.experimental.sourceIconPosition.label": {
+    "text": "Source Icon Position",
+    "translationContext": "Header label for source icon position control"
+  },
+  "settings.experimental.sourceIconPosition.inline": {
+    "text": "Inline",
+    "translationContext": "Option label for inline source icon position"
+  },
+  "settings.experimental.sourceIconPosition.sectionEnd": {
+    "text": "Section End",
+    "translationContext": "Option label for section end icon position"
+  },
+  "settings.experimental.sourceIconPosition.storyEnd": {
+    "text": "Story End",
+    "translationContext": "Option label for story end icon position"
+  },
+  "settings.experimental.sourceIconPosition.description": {
+    "text": "Control where source icons appear: none (disabled), inline with content, at the end of each section, or only at the end of the story.",
+    "translationContext": "Description for source icon position control"
+  },
+  "settings.experimental.preferIconify.label": {
+    "text": "Prefer Iconify Icons Over Brand Logos",
+    "translationContext": "Label for prefer iconify icons setting"
+  },
+  "settings.experimental.preferIconify.description": {
+    "text": "Use consistent Iconify icons instead of brand-specific logo URLs for source favicons.",
+    "translationContext": "Description for prefer iconify icons setting"
+  },
+  "settings.experimental.preferIconify.srLabel": {
+    "text": "Prefer Iconify icons",
+    "translationContext": "Screen-reader label for prefer iconify toggle"
   },
   "settings.experimental.disableCategorySwipe.description": {
     "text": "When enabled, horizontal swiping to change categories on mobile devices will be disabled.",
