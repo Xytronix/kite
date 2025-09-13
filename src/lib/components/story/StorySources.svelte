@@ -1,6 +1,6 @@
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
-  import FaviconImage from "$lib/components/common/FaviconImage.svelte";
+  import SmartImage from "$lib/components/SmartImage.svelte";
   import { dataService } from "$lib/services/dataService";
   import { dataLanguage } from "$lib/stores/dataLanguage.svelte";
   import type { MediaInfo } from "$lib/types";
@@ -140,11 +140,14 @@
           title={`Show articles from ${domain?.name || "Unknown"}`}
         >
           <div class="flex w-full min-w-0 items-center space-x-2">
-            <FaviconImage
+            <SmartImage
               domain={domain?.name || ""}
-              alt={domain?.name ? `${domain.name} Favicon` : "Default Favicon"}
-              class="h-5 w-5 rounded-full"
+              alt={domain?.name ? domain.name + " Favicon" : "Default Favicon"}
+              class="h-5 w-5"
+              size={24}
               loading="lazy"
+              addBackground={true}
+              backgroundMode="transparent-only"
             />
             <span class="truncate text-sm font-semibold">
               {domain?.name || "Unknown"}

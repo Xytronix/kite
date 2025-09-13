@@ -1,7 +1,7 @@
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
   import type { Article } from "$lib/types";
-  import { getFaviconUrl } from "$lib/utils/citationUtils";
+  import SmartImage from "$lib/components/SmartImage.svelte";
   import { getTimeAgo } from "$lib/utils/getTimeAgo";
 
   interface Props {
@@ -82,11 +82,14 @@
       [{item.number}]
     </span>
     <div class="flex items-center {spacingClasses} flex-1 min-w-0">
-      <img
-        src={getFaviconUrl(item.article.domain)}
-        alt="{item.article.domain} favicon"
-        class="{iconSizeClasses} rounded-full flex-shrink-0"
+      <SmartImage
+        domain={item.article.domain}
+        alt={(item.article.domain) + " favicon"}
+        class={iconSizeClasses + " flex-shrink-0"}
+        size={18}
         loading="lazy"
+        addBackground={true}
+        backgroundMode="transparent-only"
       />
       <span
         class="font-medium text-gray-700 dark:text-gray-300 truncate leading-none"

@@ -2,7 +2,7 @@
   import { s } from "$lib/client/localization.svelte";
   import type { Article } from "$lib/types";
   import type { CitationMapping } from "$lib/utils/citationContext";
-  import { getFaviconUrl } from "$lib/utils/citationUtils";
+  import SmartImage from "$lib/components/SmartImage.svelte";
   import type { ParsedTextSegment, Citation } from "$lib/utils/citationUtils";
   import CitationTooltip from "./CitationTooltip.svelte";
 
@@ -353,11 +353,14 @@
             style="z-index: {5 - index}"
             title={domain}
           >
-            <img
-              src={getFaviconUrl(domain)}
-              alt="{domain} favicon"
-              class="w-5 h-5 rounded-full"
+            <SmartImage
+              domain={domain}
+              alt={domain + " favicon"}
+              class="w-5 h-5"
+              size={24}
               loading="lazy"
+              addBackground={true}
+              backgroundMode="transparent-only"
             />
           </div>
         {/each}
@@ -385,12 +388,17 @@
           <div class="citation-item">
             [{index + 1}] {citation.domain}
             {#if citation.domain !== "common"}
-              <img
-                src={getFaviconUrl(citation.domain)}
-                alt="{citation.domain} favicon"
-                class="inline-block w-3 h-3 ml-1"
-                loading="lazy"
-              />
+              <span class="inline-block ml-1 align-middle">
+                <SmartImage
+                  domain={citation.domain}
+                  alt={citation.domain + " favicon"}
+                  class="w-3 h-3"
+                  size={18}
+                  loading="lazy"
+                  addBackground={true}
+                  backgroundMode="transparent-only"
+                />
+              </span>
             {/if}
           </div>
         {/each}

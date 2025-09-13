@@ -1,6 +1,6 @@
 <script lang="ts">
   import { s } from "$lib/client/localization.svelte";
-  import FaviconImage from "$lib/components/common/FaviconImage.svelte";
+  import SmartImage from "$lib/components/SmartImage.svelte";
   import { getTimeAgo } from "$lib/utils/getTimeAgo";
   import { scrollLock } from "$lib/utils/scrollLock.js";
   import {
@@ -199,12 +199,14 @@
       >
         <header class="mb-4 flex items-center justify-between">
           <div class="flex items-center space-x-2">
-            <FaviconImage
+            <SmartImage
               domain={currentSource?.name || ""}
-              alt={currentSource?.name
-                ? `${currentSource.name} favicon`
-                : "Generic favicon"}
-              class="h-6 w-6 rounded-full"
+              alt={currentSource?.name ? currentSource.name + " favicon" : "Generic favicon"}
+              class="h-6 w-6"
+              size={28}
+              loading="lazy"
+              addBackground={true}
+              backgroundMode="transparent-only"
             />
             <h3
               id="source-overlay-title"

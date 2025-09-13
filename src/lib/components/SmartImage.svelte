@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { getFaviconUrls, getIconifyIcon, getFaviconUrlSync, getIconifyIconSync, getFaviconUrlsSync, getLogoDevUrl, getLogoDevTickerUrl, getGoogleFaviconUrl } from '$lib/utils/citationUtils';
-	import IconDisplay from './IconDisplay.svelte';
+	import { getIconifyIcon, getIconifyIconSync, getLogoDevUrl, getGoogleFaviconUrl, getFaviconeUrl } from '$lib/utils/citationUtils';
 	import { experimental } from '$lib/stores/experimental.svelte.js';
-	import { iconService } from '$lib/services/iconService';
 	import Icon from '$lib/components/Icon.svelte';
 	import { debugInfo } from '$lib/utils/debugUtils';
 
@@ -89,10 +87,13 @@
 			}
 		}
 
-		// Check favicon cache
-		const cachedUrls = getFaviconUrlsSync(domain, size);
-		if (cachedUrls && cachedUrls.length > 0) {
-			return { type: 'favicon', list: cachedUrls };
+		// Build ordered favicon URL list: logo.dev → favicone → google s2
+		const logoUrl = getLogoDevUrl(domain);
+		const faviconeUrl = getFaviconeUrl(domain);
+		const googleUrl = getGoogleFaviconUrl(domain);
+		const ordered = [logoUrl, faviconeUrl, googleUrl].filter(Boolean) as string[];
+		if (ordered.length > 0) {
+			return { type: 'favicon', list: ordered };
 		}
 		return null;
 	});
@@ -198,8 +199,11 @@
 					imageUrls = [src, ...fallbackUrls];
 					showLoadingIndicator = false;
 				} else if (domain) {
-					// Cache miss - use centralized ordering from citationUtils
-					const urls = await getFaviconUrls(domain, size);
+					// Build ordered list: logo.dev → favicone → google s2
+					const logoUrl = getLogoDevUrl(domain);
+					const faviconeUrl = getFaviconeUrl(domain);
+					const googleUrl = getGoogleFaviconUrl(domain);
+					const urls = [logoUrl, faviconeUrl, googleUrl].filter(Boolean) as string[];
 					imageUrls = urls;
 					showLoadingIndicator = false; // try image before showing globe
 				} else if (fallbackUrls.length > 0) {

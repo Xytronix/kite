@@ -16,6 +16,28 @@ export interface ParsedTextSegment {
   citation?: Citation;
 }
 
+// Iconify helpers (declarations; implementation can leverage iconService at call site if needed)
+import { iconService } from "$lib/services/iconService";
+import { getDomainIcon } from "$lib/utils/iconPreloader";
+
+export function getIconifyIconSync(domain: string): string | null {
+  if (!domain) return null;
+  const iconName = getDomainIcon(domain);
+  if (!iconName) return null;
+  return iconService.isCached(iconName) ? iconName : null;
+}
+
+export async function getIconifyIcon(domain: string): Promise<string | null> {
+  if (!domain) return null;
+  const iconName = getDomainIcon(domain);
+  if (!iconName) return null;
+  if (iconService.isCached(iconName)) return iconName;
+  const exists = await iconService.checkIconExists(iconName);
+  if (!exists) return null;
+  await iconService.getIcon(iconName).catch(() => {});
+  return iconName;
+}
+
 /**
  * Parse text and extract citations in format [domain#position]
  */
@@ -135,9 +157,26 @@ export function extractDomainsFromCitations(citations: Citation[]): string[] {
  * Get favicon URL for a domain
  */
 export function getFaviconUrl(domain: string): string {
-  // Use favicone.com for high quality favicons (256x256)
-  // This provides much sharper icons when displayed at smaller sizes
+  // Prefer logo.dev SVG when available (crisp, monochrome-friendly), then Favicone HD, then Google s2
+  const logoDev = getLogoDevUrl(domain);
+  if (logoDev) return logoDev;
+  return getFaviconeUrl(domain);
+}
+
+export function getLogoDevUrl(domain: string): string | null {
+  if (!domain) return null;
+  // Basic host extraction; assume domain is a host
+  const host = domain.toLowerCase().trim();
+  // logo.dev uses the host directly; SVGs often exist for well-known brands
+  return `https://logo.dev/${host}.svg`;
+}
+
+export function getFaviconeUrl(domain: string): string {
   return `https://favicone.com/${domain}?s=256`;
+}
+
+export function getGoogleFaviconUrl(domain: string, size: number = 128): string {
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 }
 
 /**
