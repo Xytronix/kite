@@ -9,27 +9,27 @@
 		forceEmoji?: boolean; // when true, always render raw emoji, skip mapping
 	}
 
-	let { emoji, className = 'icon-lg', forceEmoji = false }: Props = $props();
+	const props: Props = $props();
 	
 	// Use forceEmoji to skip icon mapping when requested
-	const shouldUseIcon = $derived(!forceEmoji && emoji);
+	const shouldUseIcon = $derived(!props.forceEmoji && props.emoji);
 
 	// State for the fetched icon data
 	let iconData = $state<IconData | null>(null);
 	let loadingState = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-	const iconName = $derived(shouldUseIcon ? getIconName(emoji || '') : null);
+	const iconName = $derived(shouldUseIcon ? getIconName(props.emoji || '') : null);
 
 	// Map the provided className to the corresponding CSS variable so that
 	// emoji fallbacks scale consistently with SVG icons and global font size
 	const emojiSizeVar = $derived(() => {
-		const cls = className || '';
+		const cls = props.className || '';
 		if (cls.includes('icon-xl')) return 'var(--icon-xl)';
 		if (cls.includes('icon-lg')) return 'var(--icon-lg)';
 		if (cls.includes('icon-base')) return 'var(--icon-base)';
 		if (cls.includes('icon-sm')) return 'var(--icon-sm)';
 		if (cls.includes('icon-xs')) return 'var(--icon-xs)';
-		return 'var(--icon-lg)';
+		return 'var(--icon-base)';
 	});
 
 	// Compensate for visual size differences between icon libraries
@@ -47,6 +47,16 @@
 			default:
 				return 1;
 		}
+	});
+
+	// Provide a safe default size for SVGs when callers pass classes like
+	// `text-lg` without explicit width/height or `.icon-*` utilities. This avoids
+	// the browser default 300x150 SVG size causing oversized icons.
+	const fallbackSizeStyle = $derived(() => {
+		const cls = props.className || '';
+		const hasExplicitSize =
+			cls.includes('icon-') || cls.includes('w-') || cls.includes('h-') || cls.includes('size-');
+		return hasExplicitSize ? '' : 'width: 1em; height: 1em; display: inline-block;';
 	});
 
 	// Immediately check for cached icon on iconName change
@@ -111,27 +121,27 @@
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="{iconData.left} {iconData.top} {iconData.width} {iconData.height}"
-		class={className}
+		class={props.className}
 		aria-hidden="true"
 		role="img"
 		fill="currentColor"
-		style="transform: translateZ(0) scale({visualScale}); transform-origin: 50% 50%; overflow: visible; transform-box: fill-box;"
+		style="transform: translateZ(0) scale({visualScale}); transform-origin: 50% 50%; overflow: visible; transform-box: fill-box; {fallbackSizeStyle}"
 	>
 		{@html iconData.body}
 	</svg>
-{:else if emoji}
+{:else if props.emoji}
 	<!-- Show emoji immediately - no loading states, just emoji while icon loads -->
 	<span
-		class={className + ' inline-flex items-center justify-center text-center'}
+		class={(props.className || '') + ' inline-flex items-center justify-center text-center'}
 		style="font-size: {emojiSizeVar}; line-height: 1;"
-	>{emoji}</span>
+	>{props.emoji}</span>
 {:else}
 	<!-- Only show loading indicator if no emoji is available -->
 	<!-- Reserve space to avoid layout shift while loading -->
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"
-		class="{className} opacity-0"
+		class="{props.className} opacity-0"
 		aria-hidden="true"
 		role="img"
 	/>

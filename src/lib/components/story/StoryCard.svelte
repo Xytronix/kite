@@ -10,8 +10,9 @@
   import StorySectionManager from "./StorySectionManager.svelte";
 
   // Props
+  import type { Story } from "$lib/types";
   interface Props {
-    story: any;
+    story: Story;
     storyIndex?: number;
     batchId?: string;
     categoryId?: string;
@@ -20,9 +21,9 @@
     onToggle?: () => void;
     onReadToggle?: () => void;
     showSourceOverlay?: boolean;
-    currentSource?: any;
-    sourceArticles?: any[];
-    currentMediaInfo?: any;
+    currentSource?: unknown;
+    sourceArticles?: unknown[];
+    currentMediaInfo?: unknown;
     isLoadingMediaInfo?: boolean;
     priority?: boolean; // For high-priority stories (first few visible)
     isFiltered?: boolean;
@@ -116,8 +117,8 @@
         // Find the category element within this story for precise positioning
         const categoryElement = storyElement.querySelector(".category-label");
 
-        let rect;
-        let elementTop;
+        let rect: DOMRect;
+        let elementTop: number;
 
         if (categoryElement) {
           // Use the category element directly for most precise positioning

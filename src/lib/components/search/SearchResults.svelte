@@ -32,7 +32,7 @@
     onLoadMore?: () => void;
   }
 
-  let {
+  const {
     results,
     selectedIndex,
     isLoading,
@@ -81,7 +81,7 @@
   const filterTips = [
     {
       icon: IconTag,
-      color: "text-blue-500 dark:text-blue-400",
+      color: "text-gray-600 dark:text-gray-300",
       title: "category:",
       hint: "search.filter_category_hint",
       defaultHint: "Filter by news category (e.g., category:Technology)",
@@ -217,10 +217,10 @@
       // Add text before match
       result += text.slice(lastIndex, index);
       // Add highlighted match
-      result +=
-        '<mark class="bg-yellow-200 dark:bg-yellow-800">' +
-        text.slice(index, index + query.length) +
-        "</mark>";
+      result += `'<mark class="bg-yellow-200 dark:bg-yellow-800">${text.slice(
+        index,
+        index + query.length,
+      )}</mark>'`.slice(1, -1);
       lastIndex = index + query.length;
       index = lowerText.indexOf(lowerQuery, lastIndex);
     }
@@ -244,7 +244,7 @@
   function getSnippetWithHighlight(
     text: string,
     query: string,
-    maxLength: number = 150,
+    maxLength = 150,
   ): string {
     const cleanText = removeCitations(text);
 
@@ -283,8 +283,8 @@
       snippet = cleanText.slice(start, end);
 
       // Add ellipsis
-      if (start > 0) snippet = "..." + snippet;
-      if (end < cleanText.length) snippet = snippet + "...";
+      if (start > 0) snippet = `...${snippet}`;
+      if (end < cleanText.length) snippet = `${snippet}...`;
     }
 
     // Highlight the match
@@ -304,7 +304,7 @@
             class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
           >
             <div
-              class="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full"
+              class="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-400 rounded-full"
             ></div>
             {s("search.searching") || "Searching..."}
           </div>
@@ -326,7 +326,7 @@
             {/if}
             {#if query}
               {s("search.for") || "for"}
-              <span class="font-medium">"{query}"</span>
+              <span class="font-medium">{`"${query}"`}</span>
             {/if}
           </div>
         {/if}
@@ -344,7 +344,7 @@
             class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
           >
             <div
-              class="animate-spin w-3 h-3 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full"
+              class="animate-spin w-3 h-3 border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-400 rounded-full"
             ></div>
             {s("search.searching_historical") || "Searching historical..."}
           </div>
@@ -477,7 +477,7 @@
         <button
           class="w-full p-4 text-left border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 focus:bg-gray-50 dark:focus:bg-gray-800/50 focus:outline-none {index ===
           selectedIndex
-            ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-blue-500'
+            ? 'bg-gray-50 dark:bg-gray-800/40 border-l-2 border-l-gray-500'
             : ''}"
           onclick={() => handleResultClick(result)}
           onkeydown={(e) => handleResultKeyDown(e, result)}
@@ -490,7 +490,7 @@
               <div class="flex items-start gap-2 flex-1">
                 {#if result.story.emoji}
                   {#if experimental.showArticleIcons}
-                    <IconDisplay emoji={result.story.emoji} className="text-lg mt-0.5" />
+                    <IconDisplay emoji={result.story.emoji} className="icon-base mt-0.5" />
                   {:else}
                     <span class="text-lg mt-0.5">{result.story.emoji}</span>
                   {/if}
@@ -564,14 +564,14 @@
               class="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400"
             >
               <div
-                class="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full"
+                class="animate-spin w-4 h-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-400 rounded-full"
               ></div>
               {s("search.loading_more") || "Loading more results..."}
             </div>
           {:else}
             <button
               onclick={onLoadMore}
-              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
             >
               {s("search.load_more") || "Load more results"}
             </button>

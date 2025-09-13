@@ -26,7 +26,7 @@
     onSearchClick?: () => void;
   }
 
-  let {
+  const {
     totalReadCount = 0,
     totalStoriesRead = 0,
     offlineMode = false,
@@ -49,10 +49,13 @@
   const isMac =
     browser &&
     (("userAgentData" in navigator &&
-      (navigator as any).userAgentData?.platform === "macOS") ||
-      navigator.userAgent.toUpperCase().indexOf("MAC") >= 0);
+      (
+        (navigator as Navigator & { userAgentData?: { platform?: string } })
+          .userAgentData?.platform === "macOS"
+      )) ||
+      navigator.userAgent.toUpperCase().includes("MAC"));
   const searchTooltip = $derived(
-    s("header.search") + (isMac ? " (⌘K)" : " (Ctrl+K)"),
+    `${s("header.search")} ${isMac ? "(⌘K)" : "(Ctrl+K)"}`,
   );
 
   function handleLogoClick(event: MouseEvent) {
@@ -114,8 +117,8 @@
       return capitalizeFirst(dateStr);
     }
 
+    // Default date format
     if (dateClickCount === 0) {
-      // Default date format
       const now = new Date();
       const dateStr = new Intl.DateTimeFormat(language.current, {
         weekday: "long",
@@ -123,35 +126,46 @@
         day: "numeric",
       }).format(now);
       return capitalizeFirst(dateStr);
-    } else if (dateClickCount === 1) {
-      return getLastUpdated();
-    } else if (dateClickCount === 2) {
+    }
+    if (dateClickCount === 1) return getLastUpdated();
+    if (dateClickCount === 2)
       return (
         s("stats.newsToday", { count: totalReadCount.toString() }) ||
         `News today: ${totalReadCount}`
       );
-    } else if (dateClickCount === 3) {
-      const key =
-        totalStoriesRead === 1 ? "stats.storyRead" : "stats.storiesRead";
+    if (dateClickCount === 3) {
+      const key = totalStoriesRead === 1 ? "stats.storyRead" : "stats.storiesRead";
       return (
         s(key, { count: totalStoriesRead.toString() }) ||
         `Stories read: ${totalStoriesRead}`
       );
-    } else {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), 0, 1);
-      const week = Math.ceil(
-        (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7),
-      );
-      const day = Math.ceil(
-        (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      return (
-        s("stats.weekDay", { week: week.toString(), day: day.toString() }) ||
-        `Week ${week}, Day ${day}`
-      );
     }
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const week = Math.ceil(
+      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7),
+    );
+    const day = Math.ceil(
+      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return (
+      s("stats.weekDay", { week: week.toString(), day: day.toString() }) ||
+      `Week ${week}, Day ${day}`
+    );
   });
+
+  function exitTimeTravel() {
+    // Immediately reset time travel to give instant feedback
+    timeTravel.reset();
+    dataService.setTimeTravelBatch(null);
+
+    // Show loading state
+    isExitingTimeTravel = true;
+
+    dataReloadService.reloadData().finally(() => {
+      isExitingTimeTravel = false;
+    });
+  }
 </script>
 
 {#snippet dateSection()}
@@ -159,7 +173,7 @@
     <!-- Loading state when exiting time travel -->
     <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
       <div
-        class="animate-spin h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 dark:border-t-blue-400 rounded-full"
+        class="animate-spin h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-500 dark:border-t-gray-400 rounded-full"
       ></div>
       <span class="text-sm"
         >{s("timeTravel.returningToLive") || "Returning to live..."}</span
@@ -167,11 +181,11 @@
     </div>
   {:else if timeTravel.selectedDate}
     <div
-      class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg"
+      class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-lg"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        class="h-4 w-4 text-blue-600 dark:text-blue-400"
+        class="h-4 w-4 text-gray-700 dark:text-gray-300"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -183,31 +197,17 @@
           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <div class="text-sm font-medium text-blue-600 dark:text-blue-400">
+      <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
         {dateDisplay}
       </div>
       <button
-        onclick={async () => {
-          // Immediately reset time travel to give instant feedback
-          timeTravel.reset();
-          dataService.setTimeTravelBatch(null);
-
-          // Show loading state
-          isExitingTimeTravel = true;
-
-          try {
-            // Trigger a reload of the data
-            await dataReloadService.reloadData();
-          } finally {
-            isExitingTimeTravel = false;
-          }
-        }}
+        onclick={exitTimeTravel}
         class="ml-1 p-0.5"
         aria-label="Exit time travel mode"
         disabled={isExitingTimeTravel}
       >
         <svg
-          class="w-3 h-3 text-blue-600 dark:text-blue-400"
+          class="w-3 h-3 text-gray-700 dark:text-gray-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

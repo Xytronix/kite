@@ -59,6 +59,37 @@
 [x-cloak] {
   display: none !important;
 }
+.icon-xs,
+.icon-sm,
+.icon-base,
+.icon-lg,
+.icon-xl {
+  display: inline-block;
+  width: var(--icon-base, 1em);
+  height: var(--icon-base, 1em);
+}
+
+/* Size-specific overrides */
+.icon-xs {
+  width: var(--icon-xs, 0.75em);
+  height: var(--icon-xs, 0.75em);
+}
+.icon-sm {
+  width: var(--icon-sm, 0.875em);
+  height: var(--icon-sm, 0.875em);
+}
+.icon-base {
+  width: var(--icon-base, 1em);
+  height: var(--icon-base, 1em);
+}
+.icon-lg {
+  width: var(--icon-lg, 1.25em);
+  height: var(--icon-lg, 1.25em);
+}
+.icon-xl {
+  width: var(--icon-xl, 1.5em);
+  height: var(--icon-xl, 1.5em);
+}
 .story-image {
   max-width: 100%;
   height: auto;
@@ -202,6 +233,12 @@
   --color-focus: #3b82f6;
   --color-focus-offset: #ffffff;
   --timeline-bullet-size: 24px;
+  /* Icon sizing defaults */
+  --icon-xs: 0.75em;
+  --icon-sm: 0.875em;
+  --icon-base: 1em;
+  --icon-lg: 1.25em;
+  --icon-xl: 1.5em;
 }
 
 .timeline {

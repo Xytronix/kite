@@ -45,7 +45,7 @@
         id="show-article-icons"
         onclick={toggleArticleIcons}
         type="button"
-        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         class:bg-blue-600={experimental.showArticleIcons}
         class:bg-gray-200={!experimental.showArticleIcons}
         class:dark:bg-gray-600={!experimental.showArticleIcons}
@@ -83,7 +83,7 @@
         id="show-category-icons"
         onclick={toggleCategoryIcons}
         type="button"
-        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         class:bg-blue-600={experimental.showCategoryIcons}
         class:bg-gray-200={!experimental.showCategoryIcons}
         class:dark:bg-gray-600={!experimental.showCategoryIcons}
@@ -121,7 +121,7 @@
         id="disable-category-swipe"
         onclick={toggleDisableCategorySwipe}
         type="button"
-        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         class:bg-blue-600={experimental.disableCategorySwipe}
         class:bg-gray-200={!experimental.disableCategorySwipe}
         class:dark:bg-gray-600={!experimental.disableCategorySwipe}
@@ -159,7 +159,7 @@
         id="show-chaos-index"
         onclick={toggleChaosIndex}
         type="button"
-        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         class:bg-blue-600={experimental.showChaosIndex}
         class:bg-gray-200={!experimental.showChaosIndex}
         class:dark:bg-gray-600={!experimental.showChaosIndex}
@@ -196,7 +196,7 @@
         id="prefer-iconify-icons"
         onclick={togglePreferIconifyIcons}
         type="button"
-        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
         class:bg-blue-600={experimental.preferIconifyIcons}
         class:bg-gray-200={!experimental.preferIconifyIcons}
         class:dark:bg-gray-600={!experimental.preferIconifyIcons}

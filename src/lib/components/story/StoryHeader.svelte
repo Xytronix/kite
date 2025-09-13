@@ -9,15 +9,16 @@
   import IconDisplay from '$lib/components/IconDisplay.svelte';
 
   // Props
+  import type { Story } from "$lib/types";
   interface Props {
-    story: any;
+    story: Story;
     isRead?: boolean;
     onTitleClick?: () => void;
     onReadClick?: (e: Event) => void;
     citationMapping?: CitationMapping;
   }
 
-  let {
+  const {
     story,
     isRead = false,
     onTitleClick,
@@ -119,13 +120,14 @@
     >
       <svg
         class="h-6 w-6"
-        class:text-blue-500={isRead}
+        class:text-gray-500={isRead}
         class:text-gray-300={!isRead}
+        class:dark:text-gray-400={isRead}
         class:dark:text-gray-600={!isRead}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 19 19"
-        fill={isRead ? "#7BA3FF" : "currentColor"}
-        stroke={isRead ? "#427AFC" : "none"}
+        fill={isRead ? "currentColor" : "currentColor"}
+        stroke="none"
       >
         <path
           fill-rule="evenodd"
