@@ -1399,6 +1399,14 @@
         "text": "Show icons in category labels",
         "translationContext": "Label for category icons setting"
     },
+    "settings.experimental.preferIconifyIcons.label": {
+        "text": "Prefer Iconify icons for sources",
+        "translationContext": "Label for prefer Iconify icons toggle"
+    },
+    "settings.experimental.preferIconifyIcons.description": {
+        "text": "When available, show crisp, monochrome Iconify brand icons instead of website favicons.",
+        "translationContext": "Description for prefer Iconify icons toggle"
+    },
     "settings.experimental.chaosIndex.description": {
         "text": "Display a global temperature reading of world stability based on current events.",
         "translationContext": "Description for chaos index setting"
