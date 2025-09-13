@@ -49,9 +49,7 @@ export function parseTextWithCitations(text: string): ParsedTextSegment[] {
 
   const segments: ParsedTextSegment[] = [];
   let lastIndex = 0;
-  let match;
-
-  while ((match = citationPattern.exec(text)) !== null) {
+  for (const match of text.matchAll(citationPattern)) {
     // Add text before citation
     if (match.index > lastIndex) {
       segments.push({
@@ -91,7 +89,7 @@ export function parseTextWithCitations(text: string): ParsedTextSegment[] {
       });
     }
 
-    lastIndex = match.index + match[0].length;
+    lastIndex = (match.index || 0) + match[0].length;
   }
 
   // Add remaining text
@@ -125,7 +123,7 @@ export function formatCitationsAsNumbers(segments: ParsedTextSegment[]): {
         citationMap.set(citationId, citations.length);
       }
 
-      const citationNumber = citationMap.get(citationId)!;
+      const citationNumber = citationMap.get(citationId) as number;
 
       return {
         ...segment,
@@ -144,41 +142,14 @@ export function formatCitationsAsNumbers(segments: ParsedTextSegment[]): {
 export function extractDomainsFromCitations(citations: Citation[]): string[] {
   const domains = new Set<string>();
 
-  citations.forEach((citation) => {
+  for (const citation of citations) {
     if (citation.domain && citation.domain !== "common") {
       domains.add(citation.domain);
     }
-  });
+  }
 
   return Array.from(domains);
 }
-
-/**
- * Get favicon URL for a domain
- */
-export function getFaviconUrl(domain: string): string {
-  // Prefer logo.dev SVG when available (crisp, monochrome-friendly), then Favicone HD, then Google s2
-  const logoDev = getLogoDevUrl(domain);
-  if (logoDev) return logoDev;
-  return getFaviconeUrl(domain);
-}
-
-export function getLogoDevUrl(domain: string): string | null {
-  if (!domain) return null;
-  // Basic host extraction; assume domain is a host
-  const host = domain.toLowerCase().trim();
-  // logo.dev uses the host directly; SVGs often exist for well-known brands
-  return `https://logo.dev/${host}.svg`;
-}
-
-export function getFaviconeUrl(domain: string): string {
-  return `https://favicone.com/${domain}?s=256`;
-}
-
-export function getGoogleFaviconUrl(domain: string, size: number = 128): string {
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
-}
-
 /**
  * Remove all citations from text
  */

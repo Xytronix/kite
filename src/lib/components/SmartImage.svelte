@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getIconifyIcon, getIconifyIconSync, getLogoDevUrl, getGoogleFaviconUrl, getFaviconeUrl } from '$lib/utils/citationUtils';
+	import { getIconifyIcon, getIconifyIconSync } from '$lib/utils/citationUtils';
+	import { getLogoDevUrl, getGoogleFaviconUrl, getFaviconeUrl, getFaviconUrlsSync } from '$lib/utils/faviconService';
 	import { experimental } from '$lib/stores/experimental.svelte.js';
 	import Icon from '$lib/components/Icon.svelte';
 	import { debugInfo } from '$lib/utils/debugUtils';

@@ -1,4 +1,14 @@
 import { iconService } from '$lib/services/iconService';
+import { preloadCommonFavicons } from '$lib/utils/faviconService';
+
+declare global {
+  interface Window {
+    __common_icons_logged?: boolean;
+    __getMissingIconsReport?: () => ReturnType<typeof getMissingIconsReport>;
+    __getUnmappedEmojisReport?: () => { unmappedEmojis: string[]; count: number };
+    __checkUnmappedEmojis?: () => { unmappedEmojis: string[]; count: number };
+  }
+}
 
 // Comprehensive Emoji to Iconify Mapping (moved from IconDisplay)
 export const EMOJI_TO_ICONIFY: Record<string, string> = {
@@ -405,8 +415,8 @@ function isValidIconName(iconName: string): boolean {
  * Schedule a task when the browser is idle; fallback to setTimeout
  */
 function runWhenIdle(task: () => void): void {
-	if (typeof window !== 'undefined' && (window as any).requestIdleCallback) {
-		(window as any).requestIdleCallback(() => task());
+	if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+		(window as unknown as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback?.(() => task());
 	} else {
 		setTimeout(task, 0);
 	}
@@ -419,8 +429,8 @@ function runWhenIdle(task: () => void): void {
  */
 export function preloadIconsSafely(
 	icons: string[],
-	highPriority: boolean = false,
-	chunkSize: number = 50
+	highPriority = false,
+	chunkSize = 50
 ): void {
 	if (!icons || icons.length === 0) return;
 
@@ -461,15 +471,22 @@ export function getIconName(emoji: string): string | null {
 	const normalized = trimmed.replace(/[\uFE0E\uFE0F]/g, ''); // Remove variation selectors
 
 	// Check for direct mapping
-	let mapped = EMOJI_TO_ICONIFY[trimmed] || EMOJI_TO_ICONIFY[normalized] || null;
+	const mapped = EMOJI_TO_ICONIFY[trimmed] || EMOJI_TO_ICONIFY[normalized] || null;
 	if (mapped) return mapped;
 
 	// Programmatic mapping for flags
 	if (/^[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]$/.test(normalized)) {
-		const countryCode = [...normalized]
-			.map((char) => String.fromCodePoint(char.codePointAt(0)! - 0x1f1e6 + 0x61))
-			.join('');
-		return `circle-flags:${countryCode}`;
+		const codes: number[] = [];
+		for (const ch of [...normalized]) {
+			const cp = ch.codePointAt(0);
+			if (cp !== undefined) codes.push(cp);
+		}
+		if (codes.length === 2) {
+			const countryCode = codes
+				.map((cp) => String.fromCodePoint(cp - 0x1f1e6 + 0x61))
+				.join('');
+			return `circle-flags:${countryCode}`;
+		}
 	}
 
 	// Track unmapped emojis in development
@@ -484,10 +501,12 @@ export function getIconName(emoji: string): string | null {
 /**
  * Extract all emojis from story data and preload their icons
  */
-export function preloadStoryIcons(stories: any[], highPriority: boolean = false): void {
+type StoryLike = { emoji?: string; articles?: Array<{ emoji?: string }> };
+
+export function preloadStoryIcons(stories: StoryLike[], highPriority = false): void {
 	const iconsToPreload = new Set<string>();
 
-	stories.forEach(story => {
+	for (const story of stories) {
 		// Extract emojis from story
 		if (story.emoji) {
 			const iconName = getIconName(story.emoji);
@@ -498,16 +517,16 @@ export function preloadStoryIcons(stories: any[], highPriority: boolean = false)
 
 		// Extract emojis from articles if they have them
 		if (story.articles) {
-			story.articles.forEach((article: any) => {
+			for (const article of story.articles) {
 				if (article.emoji) {
 					const iconName = getIconName(article.emoji);
 					if (iconName) {
 						iconsToPreload.add(iconName);
 					}
 				}
-			});
+			}
 		}
-	});
+	}
 
 	// Preload all unique icons
 	if (iconsToPreload.size > 0) {
@@ -558,16 +577,16 @@ const DOMAIN_TO_ICON: Record<string, string> = {
 /**
  * Preload domain-specific icons from story sources
  */
-export function preloadSourceIcons(stories: any[]): void {
+export function preloadSourceIcons(stories: Array<{ articles?: Array<{ domain?: string }> }>): void {
 	const sourceIcons = new Set<string>();
 
 	// Always add fallback icons
 	sourceIcons.add('heroicons:newspaper');
 	sourceIcons.add('heroicons-outline:globe-alt');
 
-	stories.forEach(story => {
+	for (const story of stories) {
 		if (story.articles) {
-			story.articles.forEach((article: any) => {
+			for (const article of story.articles) {
 				if (article.domain) {
 					// Only add icons for domains we know exist
 					const knownIcon = DOMAIN_TO_ICON[article.domain.toLowerCase()];
@@ -575,9 +594,9 @@ export function preloadSourceIcons(stories: any[]): void {
 						sourceIcons.add(knownIcon);
 					}
 				}
-			});
+			}
 		}
-	});
+	}
 
 	if (sourceIcons.size > 2) { // More than just the fallbacks
 		preloadIconsSafely(Array.from(sourceIcons), false);
@@ -587,37 +606,36 @@ export function preloadSourceIcons(stories: any[]): void {
 /**
  * Preload citation icons and favicon data for a specific story (when story detail is opened)
  */
-export async function preloadStoryCitations(story: any): Promise<void> {
+export async function preloadStoryCitations(story: { articles?: Array<{ domain?: string }> }): Promise<void> {
 	if (!story || !story.articles) return;
 
 	const domains = new Set<string>();
 
 	// Extract all unique domains from the story's articles
-	story.articles.forEach((article: any) => {
+	for (const article of story.articles) {
 		if (article.domain) {
 			domains.add(article.domain);
 		}
-	});
+	}
 
 	if (domains.size === 0) return;
 
-	// Import the preload function from citationUtils
-	const { preloadCommonFavicons } = await import('$lib/utils/citationUtils');
-
-	// Create a fake category structure with just this story
-	const fakeCategories = { story: [story] };
+	// Create a fake category structure with just this story, matching expected type
+	const fakeCategories: Record<string, { articles?: { domain?: string }[] }> = {
+		story: { articles: (story.articles || []) as { domain?: string }[] }
+	};
 
 	// Preload all favicon data for these domains
 	await preloadCommonFavicons(fakeCategories, ['story']);
 
 	// Only preload icons for domains we know exist
 	const knownIcons = new Set<string>();
-	domains.forEach(domain => {
+	for (const domain of domains) {
 		const knownIcon = DOMAIN_TO_ICON[domain.toLowerCase()];
 		if (knownIcon) {
 			knownIcons.add(knownIcon);
 		}
-	});
+	}
 
 	// Always add fallbacks
 	knownIcons.add('heroicons:newspaper');
@@ -722,7 +740,7 @@ export function getMissingIconsReport(): {
 	};
 
 	// Generate suggestions for missing icons
-	report.missingIcons.forEach(iconName => {
+	for (const iconName of report.missingIcons) {
 		if (knownFixes[iconName]) {
 			suggestions.push({
 				original: iconName,
@@ -739,7 +757,7 @@ export function getMissingIconsReport(): {
 				});
 			}
 		}
-	});
+	}
 
 	return { report, suggestions };
 }
@@ -806,9 +824,9 @@ export function preloadCommonIcons(): void {
 	];
 
 	// Only log once at startup
-	if (import.meta.env.DEV && typeof window !== 'undefined' && !window.__common_icons_logged) {
+	if (import.meta.env.DEV && typeof window !== 'undefined' && !(window as Window & { __common_icons_logged?: boolean }).__common_icons_logged) {
 		console.log('🎨 Preloading common UI icons');
-		window.__common_icons_logged = true;
+		(window as Window & { __common_icons_logged?: boolean }).__common_icons_logged = true;
 	}
 	preloadIconsSafely(commonIcons, true); // High priority for UI icons
 }
@@ -831,9 +849,21 @@ export function getUnmappedEmojisReport(): {
 
 // Expose helper functions globally in development
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
-	(window as any).__getMissingIconsReport = getMissingIconsReport;
-	(window as any).__getUnmappedEmojisReport = getUnmappedEmojisReport;
-	(window as any).__checkUnmappedEmojis = () => {
+	(window as Window & {
+		__getMissingIconsReport?: typeof getMissingIconsReport;
+		__getUnmappedEmojisReport?: typeof getUnmappedEmojisReport;
+		__checkUnmappedEmojis?: () => { unmappedEmojis: string[]; count: number };
+	}).__getMissingIconsReport = getMissingIconsReport;
+	(window as Window & {
+		__getMissingIconsReport?: typeof getMissingIconsReport;
+		__getUnmappedEmojisReport?: typeof getUnmappedEmojisReport;
+		__checkUnmappedEmojis?: () => { unmappedEmojis: string[]; count: number };
+	}).__getUnmappedEmojisReport = getUnmappedEmojisReport;
+	(window as Window & {
+		__getMissingIconsReport?: typeof getMissingIconsReport;
+		__getUnmappedEmojisReport?: typeof getUnmappedEmojisReport;
+		__checkUnmappedEmojis?: () => { unmappedEmojis: string[]; count: number };
+	}).__checkUnmappedEmojis = () => {
 		const report = getUnmappedEmojisReport();
 		console.group('🚫 Unmapped Emojis Report');
 		console.log(`📊 Total unmapped emojis: ${report.count}`);

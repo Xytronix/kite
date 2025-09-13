@@ -18,6 +18,10 @@
   function toggleChaosIndex() {
     experimental.toggleFeature("showChaosIndex");
   }
+
+  function togglePreferIconifyIcons() {
+    experimental.toggleFeature("preferIconifyIcons");
+  }
 </script>
 
 <div class="space-y-6">
@@ -176,6 +180,41 @@
     <p class="text-xs text-gray-500 dark:text-gray-400">
       {s("settings.experimental.chaosIndex.description") ||
         "Display a global temperature reading of world stability based on current events."}
+    </p>
+  </div>
+
+  <!-- Prefer Iconify Icons -->
+  <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+    <div class="mb-2 flex items-center justify-between">
+      <label
+        for="prefer-iconify-icons"
+        class="text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        {s("settings.experimental.preferIconifyIcons.label") || "Prefer Iconify icons for sources"}
+      </label>
+      <button
+        id="prefer-iconify-icons"
+        onclick={togglePreferIconifyIcons}
+        type="button"
+        class="focus-visible-ring relative inline-flex h-6 w-11 items-center rounded-full transition"
+        class:bg-blue-600={experimental.preferIconifyIcons}
+        class:bg-gray-200={!experimental.preferIconifyIcons}
+        class:dark:bg-gray-600={!experimental.preferIconifyIcons}
+        role="switch"
+        aria-checked={experimental.preferIconifyIcons}
+      >
+        <span class="sr-only">
+          {s("settings.experimental.preferIconifyIcons.label") || "Prefer Iconify icons for sources"}
+        </span>
+        <span
+          class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+          class:translate-x-6={experimental.preferIconifyIcons}
+          class:translate-x-1={!experimental.preferIconifyIcons}
+        ></span>
+      </button>
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400">
+      {s("settings.experimental.preferIconifyIcons.description") || "When available, show crisp, monochrome Iconify brand icons instead of website favicons."}
     </p>
   </div>
 </div>

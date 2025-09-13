@@ -5,6 +5,8 @@ export interface ExperimentalFeatures {
   showCategoryIcons: boolean;
   disableCategorySwipe: boolean;
   showChaosIndex: boolean;
+  // Prefer Iconify domain icons over favicons when available
+  preferIconifyIcons: boolean;
 }
 
 const STORAGE_KEY = "kite-experimental-features";
@@ -14,6 +16,7 @@ const DEFAULT_FEATURES: ExperimentalFeatures = {
   showCategoryIcons: false,
   disableCategorySwipe: false,
   showChaosIndex: false,
+  preferIconifyIcons: true,
 };
 
 // Initialize experimental features state
@@ -72,6 +75,10 @@ export const experimental = {
 
   get showChaosIndex() {
     return experimentalState.showChaosIndex;
+  },
+
+  get preferIconifyIcons() {
+    return experimentalState.preferIconifyIcons;
   },
 
   toggleFeature(featureName: keyof ExperimentalFeatures) {

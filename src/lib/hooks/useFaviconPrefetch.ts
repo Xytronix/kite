@@ -4,7 +4,7 @@
  * Use this to prefetch favicons when you know which domains
  * will be displayed soon (e.g., when loading story data)
  */
-import { prefetchFavicons } from "$lib/services/faviconService";
+import { prefetchFavicons } from "$lib/utils/faviconService";
 import { onMount } from "svelte";
 
 /**
