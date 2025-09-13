@@ -3,7 +3,7 @@
 	import IconDisplay from './IconDisplay.svelte';
 	import { experimental } from '$lib/stores/experimental.svelte.js';
 	import { iconService } from '$lib/services/iconService';
-	import Icon from './Icon.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import { debugInfo } from '$lib/utils/debugUtils';
 
 	// Inline globe SVG for instant loading
